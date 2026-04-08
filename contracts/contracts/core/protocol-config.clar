@@ -51,3 +51,23 @@
 		active: bool
 	}
 )
+
+(define-private (is-owner (caller principal))
+	(or
+		(contract-call? .access-control has-role caller role-owner)
+		(is-eq caller (contract-call? .access-control get-owner))
+	)
+)
+
+(define-private (assert-owner)
+	(asserts! (is-owner tx-sender) err-owner-only)
+)
+
+(define-private (bump-config-version)
+	(let ((next-version (+ (var-get config-version) u1)))
+		(begin
+			(var-set config-version next-version)
+			next-version
+		)
+	)
+)
