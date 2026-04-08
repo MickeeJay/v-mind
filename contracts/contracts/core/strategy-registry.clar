@@ -64,6 +64,11 @@
   }
 )
 
+(define-map strategy-ids-by-type
+  { strategy-type: uint }
+  { strategy-ids: (list 200 uint) }
+)
+
 (define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
   (let ((strategy-id (var-get next-strategy-id)))
     (begin
