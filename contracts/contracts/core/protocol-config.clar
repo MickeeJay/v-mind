@@ -113,6 +113,27 @@
 	)
 )
 
+(define-public (set-minimum-deposit-microstx (new-minimum-deposit uint))
+	(begin
+		(try! (assert-owner))
+		(asserts! (> new-minimum-deposit u0) err-invalid-minimum-deposit)
+		(asserts! (<= new-minimum-deposit max-minimum-deposit-microstx) err-invalid-minimum-deposit)
+		(var-set minimum-deposit-microstx new-minimum-deposit)
+		(let ((next-version (bump-config-version)))
+			(begin
+				(print {
+					event: "config-updated",
+					parameter: "minimum-deposit-microstx",
+					value: new-minimum-deposit,
+					version: next-version,
+					caller: tx-sender
+				})
+				(ok new-minimum-deposit)
+			)
+		)
+	)
+)
+
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
 )
