@@ -196,6 +196,8 @@
 		)
 	)
 
+)
+
 	(define-public (add-supported-asset
 		(asset-contract principal)
 		(symbol (string-ascii 16))
@@ -434,7 +436,6 @@
 			)
 		)
 	)
-)
 
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
