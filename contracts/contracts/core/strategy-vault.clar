@@ -179,3 +179,46 @@
     )
   )
 )
+
+(define-public (withdraw (vault-id uint) (amount uint))
+  (begin
+    (asserts! (> amount u0) err-invalid-amount)
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (try! (assert-vault-owner (get vault-owner vault-entry)))
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
+          (asserts! (>= (get total-assets vault-entry) amount) err-insufficient-balance)
+          (let ((updated-assets (- (get total-assets vault-entry) amount)))
+            (begin
+              (map-set vaults
+                { vault-id: vault-id }
+                {
+                  vault-owner: (get vault-owner vault-entry),
+                  asset-contract: (get asset-contract vault-entry),
+                  total-assets: updated-assets,
+                  strategy-id: (get strategy-id vault-entry),
+                  created-at-block: (get created-at-block vault-entry),
+                  last-execution-block: (get last-execution-block vault-entry),
+                  vault-status: (get vault-status vault-entry),
+                  cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+                  execution-locked: (get execution-locked vault-entry)
+                }
+              )
+              (print {
+                event: "vault-withdrawal",
+                vault-id: vault-id,
+                withdrawer: tx-sender,
+                amount: amount,
+                total-assets: updated-assets,
+                full-withdrawal: (is-eq updated-assets u0)
+              })
+              (ok amount)
+            )
+          )
+        )
+      err-vault-not-found
+    )
+  )
+)
