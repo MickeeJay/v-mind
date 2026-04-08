@@ -8,6 +8,7 @@
 ;; - role-owner: Role ID for super-admin controls.
 ;; - role-operator: Role ID for strategy operators.
 ;; - role-guardian: Role ID for emergency pause guardians.
+;; - role-strategy-registrar: Role ID for principals allowed to register and manage strategies.
 ;; - err-owner-only: Returned when caller is not current owner.
 ;; - err-not-implemented: Returned by scaffolded mutating functions pending implementation.
 ;; @data-vars
@@ -29,6 +30,7 @@
 (define-constant role-owner u1)
 (define-constant role-operator u2)
 (define-constant role-guardian u3)
+(define-constant role-strategy-registrar u4)
 (define-constant err-owner-only (err u2000))
 (define-constant err-not-implemented (err u2999))
 
