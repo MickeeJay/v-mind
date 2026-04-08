@@ -399,3 +399,36 @@
     err-vault-not-found
   )
 )
+
+(define-public (unlock-vault-after-execution (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry
+      (begin
+        (asserts! (get execution-locked vault-entry) err-vault-not-active)
+        (try! (assert-strategy-executor (get strategy-id vault-entry)))
+        (map-set vaults
+          { vault-id: vault-id }
+          {
+            vault-owner: (get vault-owner vault-entry),
+            asset-contract: (get asset-contract vault-entry),
+            total-assets: (get total-assets vault-entry),
+            strategy-id: (get strategy-id vault-entry),
+            created-at-block: (get created-at-block vault-entry),
+            last-execution-block: block-height,
+            vault-status: (get vault-status vault-entry),
+            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+            execution-locked: false
+          }
+        )
+        (print {
+          event: "vault-execution-unlocked",
+          vault-id: vault-id,
+          strategy-id: (get strategy-id vault-entry),
+          caller: tx-sender,
+          unlocked-at-block: block-height
+        })
+        (ok true)
+      )
+    err-vault-not-found
+  )
+)
