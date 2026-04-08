@@ -7,6 +7,81 @@ cache_dir = "./.cache"
 requirements = []
 boot_contracts = []
 
+[contracts.error-codes-lib]
+path = "contracts/libraries/error-codes-lib.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.constants-lib]
+path = "contracts/libraries/constants-lib.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-accounting-lib]
+path = "contracts/libraries/vault-accounting-lib.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-validation-lib]
+path = "contracts/libraries/strategy-validation-lib.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-trait]
+path = "contracts/traits/strategy-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-token-trait]
+path = "contracts/traits/vault-token-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.protocol-adapter-trait]
+path = "contracts/traits/protocol-adapter-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.access-control]
+path = "contracts/core/access-control.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.protocol-config]
+path = "contracts/core/protocol-config.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-registry]
+path = "contracts/core/strategy-registry.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-registry]
+path = "contracts/core/vault-registry.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-vault]
+path = "contracts/core/strategy-vault.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.mock-strategy]
+path = "contracts/mocks/mock-strategy.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.mock-vault-token]
+path = "contracts/mocks/mock-vault-token.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.mock-protocol-adapter]
+path = "contracts/mocks/mock-protocol-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.v-mind-core]
 path = "contracts/v-mind-core.clar"
 clarity_version = 2
