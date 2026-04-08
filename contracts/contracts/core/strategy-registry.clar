@@ -48,6 +48,7 @@
 
 (define-data-var registry-owner principal tx-sender)
 (define-data-var next-strategy-id uint u1)
+(define-data-var total-registered-strategies uint u0)
 
 (define-map strategies
   { strategy-id: uint }
