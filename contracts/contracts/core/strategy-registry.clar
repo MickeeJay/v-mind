@@ -278,6 +278,10 @@
   )
 )
 
-(define-read-only (get-strategy (strategy-id uint))
+(define-read-only (get-strategy-by-id (strategy-id uint))
   (map-get? strategies { strategy-id: strategy-id })
+)
+
+(define-read-only (get-strategy (strategy-id uint))
+  (get-strategy-by-id strategy-id)
 )
