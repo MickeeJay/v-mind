@@ -424,3 +424,205 @@ The repository includes pre-commit hooks that scan for:
 
 ---
 
+## Troubleshooting
+
+### Common Issues
+
+#### "Missing required environment variable"
+
+**Error:**
+\\\
+EnvError: Missing required environment variable: "STACKS_PRIVATE_KEY"
+\\\
+
+**Solution:**
+1. Check \.env\ file exists in workspace
+2. Verify variable name spelling (case-sensitive)
+3. Ensure no quotes around values (unless value contains spaces)
+4. Restart application after changes
+
+#### "Invalid environment variable format"
+
+**Error:**
+\\\
+EnvError: Invalid url: "STACKS_NODE_URL"
+\\\
+
+**Solution:**
+1. Check URL format (must include protocol: \http://\ or \https://\)
+2. Remove trailing slashes
+3. Verify no extra spaces
+
+Example:
+\\\ash
+# Wrong
+STACKS_NODE_URL=api.testnet.hiro.so
+
+# Correct
+STACKS_NODE_URL=https://api.testnet.hiro.so
+\\\
+
+#### "Next.js can't find NEXT_PUBLIC_ variable"
+
+**Problem:**
+Variable is undefined in browser but exists in \.env.local\.
+
+**Solution:**
+1. Verify variable starts with \NEXT_PUBLIC_\
+2. Restart Next.js dev server (\
+pm run dev\)
+3. Clear \.next\ cache: \m -rf .next\
+4. Rebuild: \
+pm run build\
+
+#### ".env file not loaded"
+
+**Checklist:**
+- [ ] File named exactly \.env\ (not \nv.txt\ or \.env.txt\)
+- [ ] File in correct workspace directory
+- [ ] No BOM (Byte Order Mark) at start of file
+- [ ] Use UTF-8 encoding
+- [ ] Application restarted after creating/editing
+
+#### "Permission denied" on .env file
+
+\\\ash
+# Fix file permissions (Unix/Mac)
+chmod 600 .env
+
+# Windows: Remove inherited permissions
+# Right-click → Properties → Security → Advanced
+\\\
+
+### Validation Testing
+
+#### Test Agent Validation
+
+\\\ash
+cd agent
+
+# Remove a required variable temporarily
+# Edit .env and comment out STACKS_PRIVATE_KEY
+
+# Try to start
+npm run dev
+
+# Should see clear error:
+# "Missing required environment variable: STACKS_PRIVATE_KEY"
+\\\
+
+#### Test Web Validation
+
+\\\ash
+cd web
+
+# Remove a required variable
+# Edit .env.local and remove NEXT_PUBLIC_DEPLOYER_ADDRESS
+
+# Try to build
+npm run build
+
+# Should fail with clear error message
+\\\
+
+### Getting Help
+
+#### Check Environment Status
+
+\\\ash
+# Agent
+cd agent
+npm run dev
+# Watch startup logs for validation results
+
+# Web
+cd web
+npm run build
+# Check build output for validation results
+\\\
+
+#### Verify Files Exist
+
+\\\ash
+# List environment files
+ls -la agent/.env*
+ls -la web/.env*
+ls -la contracts/.env*
+
+# Should see:
+# .env.example (committed)
+# .env or .env.local (gitignored)
+\\\
+
+#### Check Git Status
+
+\\\ash
+git status
+
+# .env files should NOT appear
+# If they do, they're not gitignored correctly
+\\\
+
+---
+
+## Environment Variables Checklist
+
+Use this checklist when setting up a new environment:
+
+### Agent Workspace
+- [ ] \gent/.env\ created from \.env.example\
+- [ ] \STACKS_DEPLOYER_ADDRESS\ set
+- [ ] \STACKS_PRIVATE_KEY\ set (testnet key for dev)
+- [ ] \AI_INFERENCE_API_URL\ set
+- [ ] \AI_INFERENCE_API_KEY\ set
+- [ ] \DATABASE_URL\ set
+- [ ] \JWT_SECRET\ generated (32+ chars)
+- [ ] \
+pm run dev\ starts without errors
+
+### Web Workspace
+- [ ] \web/.env.local\ created from \.env.example\
+- [ ] \NEXT_PUBLIC_DEPLOYER_ADDRESS\ matches agent
+- [ ] \NEXT_PUBLIC_API_BASE_URL\ points to agent
+- [ ] \
+pm run build\ succeeds
+
+### Contracts Workspace
+- [ ] \contracts/.env\ created from \.env.example\
+- [ ] \DEPLOYER_MNEMONIC\ or \DEPLOYER_PRIVATE_KEY\ set
+- [ ] \DEPLOYER_ADDRESS\ matches mnemonic
+- [ ] \clarinet check\ succeeds
+
+### Security
+- [ ] No \.env\ files in \git status\
+- [ ] All sensitive values are placeholder in \.example\ files
+- [ ] File permissions restricted (600 on Unix)
+- [ ] Pre-commit hooks installed
+- [ ] No secrets in commit history
+
+---
+
+## Summary
+
+✅ **Do:**
+- Use \.env.example\ templates
+- Keep secrets in \.env\ files (gitignored)
+- Use testnet for development
+- Rotate secrets regularly
+- Enable validation
+- Monitor for leaks
+
+❌ **Don't:**
+- Commit \.env\ files
+- Share secrets in chat/email
+- Use production keys in development
+- Bypass pre-commit hooks
+- Store secrets in code
+- Reuse secrets across environments
+
+---
+
+**For additional help, see:**
+- [Security Policy](../SECURITY.md)
+- [Project README](../README.md)
+- [Monorepo Setup Guide](../MONOREPO-SETUP.md)
