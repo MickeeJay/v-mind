@@ -86,6 +86,13 @@
   )
 )
 
+(define-private (is-strategy-registrar (caller principal))
+  (or
+    (contract-call? .access-control has-role caller role-strategy-registrar)
+    (is-eq caller (contract-call? .access-control get-owner))
+  )
+)
+
 (define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
   (let ((strategy-id (var-get next-strategy-id)))
     (begin
