@@ -306,3 +306,121 @@ clarinet check
 
 ---
 
+## Security Best Practices
+
+### Critical Rules
+
+#### 🚨 NEVER Commit Secrets
+
+**NEVER commit these files:**
+- \gent/.env\
+- \web/.env.local\
+- \contracts/.env\
+- Any file containing real credentials
+
+**ALWAYS commit templates:**
+- \gent/.env.example\
+- \web/.env.example\
+- \contracts/.env.example\
+
+#### 🔒 Sensitive Variables
+
+These variables are **EXTREMELY SENSITIVE**:
+
+| Variable | Risk | Protection |
+|----------|------|------------|
+| \STACKS_PRIVATE_KEY\ | Full account control | Never share, rotate if exposed |
+| \DEPLOYER_MNEMONIC\ | Full wallet access | Hardware wallet preferred |
+| \DATABASE_URL\ | Data access | Use connection pooling, SSL |
+| \JWT_SECRET\ | Authentication bypass | Strong random, rotate regularly |
+| \AI_INFERENCE_API_KEY\ | API abuse | Monitor usage, set limits |
+
+### Environment File Security
+
+#### File Permissions
+
+\\\ash
+# Restrict access to .env files (Unix/Mac)
+chmod 600 agent/.env
+chmod 600 web/.env.local
+chmod 600 contracts/.env
+
+# Verify gitignore
+git status
+# Should NOT show .env files
+\\\
+
+#### Encryption at Rest
+
+For production secrets:
+
+1. **Use Secret Management Services:**
+   - AWS Secrets Manager
+   - HashiCorp Vault
+   - Azure Key Vault
+   - GCP Secret Manager
+
+2. **Never store secrets in:**
+   - Source code
+   - Docker images
+   - CI/CD logs
+   - Error messages
+   - Git history
+
+### Development vs Production
+
+#### Development
+- Use testnet for all blockchain operations
+- Use separate API keys with low limits
+- Use test databases
+- Enable verbose logging
+
+#### Production
+- Use mainnet with caution
+- Rotate secrets regularly
+- Use managed secret storage
+- Enable monitoring and alerts
+- Disable debug logging
+
+### Incident Response
+
+#### If Secrets Are Exposed
+
+1. **Immediate Actions:**
+   \\\ash
+   # 1. Rotate the compromised secret immediately
+   # 2. Check for unauthorized access
+   # 3. Review audit logs
+   \\\
+
+2. **Stacks Private Key Exposed:**
+   - Transfer all funds to new address immediately
+   - Generate new wallet
+   - Update all configurations
+   - Review transaction history
+
+3. **Database Credentials Exposed:**
+   - Change database password
+   - Review access logs
+   - Check for data exfiltration
+   - Audit recent queries
+
+4. **API Keys Exposed:**
+   - Revoke compromised keys
+   - Generate new keys
+   - Monitor for unauthorized usage
+   - Review billing for abuse
+
+### Pre-Commit Protection
+
+The repository includes pre-commit hooks that scan for:
+
+- Private key patterns (64 hex characters)
+- Mnemonic phrases (12/24 word sequences)
+- API key formats
+- Hardcoded credentials
+
+**Never bypass with \--no-verify\ unless absolutely necessary.**
+
+---
+
