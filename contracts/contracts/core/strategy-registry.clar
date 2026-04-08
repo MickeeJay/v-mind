@@ -296,3 +296,10 @@
 (define-read-only (get-total-strategies)
   (var-get total-registered-strategies)
 )
+
+(define-read-only (list-strategies-by-type (strategy-type uint))
+  (match (map-get? strategy-ids-by-type { strategy-type: strategy-type })
+    strategy-index (get strategy-ids strategy-index)
+    (list)
+  )
+)
