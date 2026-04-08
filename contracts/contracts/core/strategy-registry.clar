@@ -292,3 +292,7 @@
     false
   )
 )
+
+(define-read-only (get-total-strategies)
+  (var-get total-registered-strategies)
+)
