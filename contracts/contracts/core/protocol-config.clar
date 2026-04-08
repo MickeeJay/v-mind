@@ -264,6 +264,83 @@
 			err-asset-not-supported
 		)
 	)
+
+	(define-public (set-fee-override (override-key (string-ascii 32)) (fee-rate-bps uint))
+		(begin
+			(try! (assert-owner))
+			(asserts! (> (len override-key) u0) err-invalid-override-key)
+			(asserts! (<= (len override-key) max-override-key-length) err-invalid-override-key)
+			(asserts! (<= fee-rate-bps max-performance-fee-bps) err-invalid-fee-rate)
+			(map-set fee-overrides
+				{ override-key: override-key }
+				{
+					fee-rate-bps: fee-rate-bps,
+					active: true
+				}
+			)
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "fee-override-updated",
+						override-key: override-key,
+						fee-rate-bps: fee-rate-bps,
+						active: true,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok true)
+				)
+			)
+		)
+	)
+
+	(define-public (remove-fee-override (override-key (string-ascii 32)))
+		(begin
+			(try! (assert-owner))
+			(asserts! (is-some (map-get? fee-overrides { override-key: override-key })) err-override-not-found)
+			(map-delete fee-overrides { override-key: override-key })
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "fee-override-removed",
+						override-key: override-key,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok true)
+				)
+			)
+		)
+	)
+
+	(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
+		(match (map-get? fee-overrides { override-key: override-key })
+			override-entry
+				(begin
+					(try! (assert-owner))
+					(map-set fee-overrides
+						{ override-key: override-key }
+						{
+							fee-rate-bps: (get fee-rate-bps override-entry),
+							active: active
+						}
+					)
+					(let ((next-version (bump-config-version)))
+						(begin
+							(print {
+								event: "fee-override-status-updated",
+								override-key: override-key,
+								active: active,
+								version: next-version,
+								caller: tx-sender
+							})
+							(ok true)
+						)
+					)
+				)
+			err-override-not-found
+		)
+	)
 )
 
 (define-read-only (get-protocol-performance-fee-bps)
