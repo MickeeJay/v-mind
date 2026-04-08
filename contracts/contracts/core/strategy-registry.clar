@@ -233,21 +233,44 @@
   )
 )
 
-(define-public (update-strategy-metadata (strategy-id uint) (metadata-uri (string-ascii 256)) (risk-score uint))
+(define-public
+  (update-strategy-metadata
+    (strategy-id uint)
+    (strategy-name (string-ascii 64))
+    (target-protocol principal)
+    (risk-tier uint)
+    (authorized-executor principal)
+  )
   (begin
-    (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
+    (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
           (map-set strategies
             { strategy-id: strategy-id }
             {
-              strategy-contract: (get strategy-contract strategy-entry),
-              enabled: (get enabled strategy-entry),
-              metadata-uri: metadata-uri,
-              risk-score: risk-score
+              strategy-name: strategy-name,
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: target-protocol,
+              risk-tier: risk-tier,
+              authorized-executor: authorized-executor,
+              active: (get active strategy-entry),
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
             }
           )
+          (print {
+            event: "strategy-metadata-updated",
+            strategy-id: strategy-id,
+            strategy-name: strategy-name,
+            target-protocol: target-protocol,
+            risk-tier: risk-tier,
+            authorized-executor: authorized-executor,
+            block-height: block-height,
+            caller: tx-sender
+          })
           (ok true)
         )
       err-not-found
