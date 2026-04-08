@@ -117,18 +117,37 @@
   )
 )
 
-(define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
-  (let ((strategy-id (var-get next-strategy-id)))
+(define-public
+  (register-strategy
+    (strategy-name (string-ascii 64))
+    (strategy-type uint)
+    (target-protocol principal)
+    (risk-tier uint)
+    (authorized-executor principal)
+  )
+  (let
+    (
+      (strategy-id (var-get next-strategy-id))
+      (current-block block-height)
+    )
     (begin
-      (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+      (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+      (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
+      (asserts! (is-valid-strategy-type strategy-type) err-invalid-strategy-type)
+      (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
       (asserts! (is-none (map-get? strategies { strategy-id: strategy-id })) err-already-registered)
+      (try! (append-strategy-id-by-type strategy-type strategy-id))
       (map-set strategies
         { strategy-id: strategy-id }
         {
-          strategy-contract: strategy-contract,
-          enabled: true,
-          metadata-uri: metadata-uri,
-          risk-score: risk-score
+          strategy-name: strategy-name,
+          strategy-type: strategy-type,
+          target-protocol: target-protocol,
+          risk-tier: risk-tier,
+          authorized-executor: authorized-executor,
+          active: true,
+          created-at-block: current-block,
+          last-updated-block: current-block
         }
       )
       (var-set next-strategy-id (+ strategy-id u1))
