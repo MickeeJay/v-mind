@@ -95,3 +95,11 @@
 (define-read-only (get-config-version)
 	(var-get config-version)
 )
+
+(define-read-only (get-supported-asset (asset-contract principal))
+	(map-get? supported-assets { asset-contract: asset-contract })
+)
+
+(define-read-only (get-fee-override (override-key (string-ascii 32)))
+	(map-get? fee-overrides { override-key: override-key })
+)
