@@ -350,7 +350,7 @@
                 strategy-id: (get strategy-id vault-entry),
                 created-at-block: (get created-at-block vault-entry),
                 last-execution-block: (get last-execution-block vault-entry),
-                vault-status: (get vault-status vault-entry),
+                vault-status: (if (is-eq (get vault-status vault-entry) vault-status-closed) vault-status-closed vault-status-paused),
                 cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
                 execution-locked: false
               }
