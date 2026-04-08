@@ -32,6 +32,10 @@
 (define-constant strategy-type-dca u3)
 (define-constant strategy-type-exit u4)
 
+(define-constant risk-tier-conservative u1)
+(define-constant risk-tier-moderate u2)
+(define-constant risk-tier-aggressive u3)
+
 (define-data-var registry-owner principal tx-sender)
 (define-data-var next-strategy-id uint u1)
 
