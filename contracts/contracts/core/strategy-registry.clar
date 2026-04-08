@@ -23,7 +23,6 @@
 ;; @limitations
 ;; - Strategy contract trait compliance checks are not yet enforced in this scaffold.
 
-(define-constant err-owner-only (err u2200))
 (define-constant err-already-registered (err u2201))
 (define-constant err-not-found (err u2202))
 
@@ -46,7 +45,6 @@
 (define-constant risk-tier-moderate u2)
 (define-constant risk-tier-aggressive u3)
 
-(define-data-var registry-owner principal tx-sender)
 (define-data-var next-strategy-id uint u1)
 (define-data-var total-registered-strategies uint u0)
 
