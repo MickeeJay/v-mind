@@ -4,6 +4,19 @@
 ;; @notice Single source of truth for protocol-level parameters and risk limits.
 ;; @dev All mutating methods are intended to be owner-gated through access-control.
 ;; @contract protocol-config
+;; @data-vars
+;; - protocol-performance-fee-bps
+;; - max-active-vaults-per-user
+;; - minimum-deposit-microstx
+;; - max-strategy-rebalance-frequency-blocks
+;; - protocol-treasury
+;; - config-version
+;; @maps
+;; - supported-assets
+;; - fee-overrides
+;; - whitelisted-strategy-types
+;; @documentation
+;; - contracts/docs/configuration-changelog.md
 
 (define-constant bps-denominator u10000)
 (define-constant max-performance-fee-bps u2000)
