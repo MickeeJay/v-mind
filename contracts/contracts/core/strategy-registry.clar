@@ -78,6 +78,14 @@
   )
 )
 
+(define-private (is-valid-risk-tier (risk-tier uint))
+  (or
+    (is-eq risk-tier risk-tier-conservative)
+    (is-eq risk-tier risk-tier-moderate)
+    (is-eq risk-tier risk-tier-aggressive)
+  )
+)
+
 (define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
   (let ((strategy-id (var-get next-strategy-id)))
     (begin
