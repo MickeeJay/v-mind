@@ -52,3 +52,42 @@
     (is-eq caller (contract-call? .access-control get-owner))
   )
 )
+
+(define-private (assert-protocol-owner)
+  (if (is-protocol-owner tx-sender)
+    (ok true)
+    err-protocol-owner-only
+  )
+)
+
+(define-private (assert-vault-owner (owner principal))
+  (if (is-eq tx-sender owner)
+    (ok true)
+    err-owner-only
+  )
+)
+
+(define-private (assert-strategy-active (strategy-id uint))
+  (match (contract-call? .strategy-registry get-strategy-by-id strategy-id)
+    strategy-entry
+      (if (contract-call? .strategy-registry is-strategy-active strategy-id)
+        (ok true)
+        err-strategy-inactive
+      )
+    err-invalid-strategy
+  )
+)
+
+(define-private (assert-supported-asset-and-amount (asset-contract principal) (amount uint))
+  (match (contract-call? .protocol-config get-supported-asset asset-contract)
+    asset-entry
+      (begin
+        (asserts! (get active asset-entry) err-asset-inactive)
+        (asserts! (>= amount (contract-call? .protocol-config get-minimum-deposit-microstx)) err-deposit-below-minimum)
+        (asserts! (>= amount (get min-deposit-microstx asset-entry)) err-deposit-below-minimum)
+        (asserts! (<= amount (get max-deposit-microstx asset-entry)) err-deposit-above-asset-max)
+        (ok true)
+      )
+    err-asset-not-supported
+  )
+)
