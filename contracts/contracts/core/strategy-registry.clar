@@ -303,3 +303,15 @@
     (list)
   )
 )
+
+(define-read-only (validate-strategy-execution (strategy-id uint))
+  (match (map-get? strategies { strategy-id: strategy-id })
+    strategy-entry
+      (begin
+        (asserts! (get active strategy-entry) err-strategy-inactive)
+        (asserts! (is-eq contract-caller (get authorized-executor strategy-entry)) err-executor-mismatch)
+        (ok true)
+      )
+    err-not-found
+  )
+)
