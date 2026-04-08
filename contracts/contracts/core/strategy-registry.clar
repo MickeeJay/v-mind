@@ -169,21 +169,31 @@
   )
 )
 
-(define-public (set-strategy-enabled (strategy-id uint) (enabled bool))
+(define-public (activate-strategy (strategy-id uint))
   (begin
-    (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
           (map-set strategies
             { strategy-id: strategy-id }
             {
-              strategy-contract: (get strategy-contract strategy-entry),
-              enabled: enabled,
-              metadata-uri: (get metadata-uri strategy-entry),
-              risk-score: (get risk-score strategy-entry)
+              strategy-name: (get strategy-name strategy-entry),
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: (get target-protocol strategy-entry),
+              risk-tier: (get risk-tier strategy-entry),
+              authorized-executor: (get authorized-executor strategy-entry),
+              active: true,
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
             }
           )
+          (print {
+            event: "strategy-activated",
+            strategy-id: strategy-id,
+            block-height: block-height,
+            caller: tx-sender
+          })
           (ok true)
         )
       err-not-found
