@@ -432,3 +432,32 @@
     err-vault-not-found
   )
 )
+
+(define-read-only (get-next-vault-id)
+  (var-get next-vault-id)
+)
+
+(define-read-only (get-vault (vault-id uint))
+  (map-get? vaults { vault-id: vault-id })
+)
+
+(define-read-only (get-vault-status (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok (get vault-status vault-entry))
+    err-vault-not-found
+  )
+)
+
+(define-read-only (get-vault-total-assets (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok (get total-assets vault-entry))
+    err-vault-not-found
+  )
+)
+
+(define-read-only (is-vault-locked (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok (get execution-locked vault-entry))
+    err-vault-not-found
+  )
+)
