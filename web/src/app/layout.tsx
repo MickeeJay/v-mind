@@ -1,12 +1,13 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Archivo_Black, Space_Grotesk } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'] });
+const space = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' });
+const archivoBlack = Archivo_Black({ subsets: ['latin'], weight: '400', variable: '--font-archivo-black' });
 
 export const metadata: Metadata = {
-  title: 'V-Mind - DeFi Strategy Automation',
-  description: 'Bitcoin L2 DeFi strategy automation platform built on Stacks',
+  title: 'V-Mind | Frontend Skeleton',
+  description: 'Continuation-ready frontend shell for V-Mind on Stacks',
 };
 
 export default function RootLayout({
@@ -16,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${space.variable} ${archivoBlack.variable}`}>{children}</body>
     </html>
   );
 }
