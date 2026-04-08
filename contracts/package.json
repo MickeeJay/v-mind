@@ -1,0 +1,20 @@
+{
+  "name": "@v-mind/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "V-Mind smart contracts for Stacks blockchain",
+  "scripts": {
+    "dev": "clarinet integrate",
+    "test": "clarinet test --coverage",
+    "check": "clarinet check",
+    "deploy:testnet": "clarinet deployments apply -p deployments/testnet.yaml",
+    "deploy:mainnet": "clarinet deployments apply -p deployments/mainnet.yaml",
+    "console": "clarinet console"
+  },
+  "keywords": [
+    "stacks",
+    "clarity",
+    "smart-contracts",
+    "defi"
+  ]
+}
