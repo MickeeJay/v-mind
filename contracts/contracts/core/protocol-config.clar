@@ -32,3 +32,22 @@
 (define-data-var max-strategy-rebalance-frequency-blocks uint u144)
 (define-data-var protocol-treasury principal tx-sender)
 (define-data-var config-version uint u1)
+
+(define-map supported-assets
+	{ asset-contract: principal }
+	{
+		asset-contract: principal,
+		symbol: (string-ascii 16),
+		active: bool,
+		min-deposit-microstx: uint,
+		max-deposit-microstx: uint
+	}
+)
+
+(define-map fee-overrides
+	{ override-key: (string-ascii 32) }
+	{
+		fee-rate-bps: uint,
+		active: bool
+	}
+)
