@@ -71,3 +71,27 @@
 		)
 	)
 )
+
+(define-read-only (get-protocol-performance-fee-bps)
+	(var-get protocol-performance-fee-bps)
+)
+
+(define-read-only (get-max-active-vaults-per-user)
+	(var-get max-active-vaults-per-user)
+)
+
+(define-read-only (get-minimum-deposit-microstx)
+	(var-get minimum-deposit-microstx)
+)
+
+(define-read-only (get-max-strategy-rebalance-frequency-blocks)
+	(var-get max-strategy-rebalance-frequency-blocks)
+)
+
+(define-read-only (get-protocol-treasury)
+	(var-get protocol-treasury)
+)
+
+(define-read-only (get-config-version)
+	(var-get config-version)
+)
