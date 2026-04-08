@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+out/
+.next/
+coverage/
+*.min.js
+.clarinet/
+settings/
+deployments/
