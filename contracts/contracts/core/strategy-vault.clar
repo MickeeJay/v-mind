@@ -307,6 +307,7 @@
       (begin
         (try! (assert-vault-owner (get vault-owner vault-entry)))
         (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+        (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
         (asserts! (is-eq (get total-assets vault-entry) u0) err-vault-not-empty)
         (map-set vaults
           { vault-id: vault-id }
