@@ -28,6 +28,7 @@
 (define-constant err-vault-not-paused (err u2414))
 (define-constant err-vault-not-empty (err u2415))
 (define-constant err-vault-closed (err u2416))
+(define-constant err-invalid-fee-amount (err u2417))
 
 (define-data-var next-vault-id uint u1)
 
@@ -465,6 +466,52 @@
         (ok true)
       )
     err-vault-not-found
+  )
+)
+
+(define-public (apply-performance-fee (vault-id uint) (fee-amount uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (asserts! (> fee-amount u0) err-invalid-fee-amount)
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (asserts! (>= (get total-assets vault-entry) fee-amount) err-insufficient-balance)
+          (let
+            (
+              (updated-assets (- (get total-assets vault-entry) fee-amount))
+              (updated-fees (+ (get cumulative-fees-paid vault-entry) fee-amount))
+            )
+            (begin
+              (map-set vaults
+                { vault-id: vault-id }
+                {
+                  vault-owner: (get vault-owner vault-entry),
+                  asset-contract: (get asset-contract vault-entry),
+                  total-assets: updated-assets,
+                  strategy-id: (get strategy-id vault-entry),
+                  created-at-block: (get created-at-block vault-entry),
+                  last-execution-block: (get last-execution-block vault-entry),
+                  vault-status: (get vault-status vault-entry),
+                  cumulative-fees-paid: updated-fees,
+                  execution-locked: (get execution-locked vault-entry)
+                }
+              )
+              (print {
+                event: "vault-performance-fee-applied",
+                vault-id: vault-id,
+                fee-amount: fee-amount,
+                cumulative-fees-paid: updated-fees,
+                remaining-assets: updated-assets,
+                caller: tx-sender
+              })
+              (ok updated-assets)
+            )
+          )
+        )
+      err-vault-not-found
+    )
   )
 )
 
