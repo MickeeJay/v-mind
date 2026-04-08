@@ -91,3 +91,43 @@
     err-asset-not-supported
   )
 )
+
+(define-public (create-vault (asset-contract principal) (initial-deposit uint) (strategy-id uint))
+  (let
+    (
+      (vault-id (var-get next-vault-id))
+      (created-at block-height)
+    )
+    (begin
+      (asserts! (> initial-deposit u0) err-invalid-amount)
+      (try! (assert-supported-asset-and-amount asset-contract initial-deposit))
+      (try! (assert-strategy-active strategy-id))
+      (map-set vaults
+        { vault-id: vault-id }
+        {
+          vault-owner: tx-sender,
+          asset-contract: asset-contract,
+          total-assets: initial-deposit,
+          strategy-id: strategy-id,
+          created-at-block: created-at,
+          last-execution-block: created-at,
+          vault-status: vault-status-active,
+          cumulative-fees-paid: u0,
+          execution-locked: false
+        }
+      )
+      (var-set next-vault-id (+ vault-id u1))
+      (print {
+        event: "vault-created",
+        vault-id: vault-id,
+        vault-owner: tx-sender,
+        asset-contract: asset-contract,
+        initial-deposit: initial-deposit,
+        strategy-id: strategy-id,
+        created-at-block: created-at,
+        vault-status: vault-status-active
+      })
+      (ok vault-id)
+    )
+  )
+)
