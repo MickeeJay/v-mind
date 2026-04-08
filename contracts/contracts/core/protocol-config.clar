@@ -355,6 +355,72 @@
 			)
 		)
 	)
+
+	(define-public (add-whitelisted-strategy-type (strategy-type (string-ascii 32)))
+		(begin
+			(try! (assert-owner))
+			(asserts! (> (len strategy-type) u0) err-invalid-override-key)
+			(asserts! (<= (len strategy-type) max-override-key-length) err-invalid-override-key)
+			(asserts! (is-none (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-already-whitelisted)
+			(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: true })
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "strategy-type-whitelisted",
+						strategy-type: strategy-type,
+						active: true,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok true)
+				)
+			)
+		)
+	)
+
+	(define-public (remove-whitelisted-strategy-type (strategy-type (string-ascii 32)))
+		(begin
+			(try! (assert-owner))
+			(asserts! (is-some (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-not-whitelisted)
+			(map-delete whitelisted-strategy-types { strategy-type: strategy-type })
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "strategy-type-removed",
+						strategy-type: strategy-type,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok true)
+				)
+			)
+		)
+	)
+
+	(define-public (set-whitelisted-strategy-type-active (strategy-type (string-ascii 32)) (active bool))
+		(begin
+			(try! (assert-owner))
+			(match (map-get? whitelisted-strategy-types { strategy-type: strategy-type })
+				strategy-type-entry
+					(begin
+						(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: active })
+						(let ((next-version (bump-config-version)))
+							(begin
+								(print {
+									event: "strategy-type-status-updated",
+									strategy-type: strategy-type,
+									active: active,
+									version: next-version,
+									caller: tx-sender
+								})
+								(ok true)
+							)
+						)
+					)
+				err-strategy-type-not-whitelisted
+			)
+		)
+	)
 )
 
 (define-read-only (get-protocol-performance-fee-bps)
@@ -387,4 +453,8 @@
 
 (define-read-only (get-fee-override (override-key (string-ascii 32)))
 	(map-get? fee-overrides { override-key: override-key })
+)
+
+(define-read-only (get-whitelisted-strategy-type (strategy-type (string-ascii 32)))
+	(map-get? whitelisted-strategy-types { strategy-type: strategy-type })
 )
