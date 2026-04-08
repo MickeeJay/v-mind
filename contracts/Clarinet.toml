@@ -1,0 +1,27 @@
+[project]
+name = "v-mind"
+description = "V-Mind DeFi Strategy Automation Smart Contracts"
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+requirements = []
+boot_contracts = []
+
+[contracts.v-mind-core]
+path = "contracts/v-mind-core.clar"
+clarity_version = 2
+epoch = 2.4
+
+[repl]
+costs_version = 2
+parser_version = 2
+
+[repl.analysis]
+passes = ["check_checker"]
+
+[repl.analysis.check_checker]
+strict = true
+trusted_sender = false
+trusted_caller = false
+callee_filter = false
+
