@@ -72,6 +72,26 @@
 	)
 )
 
+(define-public (set-protocol-performance-fee-bps (new-fee-rate-bps uint))
+	(begin
+		(try! (assert-owner))
+		(asserts! (<= new-fee-rate-bps max-performance-fee-bps) err-invalid-fee-rate)
+		(var-set protocol-performance-fee-bps new-fee-rate-bps)
+		(let ((next-version (bump-config-version)))
+			(begin
+				(print {
+					event: "config-updated",
+					parameter: "protocol-performance-fee-bps",
+					value: new-fee-rate-bps,
+					version: next-version,
+					caller: tx-sender
+				})
+				(ok new-fee-rate-bps)
+			)
+		)
+	)
+)
+
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
 )
