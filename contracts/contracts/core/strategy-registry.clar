@@ -23,58 +23,175 @@
 ;; @limitations
 ;; - Strategy contract trait compliance checks are not yet enforced in this scaffold.
 
-(define-constant err-owner-only (err u2200))
 (define-constant err-already-registered (err u2201))
 (define-constant err-not-found (err u2202))
 
-(define-data-var registry-owner principal tx-sender)
+(define-constant role-strategy-registrar u4)
+
+(define-constant err-registrar-only (err u2203))
+(define-constant err-invalid-strategy-type (err u2204))
+(define-constant err-invalid-risk-tier (err u2205))
+(define-constant err-invalid-strategy-name (err u2206))
+(define-constant err-strategy-list-full (err u2207))
+(define-constant err-strategy-inactive (err u2208))
+(define-constant err-executor-mismatch (err u2209))
+
+(define-constant strategy-type-yield u1)
+(define-constant strategy-type-rebalance u2)
+(define-constant strategy-type-dca u3)
+(define-constant strategy-type-exit u4)
+
+(define-constant risk-tier-conservative u1)
+(define-constant risk-tier-moderate u2)
+(define-constant risk-tier-aggressive u3)
+
 (define-data-var next-strategy-id uint u1)
+(define-data-var total-registered-strategies uint u0)
 
 (define-map strategies
   { strategy-id: uint }
   {
-    strategy-contract: principal,
-    enabled: bool,
-    metadata-uri: (string-ascii 256),
-    risk-score: uint
+    strategy-name: (string-ascii 64),
+    strategy-type: uint,
+    target-protocol: principal,
+    risk-tier: uint,
+    authorized-executor: principal,
+    active: bool,
+    created-at-block: uint,
+    last-updated-block: uint
   }
 )
 
-(define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
-  (let ((strategy-id (var-get next-strategy-id)))
+(define-map strategy-ids-by-type
+  { strategy-type: uint }
+  { strategy-ids: (list 200 uint) }
+)
+
+(define-private (is-valid-strategy-type (strategy-type uint))
+  (or
+    (is-eq strategy-type strategy-type-yield)
+    (is-eq strategy-type strategy-type-rebalance)
+    (is-eq strategy-type strategy-type-dca)
+    (is-eq strategy-type strategy-type-exit)
+  )
+)
+
+(define-private (is-valid-risk-tier (risk-tier uint))
+  (or
+    (is-eq risk-tier risk-tier-conservative)
+    (is-eq risk-tier risk-tier-moderate)
+    (is-eq risk-tier risk-tier-aggressive)
+  )
+)
+
+(define-private (is-strategy-registrar (caller principal))
+  (or
+    (contract-call? .access-control has-role caller role-strategy-registrar)
+    (is-eq caller (contract-call? .access-control get-owner))
+  )
+)
+
+(define-private (append-strategy-id-by-type (strategy-type uint) (strategy-id uint))
+  (match (map-get? strategy-ids-by-type { strategy-type: strategy-type })
+    current-entry
+      (match (as-max-len? (append (get strategy-ids current-entry) strategy-id) u200)
+        next-list
+          (begin
+            (map-set strategy-ids-by-type
+              { strategy-type: strategy-type }
+              { strategy-ids: next-list }
+            )
+            (ok true)
+          )
+        err-strategy-list-full
+      )
     (begin
-      (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+      (map-set strategy-ids-by-type
+        { strategy-type: strategy-type }
+        { strategy-ids: (list strategy-id) }
+      )
+      (ok true)
+    )
+  )
+)
+
+(define-public
+  (register-strategy
+    (strategy-name (string-ascii 64))
+    (strategy-type uint)
+    (target-protocol principal)
+    (risk-tier uint)
+    (authorized-executor principal)
+  )
+  (let
+    (
+      (strategy-id (var-get next-strategy-id))
+      (current-block block-height)
+    )
+    (begin
+      (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+      (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
+      (asserts! (is-valid-strategy-type strategy-type) err-invalid-strategy-type)
+      (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
       (asserts! (is-none (map-get? strategies { strategy-id: strategy-id })) err-already-registered)
+      (try! (append-strategy-id-by-type strategy-type strategy-id))
       (map-set strategies
         { strategy-id: strategy-id }
         {
-          strategy-contract: strategy-contract,
-          enabled: true,
-          metadata-uri: metadata-uri,
-          risk-score: risk-score
+          strategy-name: strategy-name,
+          strategy-type: strategy-type,
+          target-protocol: target-protocol,
+          risk-tier: risk-tier,
+          authorized-executor: authorized-executor,
+          active: true,
+          created-at-block: current-block,
+          last-updated-block: current-block
         }
       )
       (var-set next-strategy-id (+ strategy-id u1))
+      (var-set total-registered-strategies (+ (var-get total-registered-strategies) u1))
+      (print {
+        event: "strategy-registered",
+        strategy-id: strategy-id,
+        strategy-name: strategy-name,
+        strategy-type: strategy-type,
+        target-protocol: target-protocol,
+        risk-tier: risk-tier,
+        authorized-executor: authorized-executor,
+        active: true,
+        block-height: current-block,
+        caller: tx-sender
+      })
       (ok strategy-id)
     )
   )
 )
 
-(define-public (set-strategy-enabled (strategy-id uint) (enabled bool))
+(define-public (activate-strategy (strategy-id uint))
   (begin
-    (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
           (map-set strategies
             { strategy-id: strategy-id }
             {
-              strategy-contract: (get strategy-contract strategy-entry),
-              enabled: enabled,
-              metadata-uri: (get metadata-uri strategy-entry),
-              risk-score: (get risk-score strategy-entry)
+              strategy-name: (get strategy-name strategy-entry),
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: (get target-protocol strategy-entry),
+              risk-tier: (get risk-tier strategy-entry),
+              authorized-executor: (get authorized-executor strategy-entry),
+              active: true,
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
             }
           )
+          (print {
+            event: "strategy-activated",
+            strategy-id: strategy-id,
+            block-height: block-height,
+            caller: tx-sender
+          })
           (ok true)
         )
       err-not-found
@@ -82,28 +199,117 @@
   )
 )
 
-(define-public (update-strategy-metadata (strategy-id uint) (metadata-uri (string-ascii 256)) (risk-score uint))
+(define-public (deactivate-strategy (strategy-id uint))
   (begin
-    (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
           (map-set strategies
             { strategy-id: strategy-id }
             {
-              strategy-contract: (get strategy-contract strategy-entry),
-              enabled: (get enabled strategy-entry),
-              metadata-uri: metadata-uri,
-              risk-score: risk-score
+              strategy-name: (get strategy-name strategy-entry),
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: (get target-protocol strategy-entry),
+              risk-tier: (get risk-tier strategy-entry),
+              authorized-executor: (get authorized-executor strategy-entry),
+              active: false,
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
             }
           )
+          (print {
+            event: "strategy-deactivated",
+            strategy-id: strategy-id,
+            block-height: block-height,
+            caller: tx-sender
+          })
           (ok true)
         )
       err-not-found
     )
   )
+)
+
+(define-public
+  (update-strategy-metadata
+    (strategy-id uint)
+    (strategy-name (string-ascii 64))
+    (target-protocol principal)
+    (risk-tier uint)
+    (authorized-executor principal)
+  )
+  (begin
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
+    (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
+    (match (map-get? strategies { strategy-id: strategy-id })
+      strategy-entry
+        (begin
+          (map-set strategies
+            { strategy-id: strategy-id }
+            {
+              strategy-name: strategy-name,
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: target-protocol,
+              risk-tier: risk-tier,
+              authorized-executor: authorized-executor,
+              active: (get active strategy-entry),
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
+            }
+          )
+          (print {
+            event: "strategy-metadata-updated",
+            strategy-id: strategy-id,
+            strategy-name: strategy-name,
+            target-protocol: target-protocol,
+            risk-tier: risk-tier,
+            authorized-executor: authorized-executor,
+            block-height: block-height,
+            caller: tx-sender
+          })
+          (ok true)
+        )
+      err-not-found
+    )
+  )
+)
+
+(define-read-only (get-strategy-by-id (strategy-id uint))
+  (map-get? strategies { strategy-id: strategy-id })
 )
 
 (define-read-only (get-strategy (strategy-id uint))
-  (map-get? strategies { strategy-id: strategy-id })
+  (get-strategy-by-id strategy-id)
+)
+
+(define-read-only (is-strategy-active (strategy-id uint))
+  (match (map-get? strategies { strategy-id: strategy-id })
+    strategy-entry (get active strategy-entry)
+    false
+  )
+)
+
+(define-read-only (get-total-strategies)
+  (var-get total-registered-strategies)
+)
+
+(define-read-only (list-strategies-by-type (strategy-type uint))
+  (match (map-get? strategy-ids-by-type { strategy-type: strategy-type })
+    strategy-index (get strategy-ids strategy-index)
+    (list)
+  )
+)
+
+(define-read-only (validate-strategy-execution (strategy-id uint))
+  (match (map-get? strategies { strategy-id: strategy-id })
+    strategy-entry
+      (begin
+        (asserts! (get active strategy-entry) err-strategy-inactive)
+        (asserts! (is-eq contract-caller (get authorized-executor strategy-entry)) err-executor-mismatch)
+        (ok true)
+      )
+    err-not-found
+  )
 )
