@@ -1,0 +1,426 @@
+# V-Mind Stacks Project - Security-First .gitignore
+# This file prevents sensitive data from being committed to version control
+
+# ============================================================================
+# PRIVATE KEYS - CRITICAL SECURITY
+# ============================================================================
+# All private key files regardless of format or extension
+*.key
+*.pem
+*.p12
+*.pfx
+*.pkcs12
+*.der
+*.crt.key
+*.priv
+*.private
+*private-key*
+*privatekey*
+*privkey*
+
+# Stacks wallet private keys
+*stacks-key*
+*stx-key*
+*wallet-key*
+
+# Bitcoin private keys
+*bitcoin-key*
+*btc-key*
+
+# Files with 'private' or 'secret' in the name
+*private*
+*secret*
+
+# ============================================================================
+# MNEMONIC & SEED PHRASES - CRITICAL SECURITY
+# ============================================================================
+# Mnemonic seed phrases in any format
+*.seed
+*.mnemonic
+*mnemonic*
+*seed-phrase*
+*seedphrase*
+*recovery-phrase*
+*recoveryphrase*
+
+# Mnemonic files in common formats
+mnemonic.txt
+mnemonic.json
+seed.txt
+seed.json
+recovery.txt
+recovery.json
+wallet-seed.*
+wallet-mnemonic.*
+
+# Keystore files
+*keystore*
+*.keystore
+keystore/
+.keystore/
+
+# ============================================================================
+# ENVIRONMENT VARIABLES - SENSITIVE CONFIGURATION
+# ============================================================================
+# All .env files and variants
+.env
+.env.local
+.env.development
+.env.dev
+.env.production
+.env.prod
+.env.staging
+.env.stage
+.env.test
+.env.*.local
+*.env
+.env.*
+env.local
+env.production
+env.development
+
+# EXCEPTION: Allow .env.example files (templates are safe to commit)
+!.env.example
+!**/.env.example
+
+# Environment backup files
+.env.backup
+.env.bak
+.env.old
+.env.orig
+
+# ============================================================================
+# STACKS-SPECIFIC SENSITIVE FILES
+# ============================================================================
+# Stacks wallet configuration
+.stacks-wallet
+stacks-wallet.json
+*wallet-config*
+deployer-wallet.*
+deployer.json
+
+# Clarinet wallet configuration with private keys
+settings/Devnet.toml
+settings/Testnet.toml
+settings/Mainnet.toml
+.clarinet/deployments/
+clarinet-wallet.json
+
+# Contract deployment receipts that may contain keys
+deployments/*.receipt.json
+deployment-plan.yaml
+
+# Stacks account configuration
+accounts.json
+*account-config*
+
+# ============================================================================
+# NPM & PACKAGE MANAGER CREDENTIALS
+# ============================================================================
+# NPM authentication
+.npmrc
+.npmrc.local
+*.npmtoken
+*.npmrc
+
+# Yarn credentials
+.yarnrc
+.yarnrc.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Registry credentials
+*.registrycred
+registry-credentials.*
+
+# Package manager auth tokens
+.npm-token
+.yarn-token
+npm-token.txt
+yarn-token.txt
+
+# ============================================================================
+# API KEYS & CREDENTIALS
+# ============================================================================
+# API key files (any format)
+api-keys.*
+*api-keys*
+*apikeys*
+api_keys.*
+
+# Secrets files
+secrets.*
+secrets/
+.secrets/
+*secrets*
+
+# Credentials files
+credentials.*
+*credentials*
+creds.*
+*creds*
+
+# Local configuration with secrets
+config.local.*
+config.secret.*
+local-config.*
+*.local.json
+*.local.yaml
+*.local.yml
+*.secret.json
+*.secret.yaml
+*.secret.yml
+
+# Service account keys
+*service-account*
+*serviceaccount*
+
+# Authentication tokens
+*.token
+auth-token.*
+access-token.*
+
+# ============================================================================
+# OPERATING SYSTEM ARTIFACTS
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# EDITOR & IDE CONFIGURATION (with potential secrets)
+# ============================================================================
+# VSCode
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.local.*
+
+# JetBrains IDEs
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/aws.xml
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/deployment.xml
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# CLARINET & STACKS DEVELOPMENT TOOLS
+# ============================================================================
+# Clarinet generated files with account info
+.clarinet/
+settings/
+deployments/
+*deployment-plan*
+
+# Clarinet local network state
+.cache/clarinet/
+clarinet-cache/
+
+# Generated wallet files
+generated-wallets/
+*generated-wallet*
+
+# Local devnet state
+devnet-state/
+.devnet/
+
+# ============================================================================
+# BUILD OUTPUTS & DEPENDENCIES
+# ============================================================================
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Build directories
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.output/
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+lib-cov/
+
+# Test artifacts that may embed env vars
+test-results/
+playwright-report/
+test-output/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Logs (may contain sensitive data)
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pids/
+*.pid
+*.seed.log
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ============================================================================
+# DOCKER & CONTAINERIZATION (potential secrets)
+# ============================================================================
+# Docker files that may contain secrets
+docker-compose.override.yml
+docker-compose.local.yml
+.dockerignore.local
+
+# ============================================================================
+# DATABASE FILES (may contain sensitive data)
+# ============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ============================================================================
+# BACKUP FILES
+# ============================================================================
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*~
+
+# ============================================================================
+# ADDITIONAL SECURITY PATTERNS
+# ============================================================================
+# Certificate files
+*.cer
+*.csr
+*.ca-bundle
+
+# SSH keys
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.pub
+
+# GPG keys
+secring.*
+*.gpg
+*.pgp
+
+# Password files
+*password*
+*passwd*
+*.pwd
+
+# Session files
+.session
+*.session
+sessions/
+
