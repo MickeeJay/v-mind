@@ -53,10 +53,14 @@
 (define-map strategies
   { strategy-id: uint }
   {
-    strategy-contract: principal,
-    enabled: bool,
-    metadata-uri: (string-ascii 256),
-    risk-score: uint
+    strategy-name: (string-ascii 64),
+    strategy-type: uint,
+    target-protocol: principal,
+    risk-tier: uint,
+    authorized-executor: principal,
+    active: bool,
+    created-at-block: uint,
+    last-updated-block: uint
   }
 )
 
