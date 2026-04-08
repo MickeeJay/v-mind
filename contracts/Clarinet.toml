@@ -42,6 +42,11 @@ path = "contracts/traits/protocol-adapter-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.access-control]
+path = "contracts/core/access-control.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.v-mind-core]
 path = "contracts/v-mind-core.clar"
 clarity_version = 2
