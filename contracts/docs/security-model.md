@@ -48,6 +48,15 @@ This document defines trust assumptions, authorization boundaries, emergency con
 - Role and owner visibility methods.
 - Accounting and quote helper methods.
 
+## Privileged Function Conditions
+
+Additional expected conditions for privileged calls:
+
+- Role management functions must reject if protocol governance is paused for admin actions.
+- Registry update functions must reject malformed metadata and invalid risk scores.
+- Vault enable and disable operations must emit deterministic state transitions to avoid ambiguous status.
+- Strategy execution must verify strategy remains enabled immediately before external calls.
+
 ## Emergency Pause Design
 
 ### Global pause
@@ -94,6 +103,12 @@ Safety invariants:
 - Disabled vault cannot accept new deposits.
 - Strategies must be enabled in registry before vault execution.
 
+Pause invariants:
+
+- When protocol-paused is true, execute-strategy must always fail.
+- When protocol-paused is true, deposit must always fail.
+- Withdrawal policy under pause must be explicitly chosen and consistently enforced.
+
 ## Failure Domains and Mitigations
 
 - Misconfigured fees: bounded by basis-point caps and owner procedures.
@@ -108,3 +123,4 @@ Safety invariants:
 - Add explicit slippage and min-return constraints for adapter interactions.
 - Add delayed config changes for high-impact parameters.
 - Add monitoring hooks for pause events and strategy execution anomalies.
+- Add invariant-based Clarinet tests for share accounting and registry uniqueness.
