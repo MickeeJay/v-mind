@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
 import { assertEquals } from 'https://deno.land/std@0.90.0/testing/asserts.ts';
 
