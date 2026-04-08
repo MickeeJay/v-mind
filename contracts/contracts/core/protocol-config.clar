@@ -60,7 +60,10 @@
 )
 
 (define-private (assert-owner)
-	(asserts! (is-owner tx-sender) err-owner-only)
+	(if (is-owner tx-sender)
+		(ok true)
+		err-owner-only
+	)
 )
 
 (define-private (bump-config-version)
@@ -234,10 +237,11 @@
 	)
 
 	(define-public (set-supported-asset-active (asset-contract principal) (active bool))
-		(match (map-get? supported-assets { asset-contract: asset-contract })
-			asset-entry
-				(begin
-					(try! (assert-owner))
+		(begin
+			(try! (assert-owner))
+			(match (map-get? supported-assets { asset-contract: asset-contract })
+				asset-entry
+					(begin
 					(map-set supported-assets
 						{ asset-contract: asset-contract }
 						{
@@ -260,8 +264,9 @@
 							(ok true)
 						)
 					)
-				)
-			err-asset-not-supported
+					)
+				err-asset-not-supported
+			)
 		)
 	)
 
@@ -314,10 +319,11 @@
 	)
 
 	(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
-		(match (map-get? fee-overrides { override-key: override-key })
-			override-entry
-				(begin
-					(try! (assert-owner))
+		(begin
+			(try! (assert-owner))
+			(match (map-get? fee-overrides { override-key: override-key })
+				override-entry
+					(begin
 					(map-set fee-overrides
 						{ override-key: override-key }
 						{
@@ -337,8 +343,9 @@
 							(ok true)
 						)
 					)
-				)
-			err-override-not-found
+					)
+				err-override-not-found
+			)
 		)
 	)
 )
