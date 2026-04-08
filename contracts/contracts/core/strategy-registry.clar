@@ -151,6 +151,19 @@
         }
       )
       (var-set next-strategy-id (+ strategy-id u1))
+      (var-set total-registered-strategies (+ (var-get total-registered-strategies) u1))
+      (print {
+        event: "strategy-registered",
+        strategy-id: strategy-id,
+        strategy-name: strategy-name,
+        strategy-type: strategy-type,
+        target-protocol: target-protocol,
+        risk-tier: risk-tier,
+        authorized-executor: authorized-executor,
+        active: true,
+        block-height: current-block,
+        caller: tx-sender
+      })
       (ok strategy-id)
     )
   )
