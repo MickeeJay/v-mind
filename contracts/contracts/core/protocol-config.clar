@@ -155,6 +155,25 @@
 	)
 )
 
+(define-public (set-protocol-treasury (new-treasury principal))
+	(begin
+		(try! (assert-owner))
+		(var-set protocol-treasury new-treasury)
+		(let ((next-version (bump-config-version)))
+			(begin
+				(print {
+					event: "config-updated",
+					parameter: "protocol-treasury",
+					value: new-treasury,
+					version: next-version,
+					caller: tx-sender
+				})
+				(ok new-treasury)
+			)
+		)
+	)
+)
+
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
 )
