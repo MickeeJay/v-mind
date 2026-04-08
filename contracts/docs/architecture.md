@@ -6,6 +6,10 @@ V-Mind is a Stacks-native strategy automation protocol for Bitcoin L2 DeFi vault
 
 This document defines the baseline contract architecture and responsibilities before full business logic implementation.
 
+Related documentation:
+
+- Configuration changelog: docs/configuration-changelog.md
+
 ## Directory Structure
 
 The smart contract layout under contracts/contracts is structured as follows:
@@ -61,7 +65,8 @@ Purpose:
 Primary responsibilities:
 - Fee parameter storage and update controls.
 - Treasury address management.
-- Global pause and unpause control.
+- Supported asset, strategy-type whitelist, and fee-override management.
+- Configuration versioning and on-chain event emission.
 
 ### core/strategy-registry.clar
 
