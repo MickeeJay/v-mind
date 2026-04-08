@@ -27,6 +27,11 @@
 (define-constant err-already-registered (err u2201))
 (define-constant err-not-found (err u2202))
 
+(define-constant strategy-type-yield u1)
+(define-constant strategy-type-rebalance u2)
+(define-constant strategy-type-dca u3)
+(define-constant strategy-type-exit u4)
+
 (define-data-var registry-owner principal tx-sender)
 (define-data-var next-strategy-id uint u1)
 
