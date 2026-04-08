@@ -285,3 +285,10 @@
 (define-read-only (get-strategy (strategy-id uint))
   (get-strategy-by-id strategy-id)
 )
+
+(define-read-only (is-strategy-active (strategy-id uint))
+  (match (map-get? strategies { strategy-id: strategy-id })
+    strategy-entry (get active strategy-entry)
+    false
+  )
+)
