@@ -1,82 +1,34 @@
 ;; @title V-Mind Protocol Configuration
-;; @version 0.1.0
+;; @version 0.2.0
 ;; @author V-Mind Core Team
-;; @notice Stores global protocol parameters such as fee rates, treasury target, and pause state.
-;; @dev Core contracts read this contract to enforce system-wide governance and emergency controls.
+;; @notice Single source of truth for protocol-level parameters and risk limits.
+;; @dev All mutating methods are intended to be owner-gated through access-control.
 ;; @contract protocol-config
-;; @constants
-;; - bps-denominator: Basis points denominator used by all fee settings.
-;; - err-owner-only: Returned when caller lacks owner permissions.
-;; - err-invalid-fee: Returned when fee exceeds configured cap.
-;; @data-vars
-;; - contract-owner: Current configuration owner.
-;; - treasury: Protocol treasury principal.
-;; - platform-fee-bps: Protocol management fee in basis points.
-;; - performance-fee-bps: Performance fee in basis points.
-;; - protocol-paused: Global circuit breaker state.
-;; @maps
-;; - none
-;; @public-functions
-;; - set-treasury: Updates treasury principal.
-;; - set-platform-fee-bps: Updates protocol management fee.
-;; - set-performance-fee-bps: Updates protocol performance fee.
-;; - pause-protocol: Enables global pause state.
-;; - unpause-protocol: Disables global pause state.
-;; @external-contracts
-;; - Read by: strategy-vault, strategy-registry, vault-registry.
-;; - Admin expected from: access-control.
-;; @limitations
-;; - Access-control integration is deferred; this scaffold uses owner checks directly.
 
 (define-constant bps-denominator u10000)
-(define-constant max-platform-fee-bps u1000)
-(define-constant max-performance-fee-bps u3000)
+(define-constant max-performance-fee-bps u2000)
+(define-constant max-max-active-vaults-per-user u200)
+(define-constant max-minimum-deposit-microstx u1000000000000)
+(define-constant max-rebalance-frequency-blocks u52595)
+(define-constant max-asset-symbol-length u16)
+(define-constant max-override-key-length u32)
+(define-constant role-owner u1)
+
 (define-constant err-owner-only (err u2100))
-(define-constant err-invalid-fee (err u2101))
+(define-constant err-invalid-fee-rate (err u2101))
+(define-constant err-invalid-max-active-vaults (err u2102))
+(define-constant err-invalid-minimum-deposit (err u2103))
+(define-constant err-invalid-rebalance-frequency (err u2104))
+(define-constant err-invalid-asset-limits (err u2105))
+(define-constant err-invalid-asset-symbol (err u2106))
+(define-constant err-asset-already-supported (err u2107))
+(define-constant err-asset-not-supported (err u2108))
+(define-constant err-invalid-override-key (err u2109))
+(define-constant err-override-not-found (err u2110))
 
-(define-data-var contract-owner principal tx-sender)
-(define-data-var treasury principal tx-sender)
-(define-data-var platform-fee-bps uint u100)
-(define-data-var performance-fee-bps uint u1000)
-(define-data-var protocol-paused bool false)
-
-(define-public (set-treasury (new-treasury principal))
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (ok (var-set treasury new-treasury))
-  )
-)
-
-(define-public (set-platform-fee-bps (new-fee uint))
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (asserts! (<= new-fee max-platform-fee-bps) err-invalid-fee)
-    (ok (var-set platform-fee-bps new-fee))
-  )
-)
-
-(define-public (set-performance-fee-bps (new-fee uint))
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (asserts! (<= new-fee max-performance-fee-bps) err-invalid-fee)
-    (ok (var-set performance-fee-bps new-fee))
-  )
-)
-
-(define-public (pause-protocol)
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (ok (var-set protocol-paused true))
-  )
-)
-
-(define-public (unpause-protocol)
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (ok (var-set protocol-paused false))
-  )
-)
-
-(define-read-only (is-paused)
-  (var-get protocol-paused)
-)
+(define-data-var protocol-performance-fee-bps uint u1000)
+(define-data-var max-active-vaults-per-user uint u10)
+(define-data-var minimum-deposit-microstx uint u1000000)
+(define-data-var max-strategy-rebalance-frequency-blocks uint u144)
+(define-data-var protocol-treasury principal tx-sender)
+(define-data-var config-version uint u1)
