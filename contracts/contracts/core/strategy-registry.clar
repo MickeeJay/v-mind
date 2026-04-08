@@ -93,6 +93,30 @@
   )
 )
 
+(define-private (append-strategy-id-by-type (strategy-type uint) (strategy-id uint))
+  (match (map-get? strategy-ids-by-type { strategy-type: strategy-type })
+    current-entry
+      (match (as-max-len? (append (get strategy-ids current-entry) strategy-id) u200)
+        next-list
+          (begin
+            (map-set strategy-ids-by-type
+              { strategy-type: strategy-type }
+              { strategy-ids: next-list }
+            )
+            (ok true)
+          )
+        err-strategy-list-full
+      )
+    (begin
+      (map-set strategy-ids-by-type
+        { strategy-type: strategy-type }
+        { strategy-ids: (list strategy-id) }
+      )
+      (ok true)
+    )
+  )
+)
+
 (define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
   (let ((strategy-id (var-get next-strategy-id)))
     (begin
