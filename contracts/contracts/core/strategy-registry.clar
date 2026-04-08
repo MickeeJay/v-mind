@@ -201,6 +201,38 @@
   )
 )
 
+(define-public (deactivate-strategy (strategy-id uint))
+  (begin
+    (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (match (map-get? strategies { strategy-id: strategy-id })
+      strategy-entry
+        (begin
+          (map-set strategies
+            { strategy-id: strategy-id }
+            {
+              strategy-name: (get strategy-name strategy-entry),
+              strategy-type: (get strategy-type strategy-entry),
+              target-protocol: (get target-protocol strategy-entry),
+              risk-tier: (get risk-tier strategy-entry),
+              authorized-executor: (get authorized-executor strategy-entry),
+              active: false,
+              created-at-block: (get created-at-block strategy-entry),
+              last-updated-block: block-height
+            }
+          )
+          (print {
+            event: "strategy-deactivated",
+            strategy-id: strategy-id,
+            block-height: block-height,
+            caller: tx-sender
+          })
+          (ok true)
+        )
+      err-not-found
+    )
+  )
+)
+
 (define-public (update-strategy-metadata (strategy-id uint) (metadata-uri (string-ascii 256)) (risk-score uint))
   (begin
     (asserts! (is-eq tx-sender (var-get registry-owner)) err-owner-only)
