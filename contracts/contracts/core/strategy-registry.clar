@@ -27,6 +27,16 @@
 (define-constant err-already-registered (err u2201))
 (define-constant err-not-found (err u2202))
 
+(define-constant role-strategy-registrar u4)
+
+(define-constant err-registrar-only (err u2203))
+(define-constant err-invalid-strategy-type (err u2204))
+(define-constant err-invalid-risk-tier (err u2205))
+(define-constant err-invalid-strategy-name (err u2206))
+(define-constant err-strategy-list-full (err u2207))
+(define-constant err-strategy-inactive (err u2208))
+(define-constant err-executor-mismatch (err u2209))
+
 (define-constant strategy-type-yield u1)
 (define-constant strategy-type-rebalance u2)
 (define-constant strategy-type-dca u3)
