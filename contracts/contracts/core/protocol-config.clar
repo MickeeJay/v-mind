@@ -25,6 +25,8 @@
 (define-constant err-asset-not-supported (err u2108))
 (define-constant err-invalid-override-key (err u2109))
 (define-constant err-override-not-found (err u2110))
+(define-constant err-strategy-type-already-whitelisted (err u2111))
+(define-constant err-strategy-type-not-whitelisted (err u2112))
 
 (define-data-var protocol-performance-fee-bps uint u1000)
 (define-data-var max-active-vaults-per-user uint u10)
@@ -50,6 +52,11 @@
 		fee-rate-bps: uint,
 		active: bool
 	}
+)
+
+(define-map whitelisted-strategy-types
+	{ strategy-type: (string-ascii 32) }
+	{ active: bool }
 )
 
 (define-private (is-owner (caller principal))
