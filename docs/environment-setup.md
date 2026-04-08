@@ -242,3 +242,67 @@ npm run build
 
 ---
 
+## Contracts Workspace
+
+Smart contract deployment configuration (\contracts/.env\).
+
+### Required Variables
+
+| Variable | Description | Example | Sensitive |
+|----------|-------------|---------|-----------|
+| \DEPLOYER_MNEMONIC\ | 24-word seed phrase | \word1 word2...\ | ⚠️ **CRITICAL** |
+| \DEPLOYER_ADDRESS\ | Stacks address | \ST1PQHQ...\ | No |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| \STACKS_NETWORK\ | Network target | \	estnet\ |
+| \STACKS_NODE_URL\ | Node URL | \https://api.testnet.hiro.so\ |
+| \CONTRACT_NAME\ | Contract to deploy | \-mind-core\ |
+| \GAS_PRICE\ | Gas price (microSTX) | \1000\ |
+| \TEST_VERBOSE\ | Verbose test output | \	rue\ |
+
+### Getting Values
+
+#### Deployer Mnemonic
+
+⚠️ **EXTREMELY SENSITIVE - Your mnemonic controls all funds**
+
+1. **For Testing (Testnet):**
+   - Generate new wallet at [Hiro Wallet](https://wallet.hiro.so/)
+   - Switch to Testnet
+   - Export mnemonic (Settings → Show Secret Key)
+   - Get testnet STX from [faucet](https://explorer.stacks.co/sandbox/faucet)
+
+2. **For Production (Mainnet):**
+   - Use hardware wallet if possible
+   - Never store mnemonic in plain text
+   - Use environment variable injection at deploy time
+   - Consider multi-sig for contract ownership
+
+#### Alternative: Private Key
+
+Instead of mnemonic, you can use private key:
+
+\\\ash
+# Use either mnemonic OR private key
+DEPLOYER_PRIVATE_KEY=your_64_hex_char_private_key
+\\\
+
+### Usage
+
+\\\ash
+# Deploy to testnet
+cd contracts
+clarinet deployments apply --network testnet
+
+# Run tests (reads .env automatically)
+clarinet test
+
+# Check contracts
+clarinet check
+\\\
+
+---
+
