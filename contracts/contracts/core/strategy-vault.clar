@@ -222,3 +222,34 @@
     )
   )
 )
+
+(define-public (pause-vault (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry
+      (begin
+        (try! (assert-vault-owner (get vault-owner vault-entry)))
+        (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
+        (map-set vaults
+          { vault-id: vault-id }
+          {
+            vault-owner: (get vault-owner vault-entry),
+            asset-contract: (get asset-contract vault-entry),
+            total-assets: (get total-assets vault-entry),
+            strategy-id: (get strategy-id vault-entry),
+            created-at-block: (get created-at-block vault-entry),
+            last-execution-block: (get last-execution-block vault-entry),
+            vault-status: vault-status-paused,
+            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+            execution-locked: (get execution-locked vault-entry)
+          }
+        )
+        (print {
+          event: "vault-paused",
+          vault-id: vault-id,
+          caller: tx-sender
+        })
+        (ok true)
+      )
+    err-vault-not-found
+  )
+)
