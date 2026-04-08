@@ -11,6 +11,7 @@
 ;; - role-owner: Canonical role ID representing the protocol owner.
 ;; - role-operator: Canonical role ID for strategy operators.
 ;; - role-guardian: Canonical role ID for emergency guardians.
+;; - role-strategy-registrar: Canonical role ID for strategy registration authority.
 ;; @data-vars
 ;; - none
 ;; @maps
@@ -20,6 +21,7 @@
 ;; - get-role-owner: Returns role ID for owner.
 ;; - get-role-operator: Returns role ID for operator.
 ;; - get-role-guardian: Returns role ID for guardian.
+;; - get-role-strategy-registrar: Returns role ID for strategy registrar.
 ;; @external-contracts
 ;; - none
 ;; @limitations
@@ -31,6 +33,7 @@
 (define-constant role-owner u1)
 (define-constant role-operator u2)
 (define-constant role-guardian u3)
+(define-constant role-strategy-registrar u4)
 
 (define-read-only (get-bps-denominator)
   (ok bps-denominator)
@@ -46,4 +49,8 @@
 
 (define-read-only (get-role-guardian)
   (ok role-guardian)
+)
+
+(define-read-only (get-role-strategy-registrar)
+  (ok role-strategy-registrar)
 )
