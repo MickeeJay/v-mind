@@ -134,6 +134,27 @@
 	)
 )
 
+(define-public (set-max-strategy-rebalance-frequency-blocks (new-max-frequency uint))
+	(begin
+		(try! (assert-owner))
+		(asserts! (> new-max-frequency u0) err-invalid-rebalance-frequency)
+		(asserts! (<= new-max-frequency max-rebalance-frequency-blocks) err-invalid-rebalance-frequency)
+		(var-set max-strategy-rebalance-frequency-blocks new-max-frequency)
+		(let ((next-version (bump-config-version)))
+			(begin
+				(print {
+					event: "config-updated",
+					parameter: "max-strategy-rebalance-frequency-blocks",
+					value: new-max-frequency,
+					version: next-version,
+					caller: tx-sender
+				})
+				(ok new-max-frequency)
+			)
+		)
+	)
+)
+
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
 )
