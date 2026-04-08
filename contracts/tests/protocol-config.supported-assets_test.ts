@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
 
 Clarinet.test({
