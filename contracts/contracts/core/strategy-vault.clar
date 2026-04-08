@@ -253,3 +253,34 @@
     err-vault-not-found
   )
 )
+
+(define-public (unpause-vault (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry
+      (begin
+        (try! (assert-vault-owner (get vault-owner vault-entry)))
+        (asserts! (is-eq (get vault-status vault-entry) vault-status-paused) err-vault-not-paused)
+        (map-set vaults
+          { vault-id: vault-id }
+          {
+            vault-owner: (get vault-owner vault-entry),
+            asset-contract: (get asset-contract vault-entry),
+            total-assets: (get total-assets vault-entry),
+            strategy-id: (get strategy-id vault-entry),
+            created-at-block: (get created-at-block vault-entry),
+            last-execution-block: (get last-execution-block vault-entry),
+            vault-status: vault-status-active,
+            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+            execution-locked: (get execution-locked vault-entry)
+          }
+        )
+        (print {
+          event: "vault-unpaused",
+          vault-id: vault-id,
+          caller: tx-sender
+        })
+        (ok true)
+      )
+    err-vault-not-found
+  )
+)
