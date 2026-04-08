@@ -92,6 +92,17 @@
   )
 )
 
+(define-private (assert-strategy-executor (strategy-id uint))
+  (match (contract-call? .strategy-registry get-strategy-by-id strategy-id)
+    strategy-entry
+      (if (or (is-eq tx-sender (get authorized-executor strategy-entry)) (is-protocol-owner tx-sender))
+        (ok true)
+        err-owner-only
+      )
+    err-invalid-strategy
+  )
+)
+
 (define-public (create-vault (asset-contract principal) (initial-deposit uint) (strategy-id uint))
   (let
     (
