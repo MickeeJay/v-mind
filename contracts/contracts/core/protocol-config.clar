@@ -92,6 +92,27 @@
 	)
 )
 
+(define-public (set-max-active-vaults-per-user (new-max-active-vaults uint))
+	(begin
+		(try! (assert-owner))
+		(asserts! (> new-max-active-vaults u0) err-invalid-max-active-vaults)
+		(asserts! (<= new-max-active-vaults max-max-active-vaults-per-user) err-invalid-max-active-vaults)
+		(var-set max-active-vaults-per-user new-max-active-vaults)
+		(let ((next-version (bump-config-version)))
+			(begin
+				(print {
+					event: "config-updated",
+					parameter: "max-active-vaults-per-user",
+					value: new-max-active-vaults,
+					version: next-version,
+					caller: tx-sender
+				})
+				(ok new-max-active-vaults)
+			)
+		)
+	)
+)
+
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
 )
