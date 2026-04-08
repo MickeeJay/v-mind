@@ -166,6 +166,36 @@ Logical runtime relationships:
 - strategy-vault relies on access-control for operator and guardian authorization.
 - strategy contracts implement strategy-trait and may call protocol-adapter-trait implementations.
 
+## Function Access Conditions
+
+Expected call-condition policy by module:
+
+- access-control:
+	- grant-role and revoke-role require owner authorization.
+	- renounce-role requires tx-sender to be the role holder.
+- protocol-config:
+	- set-treasury and fee setters require owner role.
+	- pause and unpause require owner or guardian role.
+- strategy-registry and vault-registry:
+	- registration and metadata updates require owner or governance role.
+	- read-only getters are permissionless.
+- strategy-vault:
+	- deposit and withdraw are permissionless for users unless paused.
+	- execute-strategy requires operator role, vault enabled state, and strategy enabled state.
+	- set-vault-enabled requires vault owner or governance role.
+
+## Deployment Sequencing
+
+Recommended deployment sequence for production:
+
+1. Deploy libraries and traits.
+2. Deploy access-control and assign bootstrap roles.
+3. Deploy protocol-config and wire governance owner.
+4. Deploy strategy-registry and vault-registry with access-control references.
+5. Deploy strategy-vault instances and register them in vault-registry.
+6. Register approved strategies after trait compliance and risk review.
+7. Enable automation callers for execute-strategy.
+
 ## Funds Flow: Deposit to Execution to Withdrawal
 
 ### 1. Deposit
