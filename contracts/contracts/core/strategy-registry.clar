@@ -69,6 +69,15 @@
   { strategy-ids: (list 200 uint) }
 )
 
+(define-private (is-valid-strategy-type (strategy-type uint))
+  (or
+    (is-eq strategy-type strategy-type-yield)
+    (is-eq strategy-type strategy-type-rebalance)
+    (is-eq strategy-type strategy-type-dca)
+    (is-eq strategy-type strategy-type-exit)
+  )
+)
+
 (define-public (register-strategy (strategy-contract principal) (metadata-uri (string-ascii 256)) (risk-score uint))
   (let ((strategy-id (var-get next-strategy-id)))
     (begin
