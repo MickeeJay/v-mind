@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>V-Mind | Frontend Skeleton</title>
+  <meta name="description" content="V-Mind frontend skeleton for vaults, strategies, and protocol operations on Stacks." />
+  <meta name="talentapp:project_verification" content="cfb81e09bd361ee16a287c6642199a23c33a7094cd0e1068569daa663dc3ca9872783d938973da99dbc6af93b52f090a8af2591fb8c589eb6070ac45c23ee4fc" />
+  <meta property="og:title" content="V-Mind | Frontend Skeleton" />
+  <meta property="og:description" content="Continuation-ready frontend shell for V-Mind on Stacks." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0c1117" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Archivo+Black&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c1117;
+      --panel: #111a24;
+      --panel-2: #152130;
+      --text: #f3f7fb;
+      --muted: #9db0c5;
+      --accent: #00d27a;
+      --accent-2: #ffd166;
+      --line: #243446;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(1200px 600px at 15% -10%, #1b2c40 0%, rgba(27, 44, 64, 0) 60%),
+                  radial-gradient(1000px 500px at 100% 0%, #163b2e 0%, rgba(22, 59, 46, 0) 50%), var(--bg);
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at 50% 30%, black 30%, transparent 85%);
+      z-index: 0;
+    }
+
+    .wrap {
+      width: min(1100px, calc(100% - 2rem));
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: rgba(17, 26, 36, 0.72);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      padding: 0.6rem 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: conic-gradient(from 130deg, var(--accent), #21f0b0, #0fa968, var(--accent));
+      box-shadow: 0 0 24px rgba(0, 210, 122, 0.45);
+    }
+
+    .hero {
+      padding: 4rem 0 2.5rem;
+      display: grid;
+      gap: 1.2rem;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent-2);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.72rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Archivo Black", "Space Grotesk", sans-serif;
+      font-size: clamp(2rem, 8vw, 4.2rem);
+      line-height: 0.98;
+      max-width: 15ch;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.3rem;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: linear-gradient(160deg, var(--panel), var(--panel-2));
+      border-radius: 999px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .section {
+      margin-top: 2.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(21, 33, 48, 0.9), rgba(12, 17, 23, 0.9));
+      border-radius: var(--radius);
+      padding: 1rem;
+      min-height: 165px;
+    }
+
+    .card h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 1rem 0 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <div class="nav">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>V-Mind</span>
+      </div>
+      <span style="color:#9db0c5;font-size:0.9rem;">Static Frontend Entry</span>
+    </div>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Deployment Mode</p>
+        <h1>V-Mind Website Served From index.html</h1>
+        <p class="lead">
+          This deployment is intentionally sourced from a root static index.html as requested.
+          It is structured as a frontend skeleton for continued implementation and can later be migrated back
+          to the Next.js app shell if you choose.
+        </p>
+        <div class="pill-row" aria-label="Current scope">
+          <span class="pill">Ownership verification tag included</span>
+          <span class="pill">Vercel static routing enabled</span>
+          <span class="pill">Frontend modules staged</span>
+        </div>
+      </section>
+
+      <section class="section" id="modules">
+        <div class="card-grid">
+          <article class="card">
+            <h3>Wallet Session Layer</h3>
+            <p>Connect wallet, account context, and role-aware access scaffolding.</p>
+          </article>
+          <article class="card">
+            <h3>Vault Operations</h3>
+            <p>Create, deposit, withdraw, pause, and close UX flows connected to contract calls.</p>
+          </article>
+          <article class="card">
+            <h3>Strategy Discovery</h3>
+            <p>Registry browsing by type, risk tier, and status with execution observability.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span id="year"></span> V-Mind static frontend entrypoint.
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
