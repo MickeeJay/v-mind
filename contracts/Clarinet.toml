@@ -12,6 +12,11 @@ path = "contracts/libraries/error-codes-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.constants-lib]
+path = "contracts/libraries/constants-lib.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.v-mind-core]
 path = "contracts/v-mind-core.clar"
 clarity_version = 2
