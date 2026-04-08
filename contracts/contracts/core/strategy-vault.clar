@@ -433,6 +433,41 @@
   )
 )
 
+(define-public (execute-approved-strategy (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry
+      (begin
+        (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
+        (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
+        (try! (assert-strategy-active (get strategy-id vault-entry)))
+        (try! (assert-strategy-executor (get strategy-id vault-entry)))
+        (map-set vaults
+          { vault-id: vault-id }
+          {
+            vault-owner: (get vault-owner vault-entry),
+            asset-contract: (get asset-contract vault-entry),
+            total-assets: (get total-assets vault-entry),
+            strategy-id: (get strategy-id vault-entry),
+            created-at-block: (get created-at-block vault-entry),
+            last-execution-block: block-height,
+            vault-status: (get vault-status vault-entry),
+            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+            execution-locked: false
+          }
+        )
+        (print {
+          event: "vault-strategy-executed",
+          vault-id: vault-id,
+          strategy-id: (get strategy-id vault-entry),
+          caller: tx-sender,
+          execution-block: block-height
+        })
+        (ok true)
+      )
+    err-vault-not-found
+  )
+)
+
 (define-read-only (get-next-vault-id)
   (var-get next-vault-id)
 )
