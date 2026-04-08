@@ -38,41 +38,17 @@ Ensure you have the following installed:
 |------|---------|---------|
 | **Node.js** | 20.11.0+ | JavaScript runtime |
 | **npm** | 10.0.0+ | Package manager |
-| **PowerShell** | 7.0+ | Setup scripts (Windows) |
 | **Git** | 2.0+ | Version control |
 | **Clarinet** | Latest | Stacks smart contract development |
 
 #### Installation Links
 - Node.js: https://nodejs.org/ (Use the LTS version)
-- PowerShell 7: https://aka.ms/powershell
 - Clarinet: https://docs.hiro.so/clarinet/installation
 - Git: https://git-scm.com/
 
 ### 1. Initial Setup
 
-First, ensure the security foundation is in place:
-
-```powershell
-# Initialize git repository with security-first commits
-.\setup-repository.ps1
-
-# Verify security configuration
-.\verify-gitignore.ps1
-```
-
-### 2. Initialize Monorepo
-
-Set up the workspace structure and configurations:
-
-```powershell
-# Create workspace directories and base configuration
-.\setup-monorepo.ps1
-
-# Configure all workspaces with their dependencies
-.\setup-workspaces.ps1
-```
-
-### 3. Install Dependencies
+Install all workspace dependencies:
 
 Install all workspace dependencies:
 
@@ -86,7 +62,7 @@ Or using Make:
 make install
 ```
 
-### 4. Configure Environment
+### 2. Configure Environment
 
 Copy the environment template and configure your local environment:
 
@@ -108,7 +84,7 @@ PORT=3000
 
 **⚠️ Never commit the `.env` file - it's automatically ignored.**
 
-### 5. Start Development
+### 3. Start Development
 
 Start all development servers:
 
@@ -300,21 +276,6 @@ All workspaces use TypeScript with **strict mode** enabled:
 - `noFallthroughCasesInSwitch`
 - Full type safety
 
-### Git Hooks
-
-Pre-commit hooks (powered by Husky + lint-staged):
-- ✅ Format code with Prettier
-- ✅ Lint with ESLint
-- ✅ Type check with TypeScript
-- ✅ Security checks (from security foundation)
-
-Install hooks:
-```bash
-npx husky install
-```
-
----
-
 ---
 
 ## 🔒 Security
@@ -332,18 +293,6 @@ The `.gitignore` protects:
 - ✅ NPM/Yarn credentials
 
 See `SECURITY.md` for complete security guidelines.
-
-### Pre-Commit Security
-
-Automatic checks prevent committing:
-- Private key patterns
-- Hardcoded credentials
-- Environment files
-- API tokens
-
-**Always review `git diff --staged` before committing.**
-
----
 
 ## 📚 Documentation
 
@@ -441,11 +390,6 @@ test: add or update tests
 style: formatting changes
 ```
 
-All commits include:
-```
-Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
-```
-
 ---
 
 ## 📖 Resources
@@ -471,9 +415,6 @@ MIT License - see LICENSE file for details
 
 ## 🆘 Troubleshooting
 
-### PowerShell not available
-Install PowerShell 7: https://aka.ms/powershell
-
 ### Clarinet not found
 Install Clarinet: https://docs.hiro.so/clarinet/installation
 
@@ -489,12 +430,6 @@ nvm install
 Change the port in `.env`:
 ```bash
 PORT=3001
-```
-
-### Git hooks not running
-Reinstall hooks:
-```bash
-npx husky install
 ```
 
 ---
