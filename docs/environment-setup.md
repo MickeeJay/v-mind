@@ -165,3 +165,80 @@ console.log(env.STACKS_PRIVATE_KEY); // Validated and typed
 
 ---
 
+## Web Workspace
+
+Frontend application environment configuration (\web/.env.local\).
+
+### Required Variables
+
+All web variables must be prefixed with \NEXT_PUBLIC_\ to be exposed to the browser.
+
+| Variable | Description | Example | Sensitive |
+|----------|-------------|---------|-----------|
+| \NEXT_PUBLIC_DEPLOYER_ADDRESS\ | Contract deployer address | \ST1PQHQ...\ | No |
+| \NEXT_PUBLIC_API_BASE_URL\ | Agent service URL | \http://localhost:3001\ | No |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| \NEXT_PUBLIC_STACKS_NETWORK\ | Network | \	estnet\ |
+| \NEXT_PUBLIC_STACKS_API_URL\ | Stacks API | \https://api.testnet.hiro.so\ |
+| \NEXT_PUBLIC_CONTRACT_NAME\ | Contract name | \-mind-core\ |
+| \NEXT_PUBLIC_ENABLE_BETA_FEATURES\ | Beta features | \alse\ |
+| \NEXT_PUBLIC_ENABLE_ANALYTICS\ | Analytics | \alse\ |
+| \NEXT_PUBLIC_GA_ID\ | Google Analytics ID | \\ |
+
+### Important Notes
+
+#### Public Variables
+
+⚠️ **All \NEXT_PUBLIC_*\ variables are exposed to the browser.**
+
+- Never put secrets in \NEXT_PUBLIC_*\ variables
+- These are visible in client-side code
+- Safe for network names, contract addresses, API URLs
+
+#### Private Variables
+
+Variables without \NEXT_PUBLIC_\ prefix are server-side only:
+
+\\\ash
+# Server-side only (not accessible in browser)
+DATABASE_URL=postgresql://...
+
+# Client-side accessible (embedded in JavaScript bundle)
+NEXT_PUBLIC_API_URL=http://localhost:3001
+\\\
+
+### Getting Values
+
+#### Deployer Address
+
+Use the same address from your agent configuration:
+
+\\\ash
+# From agent/.env
+STACKS_DEPLOYER_ADDRESS=ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+
+# Copy to web/.env.local
+NEXT_PUBLIC_DEPLOYER_ADDRESS=ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+\\\
+
+#### API Base URL
+
+- **Development:** \http://localhost:3001\
+- **Production:** Your deployed agent service URL
+
+### Validation
+
+The web workspace validates environment variables at build time:
+
+\\\ash
+npm run build
+# Validates all required variables
+# Build fails with clear error if any missing
+\\\
+
+---
+
