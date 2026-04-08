@@ -172,6 +172,98 @@
 			)
 		)
 	)
+
+	(define-public (add-supported-asset
+		(asset-contract principal)
+		(symbol (string-ascii 16))
+		(min-deposit-microstx uint)
+		(max-deposit-microstx uint)
+	)
+		(begin
+			(try! (assert-owner))
+			(asserts! (is-none (map-get? supported-assets { asset-contract: asset-contract })) err-asset-already-supported)
+			(asserts! (> (len symbol) u0) err-invalid-asset-symbol)
+			(asserts! (<= (len symbol) max-asset-symbol-length) err-invalid-asset-symbol)
+			(asserts! (> min-deposit-microstx u0) err-invalid-asset-limits)
+			(asserts! (<= min-deposit-microstx max-deposit-microstx) err-invalid-asset-limits)
+			(map-set supported-assets
+				{ asset-contract: asset-contract }
+				{
+					asset-contract: asset-contract,
+					symbol: symbol,
+					active: true,
+					min-deposit-microstx: min-deposit-microstx,
+					max-deposit-microstx: max-deposit-microstx
+				}
+			)
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "asset-added",
+						asset-contract: asset-contract,
+						symbol: symbol,
+						active: true,
+						min-deposit-microstx: min-deposit-microstx,
+						max-deposit-microstx: max-deposit-microstx,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok asset-contract)
+				)
+			)
+		)
+	)
+
+	(define-public (remove-supported-asset (asset-contract principal))
+		(begin
+			(try! (assert-owner))
+			(asserts! (is-some (map-get? supported-assets { asset-contract: asset-contract })) err-asset-not-supported)
+			(map-delete supported-assets { asset-contract: asset-contract })
+			(let ((next-version (bump-config-version)))
+				(begin
+					(print {
+						event: "asset-removed",
+						asset-contract: asset-contract,
+						version: next-version,
+						caller: tx-sender
+					})
+					(ok true)
+				)
+			)
+		)
+	)
+
+	(define-public (set-supported-asset-active (asset-contract principal) (active bool))
+		(match (map-get? supported-assets { asset-contract: asset-contract })
+			asset-entry
+				(begin
+					(try! (assert-owner))
+					(map-set supported-assets
+						{ asset-contract: asset-contract }
+						{
+							asset-contract: (get asset-contract asset-entry),
+							symbol: (get symbol asset-entry),
+							active: active,
+							min-deposit-microstx: (get min-deposit-microstx asset-entry),
+							max-deposit-microstx: (get max-deposit-microstx asset-entry)
+						}
+					)
+					(let ((next-version (bump-config-version)))
+						(begin
+							(print {
+								event: "asset-status-updated",
+								asset-contract: asset-contract,
+								active: active,
+								version: next-version,
+								caller: tx-sender
+							})
+							(ok true)
+						)
+					)
+				)
+			err-asset-not-supported
+		)
+	)
 )
 
 (define-read-only (get-protocol-performance-fee-bps)
