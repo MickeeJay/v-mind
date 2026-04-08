@@ -32,6 +32,11 @@ path = "contracts/traits/strategy-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.vault-token-trait]
+path = "contracts/traits/vault-token-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.v-mind-core]
 path = "contracts/v-mind-core.clar"
 clarity_version = 2
