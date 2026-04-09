@@ -88,3 +88,7 @@
 (define-read-only (get-total-supply)
   (ok (var-get total-susdh))
 )
+
+(define-read-only (get-force-failure-state)
+  (ok { enabled: (var-get force-failure), code: (var-get forced-error-code) })
+)
