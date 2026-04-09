@@ -42,6 +42,26 @@ path = "contracts/traits/protocol-adapter-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.zest-lending-trait]
+path = "contracts/traits/zest-lending-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.alex-liquidity-trait]
+path = "contracts/traits/alex-liquidity-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.stackingdao-ststx-trait]
+path = "contracts/traits/stackingdao-ststx-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.hermetica-usdh-trait]
+path = "contracts/traits/hermetica-usdh-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.access-control]
 path = "contracts/core/access-control.clar"
 clarity_version = 2
@@ -67,6 +87,11 @@ path = "contracts/core/strategy-vault.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.strategy-execution]
+path = "contracts/core/strategy-execution.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.mock-strategy]
 path = "contracts/mocks/mock-strategy.clar"
 clarity_version = 2
@@ -79,6 +104,11 @@ epoch = 2.4
 
 [contracts.mock-protocol-adapter]
 path = "contracts/mocks/mock-protocol-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.mock-defi-integrations]
+path = "contracts/mocks/mock-defi-integrations.clar"
 clarity_version = 2
 epoch = 2.4
 
