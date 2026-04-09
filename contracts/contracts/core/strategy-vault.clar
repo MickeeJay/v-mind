@@ -525,6 +525,46 @@
   )
 )
 
+(define-public (accrue-yield (vault-id uint) (yield-amount uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (asserts! (> yield-amount u0) err-invalid-amount)
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (let ((updated-assets (+ (get total-assets vault-entry) yield-amount)))
+            (begin
+              (map-set vaults
+                { vault-id: vault-id }
+                {
+                  vault-owner: (get vault-owner vault-entry),
+                  asset-contract: (get asset-contract vault-entry),
+                  total-assets: updated-assets,
+                  strategy-id: (get strategy-id vault-entry),
+                  created-at-block: (get created-at-block vault-entry),
+                  last-execution-block: block-height,
+                  vault-status: (get vault-status vault-entry),
+                  cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+                  execution-locked: (get execution-locked vault-entry)
+                }
+              )
+              (print {
+                event: "vault-yield-accrued",
+                vault-id: vault-id,
+                yield-amount: yield-amount,
+                total-assets: updated-assets,
+                caller: tx-sender
+              })
+              (ok updated-assets)
+            )
+          )
+        )
+      err-vault-not-found
+    )
+  )
+)
+
 (define-read-only (get-next-vault-id)
   (var-get next-vault-id)
 )
