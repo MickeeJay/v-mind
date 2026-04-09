@@ -81,3 +81,7 @@
 (define-read-only (get-mock-user-underlying (user principal))
   (ok (get-user-amount user))
 )
+
+(define-read-only (get-force-failure-state)
+  (ok { enabled: (var-get force-failure), code: (var-get forced-error-code) })
+)
