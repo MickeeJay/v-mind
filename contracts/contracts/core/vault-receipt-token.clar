@@ -23,6 +23,29 @@
 (define-data-var token-decimals uint u6)
 (define-data-var token-uri (optional (string-utf8 256)) none)
 
+(define-map vault-share-balances
+  {
+    vault-id: uint,
+    account: principal
+  }
+  {
+    amount: uint
+  }
+)
+
+(define-map vault-share-supplies
+  { vault-id: uint }
+  { total-shares: uint }
+)
+
+(define-private (get-vault-balance-internal (vault-id uint) (account principal))
+  (default-to u0 (get amount (map-get? vault-share-balances { vault-id: vault-id, account: account })))
+)
+
+(define-private (get-vault-total-supply-internal (vault-id uint))
+  (default-to u0 (get total-shares (map-get? vault-share-supplies { vault-id: vault-id })))
+)
+
 (define-private (assert-owner)
   (if (is-eq tx-sender (var-get contract-owner))
     (ok true)
@@ -90,4 +113,12 @@
 
 (define-read-only (is-initialized)
   (var-get initialized)
+)
+
+(define-read-only (get-vault-balance (vault-id uint) (owner principal))
+  (ok (get-vault-balance-internal vault-id owner))
+)
+
+(define-read-only (get-vault-total-supply (vault-id uint))
+  (ok (get-vault-total-supply-internal vault-id))
 )
