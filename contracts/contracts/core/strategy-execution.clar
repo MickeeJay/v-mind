@@ -290,6 +290,7 @@
           yield-generated: yield-generated,
           fee-collected: fee-amount,
           treasury: treasury,
+          cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
           execution-block: block-height,
           execution-burn-block: burn-block-height
         })
@@ -356,6 +357,7 @@
           amount: rebalance-amount,
           from-target-weight-bps: from-target-weight-bps,
           to-target-weight-bps: to-target-weight-bps,
+          cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
           execution-block: block-height
         })
         (ok true)
