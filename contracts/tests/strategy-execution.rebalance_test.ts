@@ -68,9 +68,11 @@ Clarinet.test({
 
     const zestPosition = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
     const alexPosition = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ALEX)], deployer.address);
+    const totalAllocated = chain.callReadOnlyFn('strategy-execution', 'get-total-allocated-assets', [types.uint(1)], deployer.address);
 
     zestPosition.result.expectSome();
     alexPosition.result.expectSome();
+    totalAllocated.result.expectOk().expectUint(2_000_000);
   },
 });
 
