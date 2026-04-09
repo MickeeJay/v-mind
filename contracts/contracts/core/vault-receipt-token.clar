@@ -21,7 +21,7 @@
 
 (define-data-var contract-owner principal tx-sender)
 (define-data-var initialized bool false)
-(define-data-var vault-core-contract principal tx-sender)
+(define-data-var vault-core-contract principal .strategy-vault)
 
 (define-data-var token-name (string-ascii 32) "V-Mind Vault Share")
 (define-data-var token-symbol (string-ascii 32) "vSHARE")
