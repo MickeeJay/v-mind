@@ -76,3 +76,7 @@
 (define-read-only (get-lp-balance (provider principal))
   (ok (get-lp provider))
 )
+
+(define-read-only (get-force-failure-state)
+  (ok { enabled: (var-get force-failure), code: (var-get forced-error-code) })
+)
