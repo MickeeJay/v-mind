@@ -23,6 +23,12 @@ Clarinet.test({
 
     const balance = chain.callReadOnlyFn('zest-protocol-adapter', 'get-vault-zest-underlying-balance', [types.uint(1)], deployer.address);
     balance.result.expectOk().expectUint(600_000);
+
+    const mode = chain.callReadOnlyFn('zest-protocol-adapter', 'get-mock-mode', [], deployer.address);
+    mode.result.expectOk().expectBool(true);
+
+    const totalDeployed = chain.callReadOnlyFn('zest-protocol-adapter', 'get-total-deployed', [], deployer.address);
+    totalDeployed.result.expectOk().expectUint(600_000);
   },
 });
 
