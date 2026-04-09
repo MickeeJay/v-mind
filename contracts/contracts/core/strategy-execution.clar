@@ -419,3 +419,7 @@
 (define-read-only (get-performance-fee-bps)
   (contract-call? .protocol-config get-protocol-performance-fee-bps)
 )
+
+(define-read-only (is-protocol-supported (protocol-id uint))
+  (is-supported-protocol protocol-id)
+)
