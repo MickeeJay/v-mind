@@ -423,3 +423,18 @@
 (define-read-only (is-protocol-supported (protocol-id uint))
   (is-supported-protocol protocol-id)
 )
+
+(define-read-only (get-next-executable-block (vault-id uint))
+  (match (contract-call? .strategy-vault get-vault vault-id)
+    vault-entry
+      (let
+        (
+          (exec-state (get-execution-state-or-default vault-id))
+          (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
+          (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) (get last-execution-block vault-entry)))
+        )
+        (ok (+ effective-last-block cooldown-blocks))
+      )
+    err-vault-not-found
+  )
+)
