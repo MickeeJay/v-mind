@@ -58,6 +58,9 @@ Clarinet.test({
     seeded.receipts[1].result.expectErr().expectUint(2601);
     seeded.receipts[2].result.expectOk();
 
+    const nextExecutionBlock = chain.callReadOnlyFn('strategy-execution', 'get-next-executable-block', [types.uint(1)], deployer.address);
+    nextExecutionBlock.result.expectOk();
+
     const position = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
     position.result.expectSome();
   },
