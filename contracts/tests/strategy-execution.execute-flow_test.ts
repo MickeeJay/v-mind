@@ -112,6 +112,9 @@ Clarinet.test({
     const feeState = chain.callReadOnlyFn('mock-defi-integrations', 'get-total-fees-collected', [], deployer.address);
     feeState.result.expectOk().expectUint(30_000);
 
+    const feeTracker = chain.callReadOnlyFn('strategy-execution', 'get-vault-fees-collected', [types.uint(1)], deployer.address);
+    feeTracker.result.expectOk().expectUint(30_000);
+
     const position = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
     position.result.expectSome();
   },
