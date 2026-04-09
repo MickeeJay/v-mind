@@ -196,18 +196,22 @@
   )
 )
 
-(define-public (withdraw (vault-id uint) (amount uint))
+(define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
-    (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (> share-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
           (try! (assert-vault-owner (get vault-owner vault-entry)))
           (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
           (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-          (asserts! (>= (get total-assets vault-entry) amount) err-insufficient-balance)
-          (let ((updated-assets (- (get total-assets vault-entry) amount)))
+          (let
+            (
+              (withdrawn-amount (try! (contract-call? .vault-receipt-token burn vault-id tx-sender share-amount)))
+              (updated-assets (- (get total-assets vault-entry) withdrawn-amount))
+            )
             (begin
+              (asserts! (>= (get total-assets vault-entry) withdrawn-amount) err-insufficient-balance)
               (map-set vaults
                 { vault-id: vault-id }
                 {
@@ -226,11 +230,12 @@
                 event: "vault-withdrawal",
                 vault-id: vault-id,
                 withdrawer: tx-sender,
-                amount: amount,
+                shares-burned: share-amount,
+                amount: withdrawn-amount,
                 total-assets: updated-assets,
                 full-withdrawal: (is-eq updated-assets u0)
               })
-              (ok amount)
+              (ok withdrawn-amount)
             )
           )
         )
