@@ -101,7 +101,8 @@
     (asserts! (> deposit-amount u0) err-invalid-amount)
     (let
       (
-        (shares-to-mint (/ (* deposit-amount share-scaling-factor) initial-price-per-share))
+        (price-per-share (try! (get-price-per-share vault-id)))
+        (shares-to-mint (/ (* deposit-amount share-scaling-factor) price-per-share))
         (current-vault-balance (get-vault-balance-internal vault-id recipient))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
       )
@@ -128,6 +129,7 @@
     (asserts! (> share-amount u0) err-invalid-amount)
     (let
       (
+        (price-per-share (try! (get-price-per-share vault-id)))
         (current-vault-balance (get-vault-balance-internal vault-id holder))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
       )
@@ -142,7 +144,7 @@
           { vault-id: vault-id }
           { total-shares: (- current-vault-supply share-amount) }
         )
-        (ok (/ (* share-amount initial-price-per-share) share-scaling-factor))
+        (ok (/ (* share-amount price-per-share) share-scaling-factor))
       )
     )
   )
@@ -186,4 +188,17 @@
 
 (define-read-only (get-vault-total-supply (vault-id uint))
   (ok (get-vault-total-supply-internal vault-id))
+)
+
+(define-read-only (get-price-per-share (vault-id uint))
+  (let ((vault-share-supply (get-vault-total-supply-internal vault-id)))
+    (if (is-eq vault-share-supply u0)
+      (ok initial-price-per-share)
+      (match (contract-call? .strategy-vault get-vault-total-assets vault-id)
+        vault-assets
+          (ok (/ (* vault-assets share-scaling-factor) vault-share-supply))
+        asset-err asset-err
+      )
+    )
+  )
 )
