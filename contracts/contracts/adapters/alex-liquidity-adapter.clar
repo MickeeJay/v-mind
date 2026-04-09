@@ -197,3 +197,7 @@
 (define-read-only (get-vault-alex-token-x-balance (vault-id uint))
   (ok (get token-x-deployed (get-position vault-id)))
 )
+
+(define-read-only (get-mock-mode)
+  (ok (var-get use-mock))
+)
