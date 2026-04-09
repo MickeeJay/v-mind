@@ -211,3 +211,11 @@
     (ok (/ (* shares rate) one-8))
   )
 )
+
+(define-read-only (get-mock-mode)
+  (ok (var-get use-mock))
+)
+
+(define-read-only (get-cached-rate)
+  (ok (var-get cached-usdh-per-susdh))
+)
