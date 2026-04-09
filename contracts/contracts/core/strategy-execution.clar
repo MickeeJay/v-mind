@@ -411,3 +411,11 @@
 (define-read-only (get-vault-position (vault-id uint) (protocol-id uint))
   (map-get? vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id })
 )
+
+(define-read-only (get-cooldown-blocks)
+  (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks)
+)
+
+(define-read-only (get-performance-fee-bps)
+  (contract-call? .protocol-config get-protocol-performance-fee-bps)
+)
