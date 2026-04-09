@@ -11,8 +11,13 @@
 (define-constant err-owner-only (err u2801))
 (define-constant err-already-initialized (err u2802))
 (define-constant err-invalid-decimals (err u2803))
+(define-constant err-vault-core-only (err u2804))
+(define-constant err-invalid-amount (err u2805))
+(define-constant err-insufficient-vault-shares (err u2806))
 
 (define-constant max-token-decimals u18)
+(define-constant share-scaling-factor u1000000)
+(define-constant initial-price-per-share u1000000)
 
 (define-data-var contract-owner principal tx-sender)
 (define-data-var initialized bool false)
@@ -53,6 +58,13 @@
   )
 )
 
+(define-private (assert-vault-core)
+  (if (is-eq contract-caller (var-get vault-core-contract))
+    (ok true)
+    err-vault-core-only
+  )
+)
+
 (define-public (initialize-token
   (vault-core principal)
   (name (string-ascii 32))
@@ -80,6 +92,59 @@
     (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
     (match memo memo-value (print memo-value) false)
     (ok true)
+  )
+)
+
+(define-public (mint (vault-id uint) (recipient principal) (deposit-amount uint))
+  (begin
+    (try! (assert-vault-core))
+    (asserts! (> deposit-amount u0) err-invalid-amount)
+    (let
+      (
+        (shares-to-mint (/ (* deposit-amount share-scaling-factor) initial-price-per-share))
+        (current-vault-balance (get-vault-balance-internal vault-id recipient))
+        (current-vault-supply (get-vault-total-supply-internal vault-id))
+      )
+      (begin
+        (asserts! (> shares-to-mint u0) err-invalid-amount)
+        (try! (ft-mint? v-mind-vault-share-token shares-to-mint recipient))
+        (map-set vault-share-balances
+          { vault-id: vault-id, account: recipient }
+          { amount: (+ current-vault-balance shares-to-mint) }
+        )
+        (map-set vault-share-supplies
+          { vault-id: vault-id }
+          { total-shares: (+ current-vault-supply shares-to-mint) }
+        )
+        (ok shares-to-mint)
+      )
+    )
+  )
+)
+
+(define-public (burn (vault-id uint) (holder principal) (share-amount uint))
+  (begin
+    (try! (assert-vault-core))
+    (asserts! (> share-amount u0) err-invalid-amount)
+    (let
+      (
+        (current-vault-balance (get-vault-balance-internal vault-id holder))
+        (current-vault-supply (get-vault-total-supply-internal vault-id))
+      )
+      (begin
+        (asserts! (>= current-vault-balance share-amount) err-insufficient-vault-shares)
+        (try! (ft-burn? v-mind-vault-share-token share-amount holder))
+        (map-set vault-share-balances
+          { vault-id: vault-id, account: holder }
+          { amount: (- current-vault-balance share-amount) }
+        )
+        (map-set vault-share-supplies
+          { vault-id: vault-id }
+          { total-shares: (- current-vault-supply share-amount) }
+        )
+        (ok (/ (* share-amount initial-price-per-share) share-scaling-factor))
+      )
+    )
   )
 )
 
