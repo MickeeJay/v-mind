@@ -107,3 +107,8 @@ Yield accrual/accounting helper:
 - All adapters should normalize external error codes into V-Mind adapter-specific errors while preserving external code in emitted event payloads.
 - External calls returning structured tuples should be flattened into adapter outputs expected by execution engine traits.
 - Adapters should be test-configurable and run against local mocks that mimic these same signatures and response shapes.
+
+### Local Simulation Assumption
+
+- The current repository implementation uses local protocol mocks as execution targets so contracts compile and run in Clarinet without mainnet requirements.
+- Mainnet principals and ABI signatures in this document are the source-of-truth references for production adapter wiring.
