@@ -114,3 +114,11 @@
 (define-read-only (get-user-shares (user principal))
   (ok (get-shares user))
 )
+
+(define-read-only (get-force-failure-state)
+  (ok { enabled: (var-get force-failure), code: (var-get forced-error-code) })
+)
+
+(define-read-only (get-exchange-rate)
+  (ok (var-get stx-per-ststx))
+)
