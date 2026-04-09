@@ -164,6 +164,7 @@
           )
           (let ((updated-assets (+ (get total-assets vault-entry) amount)))
             (begin
+              (try! (contract-call? .vault-receipt-token mint vault-id tx-sender amount))
               (map-set vaults
                 { vault-id: vault-id }
                 {
