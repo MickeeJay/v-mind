@@ -553,3 +553,15 @@
     err-vault-not-found
   )
 )
+
+(define-read-only (get-vault-share-balance (vault-id uint) (owner principal))
+  (contract-call? .vault-receipt-token get-vault-balance vault-id owner)
+)
+
+(define-read-only (get-vault-share-supply (vault-id uint))
+  (contract-call? .vault-receipt-token get-vault-total-supply vault-id)
+)
+
+(define-read-only (get-vault-price-per-share (vault-id uint))
+  (contract-call? .vault-receipt-token get-price-per-share vault-id)
+)
