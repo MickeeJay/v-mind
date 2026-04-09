@@ -14,6 +14,7 @@
 (define-constant err-vault-core-only (err u2804))
 (define-constant err-invalid-amount (err u2805))
 (define-constant err-insufficient-vault-shares (err u2806))
+(define-constant err-vault-context-required (err u2807))
 
 (define-constant max-token-decimals u18)
 (define-constant share-scaling-factor u1000000)
@@ -43,12 +44,30 @@
   { total-shares: uint }
 )
 
+(define-map account-active-vault-count
+  { account: principal }
+  { count: uint }
+)
+
+(define-map account-primary-vault
+  { account: principal }
+  { vault-id: uint }
+)
+
 (define-private (get-vault-balance-internal (vault-id uint) (account principal))
   (default-to u0 (get amount (map-get? vault-share-balances { vault-id: vault-id, account: account })))
 )
 
 (define-private (get-vault-total-supply-internal (vault-id uint))
   (default-to u0 (get total-shares (map-get? vault-share-supplies { vault-id: vault-id })))
+)
+
+(define-private (get-account-active-vault-count-internal (account principal))
+  (default-to u0 (get count (map-get? account-active-vault-count { account: account })))
+)
+
+(define-private (get-account-primary-vault-internal (account principal))
+  (default-to u0 (get vault-id (map-get? account-primary-vault { account: account })))
 )
 
 (define-private (assert-owner)
@@ -89,7 +108,53 @@
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
   (begin
     (asserts! (is-eq tx-sender sender) err-not-token-owner)
-    (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
+    (asserts! (> amount u0) err-invalid-amount)
+    (if (is-eq sender recipient)
+      (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
+      (let
+        (
+          (sender-active-vault-count (get-account-active-vault-count-internal sender))
+          (sender-vault-id (get-account-primary-vault-internal sender))
+          (sender-vault-balance (get-vault-balance-internal sender-vault-id sender))
+          (recipient-vault-balance (get-vault-balance-internal sender-vault-id recipient))
+          (recipient-active-vault-count (get-account-active-vault-count-internal recipient))
+        )
+        (begin
+          (asserts! (is-eq sender-active-vault-count u1) err-vault-context-required)
+          (asserts! (> sender-vault-id u0) err-vault-context-required)
+          (asserts! (>= sender-vault-balance amount) err-insufficient-vault-shares)
+          (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
+          (map-set vault-share-balances
+            { vault-id: sender-vault-id, account: sender }
+            { amount: (- sender-vault-balance amount) }
+          )
+          (map-set vault-share-balances
+            { vault-id: sender-vault-id, account: recipient }
+            { amount: (+ recipient-vault-balance amount) }
+          )
+          (if (is-eq (- sender-vault-balance amount) u0)
+            (begin
+              (map-set account-active-vault-count { account: sender } { count: u0 })
+              (map-set account-primary-vault { account: sender } { vault-id: u0 })
+              true
+            )
+            true
+          )
+          (if (is-eq recipient-vault-balance u0)
+            (begin
+              (map-set account-active-vault-count { account: recipient } { count: (+ recipient-active-vault-count u1) })
+              (if (is-eq recipient-active-vault-count u0)
+                (map-set account-primary-vault { account: recipient } { vault-id: sender-vault-id })
+                true
+              )
+              true
+            )
+            true
+          )
+          true
+        )
+      )
+    )
     (match memo memo-value (print memo-value) false)
     (ok true)
   )
@@ -117,6 +182,19 @@
           { vault-id: vault-id }
           { total-shares: (+ current-vault-supply shares-to-mint) }
         )
+        (if (is-eq current-vault-balance u0)
+          (let ((active-vault-count (get-account-active-vault-count-internal recipient)))
+            (begin
+              (map-set account-active-vault-count { account: recipient } { count: (+ active-vault-count u1) })
+              (if (is-eq active-vault-count u0)
+                (map-set account-primary-vault { account: recipient } { vault-id: vault-id })
+                true
+              )
+              true
+            )
+          )
+          true
+        )
         (ok shares-to-mint)
       )
     )
@@ -143,6 +221,29 @@
         (map-set vault-share-supplies
           { vault-id: vault-id }
           { total-shares: (- current-vault-supply share-amount) }
+        )
+        (if (is-eq (- current-vault-balance share-amount) u0)
+          (let
+            (
+              (active-vault-count (get-account-active-vault-count-internal holder))
+              (primary-vault (get-account-primary-vault-internal holder))
+            )
+            (begin
+              (if (> active-vault-count u0)
+                (map-set account-active-vault-count { account: holder } { count: (- active-vault-count u1) })
+                true
+              )
+              (if (is-eq primary-vault vault-id)
+                (if (<= active-vault-count u1)
+                  (map-set account-primary-vault { account: holder } { vault-id: u0 })
+                  true
+                )
+                true
+              )
+              true
+            )
+          )
+          true
         )
         (ok (/ (* share-amount price-per-share) share-scaling-factor))
       )
