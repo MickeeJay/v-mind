@@ -239,3 +239,11 @@
     (ok (/ (* shares rate) one-8))
   )
 )
+
+(define-read-only (get-mock-mode)
+  (ok (var-get use-mock))
+)
+
+(define-read-only (get-total-principal-tracked)
+  (ok (var-get total-principal-tracked))
+)
