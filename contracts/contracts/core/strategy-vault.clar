@@ -360,6 +360,7 @@
                 execution-locked: false
               }
             )
+            (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id u0))
             (print {
               event: "vault-emergency-withdrawal",
               vault-id: vault-id,
@@ -508,6 +509,7 @@
                   execution-locked: (get execution-locked vault-entry)
                 }
               )
+              (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
               (print {
                 event: "vault-performance-fee-applied",
                 vault-id: vault-id,
@@ -549,6 +551,7 @@
                   execution-locked: (get execution-locked vault-entry)
                 }
               )
+              (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
               (print {
                 event: "vault-yield-accrued",
                 vault-id: vault-id,
