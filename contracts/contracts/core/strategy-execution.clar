@@ -454,3 +454,7 @@
     (ok (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
   )
 )
+
+(define-read-only (get-vault-fees-collected (vault-id uint))
+  (ok (get cumulative-fees-collected (get-execution-state-or-default vault-id)))
+)
