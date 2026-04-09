@@ -154,14 +154,12 @@
           (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
           (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
           (asserts! (is-eq asset-contract (get asset-contract vault-entry)) err-asset-mismatch)
-          (match (contract-call? .protocol-config get-supported-asset asset-contract)
-            protocol-asset
-              (begin
-                (asserts! (get active protocol-asset) err-asset-inactive)
-                (asserts! (<= (+ (get total-assets vault-entry) amount) (get max-deposit-microstx protocol-asset)) err-deposit-above-asset-max)
-                true
-              )
-            err-asset-not-supported
+          (let ((protocol-asset (unwrap! (contract-call? .protocol-config get-supported-asset asset-contract) err-asset-not-supported)))
+            (begin
+              (asserts! (get active protocol-asset) err-asset-inactive)
+              (asserts! (<= (+ (get total-assets vault-entry) amount) (get max-deposit-microstx protocol-asset)) err-deposit-above-asset-max)
+              true
+            )
           )
           (let ((updated-assets (+ (get total-assets vault-entry) amount)))
             (begin
