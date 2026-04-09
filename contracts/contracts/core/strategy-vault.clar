@@ -128,6 +128,7 @@
           execution-locked: false
         }
       )
+      (try! (contract-call? .vault-receipt-token mint vault-id tx-sender initial-deposit))
       (var-set next-vault-id (+ vault-id u1))
       (print {
         event: "vault-created",
