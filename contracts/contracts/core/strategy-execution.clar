@@ -357,6 +357,8 @@
           amount: rebalance-amount,
           from-target-weight-bps: from-target-weight-bps,
           to-target-weight-bps: to-target-weight-bps,
+          from-remaining-assets: (- (get allocated-assets from-position) rebalance-amount),
+          to-resulting-assets: (+ (get allocated-assets to-position) rebalance-amount),
           cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
           execution-block: block-height
         })
