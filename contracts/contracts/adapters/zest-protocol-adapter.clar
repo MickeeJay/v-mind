@@ -192,3 +192,11 @@
     (ok (get-vault-position vault-id))
   )
 )
+
+(define-read-only (get-mock-mode)
+  (ok (var-get use-mock))
+)
+
+(define-read-only (get-total-deployed)
+  (ok (var-get total-deployed))
+)
