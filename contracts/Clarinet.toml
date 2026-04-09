@@ -37,6 +37,11 @@ path = "contracts/traits/vault-token-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.sip-010-ft-trait]
+path = "contracts/traits/sip-010-ft-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.protocol-adapter-trait]
 path = "contracts/traits/protocol-adapter-trait.clar"
 clarity_version = 2
@@ -104,6 +109,11 @@ epoch = 2.4
 
 [contracts.strategy-vault]
 path = "contracts/core/strategy-vault.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-receipt-token]
+path = "contracts/core/vault-receipt-token.clar"
 clarity_version = 2
 epoch = 2.4
 

@@ -128,6 +128,7 @@
           execution-locked: false
         }
       )
+      (try! (contract-call? .vault-receipt-token mint vault-id tx-sender initial-deposit))
       (var-set next-vault-id (+ vault-id u1))
       (print {
         event: "vault-created",
@@ -163,6 +164,7 @@
           )
           (let ((updated-assets (+ (get total-assets vault-entry) amount)))
             (begin
+              (try! (contract-call? .vault-receipt-token mint vault-id tx-sender amount))
               (map-set vaults
                 { vault-id: vault-id }
                 {
@@ -194,18 +196,22 @@
   )
 )
 
-(define-public (withdraw (vault-id uint) (amount uint))
+(define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
-    (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (> share-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
           (try! (assert-vault-owner (get vault-owner vault-entry)))
           (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
           (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-          (asserts! (>= (get total-assets vault-entry) amount) err-insufficient-balance)
-          (let ((updated-assets (- (get total-assets vault-entry) amount)))
+          (let
+            (
+              (withdrawn-amount (try! (contract-call? .vault-receipt-token burn vault-id tx-sender share-amount)))
+              (updated-assets (- (get total-assets vault-entry) withdrawn-amount))
+            )
             (begin
+              (asserts! (>= (get total-assets vault-entry) withdrawn-amount) err-insufficient-balance)
               (map-set vaults
                 { vault-id: vault-id }
                 {
@@ -224,11 +230,12 @@
                 event: "vault-withdrawal",
                 vault-id: vault-id,
                 withdrawer: tx-sender,
-                amount: amount,
+                shares-burned: share-amount,
+                amount: withdrawn-amount,
                 total-assets: updated-assets,
                 full-withdrawal: (is-eq updated-assets u0)
               })
-              (ok amount)
+              (ok withdrawn-amount)
             )
           )
         )
@@ -353,6 +360,7 @@
                 execution-locked: false
               }
             )
+            (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id u0))
             (print {
               event: "vault-emergency-withdrawal",
               vault-id: vault-id,
@@ -501,12 +509,54 @@
                   execution-locked: (get execution-locked vault-entry)
                 }
               )
+              (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
               (print {
                 event: "vault-performance-fee-applied",
                 vault-id: vault-id,
                 fee-amount: fee-amount,
                 cumulative-fees-paid: updated-fees,
                 remaining-assets: updated-assets,
+                caller: tx-sender
+              })
+              (ok updated-assets)
+            )
+          )
+        )
+      err-vault-not-found
+    )
+  )
+)
+
+(define-public (accrue-yield (vault-id uint) (yield-amount uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (asserts! (> yield-amount u0) err-invalid-amount)
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (let ((updated-assets (+ (get total-assets vault-entry) yield-amount)))
+            (begin
+              (map-set vaults
+                { vault-id: vault-id }
+                {
+                  vault-owner: (get vault-owner vault-entry),
+                  asset-contract: (get asset-contract vault-entry),
+                  total-assets: updated-assets,
+                  strategy-id: (get strategy-id vault-entry),
+                  created-at-block: (get created-at-block vault-entry),
+                  last-execution-block: block-height,
+                  vault-status: (get vault-status vault-entry),
+                  cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+                  execution-locked: (get execution-locked vault-entry)
+                }
+              )
+              (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
+              (print {
+                event: "vault-yield-accrued",
+                vault-id: vault-id,
+                yield-amount: yield-amount,
+                total-assets: updated-assets,
                 caller: tx-sender
               })
               (ok updated-assets)
@@ -545,4 +595,16 @@
     vault-entry (ok (get execution-locked vault-entry))
     err-vault-not-found
   )
+)
+
+(define-read-only (get-vault-share-balance (vault-id uint) (owner principal))
+  (contract-call? .vault-receipt-token get-vault-balance vault-id owner)
+)
+
+(define-read-only (get-vault-share-supply (vault-id uint))
+  (contract-call? .vault-receipt-token get-vault-total-supply vault-id)
+)
+
+(define-read-only (get-vault-price-per-share (vault-id uint))
+  (contract-call? .vault-receipt-token get-price-per-share vault-id)
 )
