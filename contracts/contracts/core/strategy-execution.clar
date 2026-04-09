@@ -438,3 +438,15 @@
     err-vault-not-found
   )
 )
+
+(define-read-only (get-total-allocated-assets (vault-id uint))
+  (let
+    (
+      (zest-assets (get allocated-assets (get-position-or-default vault-id protocol-zest)))
+      (alex-assets (get allocated-assets (get-position-or-default vault-id protocol-alex)))
+      (stackingdao-assets (get allocated-assets (get-position-or-default vault-id protocol-stackingdao)))
+      (hermetica-assets (get allocated-assets (get-position-or-default vault-id protocol-hermetica)))
+    )
+    (ok (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
+  )
+)
