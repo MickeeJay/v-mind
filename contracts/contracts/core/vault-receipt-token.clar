@@ -15,6 +15,7 @@
 (define-constant err-invalid-amount (err u2805))
 (define-constant err-insufficient-vault-shares (err u2806))
 (define-constant err-vault-context-required (err u2807))
+(define-constant err-insufficient-vault-assets (err u2808))
 
 (define-constant max-token-decimals u18)
 (define-constant share-scaling-factor u1000000)
@@ -44,6 +45,11 @@
   { total-shares: uint }
 )
 
+(define-map vault-total-assets
+  { vault-id: uint }
+  { total-assets: uint }
+)
+
 (define-map account-active-vault-count
   { account: principal }
   { count: uint }
@@ -60,6 +66,10 @@
 
 (define-private (get-vault-total-supply-internal (vault-id uint))
   (default-to u0 (get total-shares (map-get? vault-share-supplies { vault-id: vault-id })))
+)
+
+(define-private (get-vault-total-assets-internal (vault-id uint))
+  (default-to u0 (get total-assets (map-get? vault-total-assets { vault-id: vault-id })))
 )
 
 (define-private (get-account-active-vault-count-internal (account principal))
@@ -170,6 +180,7 @@
         (shares-to-mint (/ (* deposit-amount share-scaling-factor) price-per-share))
         (current-vault-balance (get-vault-balance-internal vault-id recipient))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
+        (current-vault-assets (get-vault-total-assets-internal vault-id))
       )
       (begin
         (asserts! (> shares-to-mint u0) err-invalid-amount)
@@ -181,6 +192,10 @@
         (map-set vault-share-supplies
           { vault-id: vault-id }
           { total-shares: (+ current-vault-supply shares-to-mint) }
+        )
+        (map-set vault-total-assets
+          { vault-id: vault-id }
+          { total-assets: (+ current-vault-assets deposit-amount) }
         )
         (if (is-eq current-vault-balance u0)
           (let ((active-vault-count (get-account-active-vault-count-internal recipient)))
@@ -210,9 +225,12 @@
         (price-per-share (try! (get-price-per-share vault-id)))
         (current-vault-balance (get-vault-balance-internal vault-id holder))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
+        (current-vault-assets (get-vault-total-assets-internal vault-id))
+        (withdrawn-amount (/ (* share-amount price-per-share) share-scaling-factor))
       )
       (begin
         (asserts! (>= current-vault-balance share-amount) err-insufficient-vault-shares)
+        (asserts! (>= current-vault-assets withdrawn-amount) err-insufficient-vault-assets)
         (try! (ft-burn? v-mind-vault-share-token share-amount holder))
         (map-set vault-share-balances
           { vault-id: vault-id, account: holder }
@@ -221,6 +239,10 @@
         (map-set vault-share-supplies
           { vault-id: vault-id }
           { total-shares: (- current-vault-supply share-amount) }
+        )
+        (map-set vault-total-assets
+          { vault-id: vault-id }
+          { total-assets: (- current-vault-assets withdrawn-amount) }
         )
         (if (is-eq (- current-vault-balance share-amount) u0)
           (let
@@ -245,9 +267,17 @@
           )
           true
         )
-        (ok (/ (* share-amount price-per-share) share-scaling-factor))
+        (ok withdrawn-amount)
       )
     )
+  )
+)
+
+(define-public (sync-vault-assets (vault-id uint) (total-assets uint))
+  (begin
+    (try! (assert-vault-core))
+    (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
+    (ok total-assets)
   )
 )
 
@@ -291,15 +321,15 @@
   (ok (get-vault-total-supply-internal vault-id))
 )
 
+(define-read-only (get-vault-total-assets (vault-id uint))
+  (ok (get-vault-total-assets-internal vault-id))
+)
+
 (define-read-only (get-price-per-share (vault-id uint))
   (let ((vault-share-supply (get-vault-total-supply-internal vault-id)))
     (if (is-eq vault-share-supply u0)
       (ok initial-price-per-share)
-      (match (contract-call? .strategy-vault get-vault-total-assets vault-id)
-        vault-assets
-          (ok (/ (* vault-assets share-scaling-factor) vault-share-supply))
-        asset-err asset-err
-      )
+      (ok (/ (* (get-vault-total-assets-internal vault-id) share-scaling-factor) vault-share-supply))
     )
   )
 )
