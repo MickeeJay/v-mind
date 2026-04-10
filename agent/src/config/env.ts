@@ -1,120 +1,80 @@
-import { cleanEnv, str, port, url, num, bool } from 'envalid';
+import { z } from 'zod';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS, SERVICE_NAME } from './constants';
 
-/**
- * Validates and provides typed environment variables for the agent service
- * Throws descriptive errors if required variables are missing or invalid
- */
-export const env = cleanEnv(process.env, {
-  // Application settings
-  NODE_ENV: str({
-    choices: ['development', 'production', 'test'],
-    default: 'development',
-    desc: 'Node environment',
-  }),
-  PORT: port({ default: 3001, desc: 'Application port' }),
-  HOST: str({ default: 'localhost', desc: 'Application host' }),
-  API_VERSION: str({ default: 'v1', desc: 'API version prefix' }),
-
-  // Stacks blockchain configuration
-  STACKS_NETWORK: str({
-    choices: ['mainnet', 'testnet', 'devnet'],
-    default: 'testnet',
-    desc: 'Stacks network identifier',
-  }),
-  STACKS_NODE_URL: url({
-    default: 'https://api.testnet.hiro.so',
-    desc: 'Stacks node RPC URL',
-  }),
-  STACKS_DEPLOYER_ADDRESS: str({
-    desc: 'Deployer Stacks address',
-    example: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-  }),
-  STACKS_PRIVATE_KEY: str({
-    desc: 'Stacks private key for signing transactions (SENSITIVE)',
-  }),
-
-  // External API configuration
-  HIRO_API_BASE_URL: url({
-    default: 'https://api.testnet.hiro.so',
-    desc: 'Hiro API base URL',
-  }),
-  HIRO_API_KEY: str({
-    default: '',
-    desc: 'Hiro API key for higher rate limits (optional)',
-  }),
-  AI_INFERENCE_API_URL: url({
-    desc: 'AI inference API endpoint',
-    example: 'https://api.openai.com/v1',
-  }),
-  AI_INFERENCE_API_KEY: str({
-    desc: 'AI inference API key (SENSITIVE)',
-  }),
-
-  // Database configuration
-  DATABASE_URL: str({
-    desc: 'PostgreSQL connection string (SENSITIVE)',
-    example: 'postgresql://user:pass@localhost:5432/db',
-  }),
-  DATABASE_POOL_MIN: num({ default: 2, desc: 'Database pool minimum size' }),
-  DATABASE_POOL_MAX: num({ default: 10, desc: 'Database pool maximum size' }),
-  DATABASE_SSL_MODE: str({
-    choices: ['disable', 'require', 'verify-ca', 'verify-full'],
-    default: 'disable',
-    desc: 'Database SSL mode',
-  }),
-
-  // Logging and monitoring
-  LOG_LEVEL: str({
-    choices: ['error', 'warn', 'info', 'debug', 'trace'],
-    default: 'info',
-    desc: 'Log level',
-  }),
-  LOG_FORMAT: str({
-    choices: ['json', 'pretty'],
-    default: 'json',
-    desc: 'Log format',
-  }),
-  SENTRY_DSN: str({
-    default: '',
-    desc: 'Sentry DSN for error tracking (optional)',
-  }),
-  SENTRY_ENVIRONMENT: str({
-    default: 'development',
-    desc: 'Sentry environment tag',
-  }),
-
-  // Security and authentication
-  JWT_SECRET: str({
-    desc: 'JWT secret for API authentication (SENSITIVE)',
-    minLength: 32,
-  }),
-  JWT_EXPIRES_IN: str({ default: '7d', desc: 'JWT token expiration time' }),
-  RATE_LIMIT_RPM: num({ default: 100, desc: 'API rate limit per minute' }),
-  CORS_ORIGINS: str({
-    default: 'http://localhost:3000',
-    desc: 'CORS allowed origins (comma-separated)',
-  }),
-
-  // Strategy execution configuration
-  AUTO_EXECUTE_STRATEGIES: bool({
-    default: false,
-    desc: 'Enable automatic strategy execution',
-  }),
-  STRATEGY_EXECUTION_INTERVAL: num({
-    default: 300,
-    desc: 'Strategy execution interval in seconds',
-  }),
-  MAX_GAS_PRICE: num({
-    default: 1000000,
-    desc: 'Maximum gas price in microSTX',
-  }),
-  MIN_BALANCE_THRESHOLD: num({
-    default: 1000000,
-    desc: 'Minimum balance threshold in microSTX',
-  }),
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  STACKS_NETWORK: z.enum(['mainnet', 'testnet', 'devnet']),
+  STACKS_API_BASE_URL: z.string().url(),
+  STACKS_PRIVATE_KEY: z.string().min(64),
+  HIRO_API_KEY: z.string().optional(),
+  AGENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(10000),
+  AGENT_LOG_EVERY_N_BLOCKS: z.coerce.number().int().positive().default(5),
+  RPC_RETRY_ATTEMPTS: z.coerce.number().int().positive().default(4),
+  RPC_RETRY_MIN_TIMEOUT_MS: z.coerce.number().int().positive().default(250),
+  RPC_RETRY_MAX_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_SHUTDOWN_TIMEOUT_MS),
+  HEALTHCHECK_PORT: z.coerce.number().int().positive().optional(),
 });
 
-/**
- * Type-safe environment variables
- */
-export type Env = typeof env;
+export type RawEnv = z.infer<typeof envSchema>;
+
+export interface AgentConfig {
+  readonly serviceName: string;
+  readonly nodeEnv: RawEnv['NODE_ENV'];
+  readonly logLevel: RawEnv['LOG_LEVEL'];
+  readonly stacks: Readonly<{
+    network: RawEnv['STACKS_NETWORK'];
+    apiBaseUrl: string;
+    privateKey: string;
+    hiroApiKey?: string;
+  }>;
+  readonly loop: Readonly<{
+    pollIntervalMs: number;
+    logEveryNBlocks: number;
+  }>;
+  readonly retry: Readonly<{
+    attempts: number;
+    minTimeoutMs: number;
+    maxTimeoutMs: number;
+  }>;
+  readonly shutdown: Readonly<{
+    timeoutMs: number;
+  }>;
+  readonly monitoring: Readonly<{
+    healthcheckPort?: number;
+  }>;
+}
+
+export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
+  const parsed = envSchema.parse(source);
+
+  return Object.freeze({
+    serviceName: SERVICE_NAME,
+    nodeEnv: parsed.NODE_ENV,
+    logLevel: parsed.LOG_LEVEL,
+    stacks: Object.freeze({
+      network: parsed.STACKS_NETWORK,
+      apiBaseUrl: parsed.STACKS_API_BASE_URL,
+      privateKey: parsed.STACKS_PRIVATE_KEY,
+      hiroApiKey: parsed.HIRO_API_KEY,
+    }),
+    loop: Object.freeze({
+      pollIntervalMs: parsed.AGENT_POLL_INTERVAL_MS,
+      logEveryNBlocks: parsed.AGENT_LOG_EVERY_N_BLOCKS,
+    }),
+    retry: Object.freeze({
+      attempts: parsed.RPC_RETRY_ATTEMPTS,
+      minTimeoutMs: parsed.RPC_RETRY_MIN_TIMEOUT_MS,
+      maxTimeoutMs: parsed.RPC_RETRY_MAX_TIMEOUT_MS,
+    }),
+    shutdown: Object.freeze({
+      timeoutMs: parsed.SHUTDOWN_TIMEOUT_MS,
+    }),
+    monitoring: Object.freeze({
+      healthcheckPort: parsed.HEALTHCHECK_PORT,
+    }),
+  });
+}
+
+export const config = buildConfig(process.env);
