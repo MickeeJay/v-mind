@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@stacks/blockchain-api-client": "^7.8.2",
-    "@stacks/network": "^6.13.1",
+    "@stacks/network": "6.17.0",
     "@stacks/stacks-blockchain-api-types": "^7.8.2",
     "@stacks/transactions": "6.13.1",
     "dotenv": "^16.4.5",
