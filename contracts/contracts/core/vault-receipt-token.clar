@@ -1,5 +1,5 @@
 ;; @title V-Mind Vault Receipt Token
-;; @version 0.1.0
+;; @version 2026-04-10 reconciled vault-core authorization, trait coverage, and public access-pattern annotations
 ;; @author V-Mind Core Team
 ;; @notice SIP-010 vault receipt token scaffold for vault share accounting.
 ;; @public-functions
@@ -8,6 +8,7 @@
 ;; - mint / burn / sync-vault-assets (vault-core-only): Authorized supply and asset accounting mutations.
 
 (impl-trait .sip-010-ft-trait.sip-010-ft-trait)
+(impl-trait .vault-token-trait.vault-token-trait)
 
 (define-fungible-token v-mind-vault-share-token)
 
@@ -99,6 +100,7 @@
   )
 )
 
+;; Access pattern: owner-only
 (define-public (initialize-token
   (vault-core principal)
   (name (string-ascii 32))
@@ -120,6 +122,7 @@
   )
 )
 
+;; Access pattern: token-owner-only
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
   (begin
     (asserts! (is-eq tx-sender sender) err-not-token-owner)
@@ -175,6 +178,7 @@
   )
 )
 
+;; Access pattern: vault-core-only
 (define-public (mint (vault-id uint) (recipient principal) (deposit-amount uint))
   (begin
     (try! (assert-vault-core))
@@ -221,6 +225,7 @@
   )
 )
 
+;; Access pattern: vault-core-only
 (define-public (burn (vault-id uint) (holder principal) (share-amount uint))
   (begin
     (try! (assert-vault-core))
@@ -279,6 +284,7 @@
   )
 )
 
+;; Access pattern: vault-core-only
 (define-public (sync-vault-assets (vault-id uint) (total-assets uint))
   (begin
     (try! (assert-vault-core))
