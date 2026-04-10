@@ -7,23 +7,8 @@ cache_dir = "./.cache"
 requirements = []
 boot_contracts = []
 
-[contracts.error-codes-lib]
-path = "contracts/libraries/error-codes-lib.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.constants-lib]
-path = "contracts/libraries/constants-lib.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.vault-accounting-lib]
-path = "contracts/libraries/vault-accounting-lib.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.strategy-validation-lib]
-path = "contracts/libraries/strategy-validation-lib.clar"
+[contracts.sip-010-ft-trait]
+path = "contracts/traits/sip-010-ft-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
@@ -34,11 +19,6 @@ epoch = 2.4
 
 [contracts.vault-token-trait]
 path = "contracts/traits/vault-token-trait.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.sip-010-ft-trait]
-path = "contracts/traits/sip-010-ft-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
@@ -67,60 +47,41 @@ path = "contracts/traits/hermetica-usdh-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.zest-protocol-adapter]
-path = "contracts/adapters/zest-protocol-adapter.clar"
+[contracts.constants-lib]
+path = "contracts/libraries/constants-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.alex-liquidity-adapter]
-path = "contracts/adapters/alex-liquidity-adapter.clar"
+[contracts.error-codes-lib]
+path = "contracts/libraries/error-codes-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.stackingdao-adapter]
-path = "contracts/adapters/stackingdao-adapter.clar"
+[contracts.strategy-validation-lib]
+path = "contracts/libraries/strategy-validation-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.hermetica-adapter]
-path = "contracts/adapters/hermetica-adapter.clar"
+[contracts.vault-accounting-lib]
+path = "contracts/libraries/vault-accounting-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.access-control]
-path = "contracts/core/access-control.clar"
-clarity_version = 2
-epoch = 2.4
+[network.simnet]
+description = "Local testing network configuration"
+include_mocks = true
 
-[contracts.protocol-config]
-path = "contracts/core/protocol-config.clar"
-clarity_version = 2
-epoch = 2.4
+[network.devnet]
+description = "Development network configuration"
+include_mocks = true
 
-[contracts.strategy-registry]
-path = "contracts/core/strategy-registry.clar"
-clarity_version = 2
-epoch = 2.4
+[network.testnet]
+description = "Public testnet deployment configuration"
+include_mocks = false
 
-[contracts.vault-registry]
-path = "contracts/core/vault-registry.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.vault-core]
-path = "contracts/core/vault-core.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.vault-receipt-token]
-path = "contracts/core/vault-receipt-token.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.strategy-execution]
-path = "contracts/core/strategy-execution.clar"
-clarity_version = 2
-epoch = 2.4
+[network.mainnet]
+description = "Mainnet deployment configuration"
+include_mocks = false
 
 [contracts.mock-strategy]
 path = "contracts/mocks/mock-strategy.clar"
@@ -162,6 +123,53 @@ path = "contracts/mocks/mock-hermetica-staking.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.zest-protocol-adapter]
+path = "contracts/adapters/zest-protocol-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.alex-liquidity-adapter]
+path = "contracts/adapters/alex-liquidity-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.stackingdao-adapter]
+path = "contracts/adapters/stackingdao-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.hermetica-adapter]
+path = "contracts/adapters/hermetica-adapter.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.access-control]
+path = "contracts/core/access-control.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.protocol-config]
+path = "contracts/core/protocol-config.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-registry]
+path = "contracts/core/strategy-registry.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-receipt-token]
+path = "contracts/core/vault-receipt-token.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.vault-core]
+path = "contracts/core/vault-core.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.strategy-execution]
+path = "contracts/core/strategy-execution.clar"
 clarity_version = 2
 epoch = 2.4
 
