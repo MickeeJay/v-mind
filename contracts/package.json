@@ -9,7 +9,22 @@
     "check": "clarinet check",
     "deploy:testnet": "clarinet deployments apply -p deployments/testnet.yaml",
     "deploy:mainnet": "clarinet deployments apply -p deployments/mainnet.yaml",
-    "console": "clarinet console"
+    "console": "clarinet console",
+    "deploy:tooling": "tsx scripts/deployment/deploy.ts",
+    "deploy:dry-run": "tsx scripts/deployment/deploy.ts --dry-run",
+    "deploy:init": "tsx scripts/deployment/initialize.ts",
+    "deploy:verify": "tsx scripts/deployment/verify.ts",
+    "deploy:type-check": "tsc --project tsconfig.scripts.json --noEmit"
+  },
+  "dependencies": {
+    "@stacks/network": "^6.13.1",
+    "@stacks/transactions": "^6.13.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
   },
   "keywords": [
     "stacks",
