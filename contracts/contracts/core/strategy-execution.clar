@@ -118,31 +118,28 @@
 )
 
 (define-private (assert-cooldown-and-strategy (vault-id uint) (strategy-id uint))
-  (match (contract-call? vault-core-contract get-vault vault-id)
-    vault-entry
-      (let
-        (
-          (vault-strategy-id (get strategy-id vault-entry))
-          (vault-status (get vault-status vault-entry))
-          (vault-last-block (get last-execution-block vault-entry))
-          (exec-state (get-execution-state-or-default vault-id))
-          (cooldown-blocks (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
-          (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) vault-last-block))
-        )
-        (begin
-          (asserts! (is-eq vault-status vault-status-active) err-vault-not-active)
-          (asserts! (is-eq strategy-id vault-strategy-id) err-strategy-mismatch)
-          (asserts! (contract-call? strategy-registry-contract is-strategy-active strategy-id) err-strategy-inactive)
-          (asserts! (>= block-height (+ effective-last-block cooldown-blocks)) err-cooldown-active)
-          (ok true)
-        )
-      )
-    err-vault-not-found
+  (let
+    (
+      (vault (unwrap! (contract-call? .vault-core get-vault-for-execution vault-id) err-vault-not-found))
+      (vault-status (get vault-status vault))
+      (vault-strategy-id (get strategy-id vault))
+      (vault-last-block (get last-execution-block vault))
+      (exec-state (get-execution-state-or-default vault-id))
+      (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
+      (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) vault-last-block))
+    )
+    (begin
+      (asserts! (is-eq vault-status vault-status-active) err-vault-not-active)
+      (asserts! (is-eq strategy-id vault-strategy-id) err-strategy-mismatch)
+      (asserts! (contract-call? .strategy-registry is-strategy-active strategy-id) err-strategy-inactive)
+      (asserts! (>= block-height (+ effective-last-block cooldown-blocks)) err-cooldown-active)
+      (ok true)
+    )
   )
 )
 
 (define-private (calculate-performance-fee (yield-generated uint))
-  (unwrap-panic (contract-call? .vault-accounting-lib compute-performance-fee yield-generated (contract-call? protocol-config-contract get-protocol-performance-fee-bps)))
+  (unwrap-panic (contract-call? .vault-accounting-lib compute-performance-fee yield-generated (contract-call? .protocol-config get-protocol-performance-fee-bps)))
 )
 
 (define-private (deposit-into-protocol
@@ -263,7 +260,7 @@
       (stackingdao-assets (get allocated-assets (get-position-or-default vault-id protocol-stackingdao)))
       (hermetica-assets (get allocated-assets (get-position-or-default vault-id protocol-hermetica)))
       (total-allocated (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
-      (vault-assets (try! (contract-call? vault-core-contract get-vault-total-assets vault-id)))
+      (vault-assets (try! (contract-call? .vault-core get-vault-total-assets vault-id)))
     )
     (begin
       (asserts! (<= total-allocated vault-assets) err-allocation-exceeds-vault-assets)
@@ -289,14 +286,14 @@
     (asserts! (> asset-amount u0) err-invalid-amount)
     (asserts! (is-supported-protocol protocol-id) err-invalid-protocol)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (fee-amount (calculate-performance-fee yield-generated))
         (net-yield (if (>= yield-generated fee-amount) (- yield-generated fee-amount) u0))
         (position (get-position-or-default vault-id protocol-id))
         (updated-allocation (+ (+ (get allocated-assets position) asset-amount) net-yield))
-        (treasury (contract-call? protocol-config-contract get-protocol-treasury))
+        (treasury (contract-call? .protocol-config get-protocol-treasury))
       )
       (begin
         (map-set vault-strategy-positions
@@ -310,7 +307,7 @@
           true
         )
         (write-execution-state vault-id fee-amount yield-generated)
-        (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
+        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
         (print {
           event: "strategy-executed",
           vault-id: vault-id,
@@ -321,7 +318,7 @@
           yield-generated: yield-generated,
           fee-collected: fee-amount,
           treasury: treasury,
-          cooldown-blocks: (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks),
+          cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
           execution-block: block-height,
           execution-burn-block: burn-block-height
         })
@@ -361,7 +358,7 @@
     (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
     (asserts! (is-eq (+ from-target-weight-bps to-target-weight-bps) bps-denominator) err-invalid-weight-split)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (from-position (get-position-or-default vault-id from-protocol-id))
@@ -387,7 +384,7 @@
             (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (write-execution-state vault-id u0 u0)
-            (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
             (print {
               event: "vault-rebalanced",
               vault-id: vault-id,
@@ -400,7 +397,7 @@
               to-target-weight-bps: to-target-weight-bps,
               from-remaining-assets: updated-from-assets,
               to-resulting-assets: updated-to-assets,
-              cooldown-blocks: (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks),
+              cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
               execution-block: block-height
             })
             (ok true)
@@ -421,7 +418,7 @@
 )
   (begin
     (try! (assert-owner))
-    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (zest-position (get-position-or-default vault-id protocol-zest))
@@ -444,7 +441,7 @@
             (total-returned (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
           )
           (begin
-            (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
             (print {
               event: "vault-emergency-exit",
               vault-id: vault-id,
@@ -479,12 +476,12 @@
 
 ;; Access pattern: permissionless-query
 (define-public (get-cooldown-blocks)
-  (ok (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
+  (ok (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
 )
 
 ;; Access pattern: permissionless-query
 (define-public (get-performance-fee-bps)
-  (ok (contract-call? protocol-config-contract get-protocol-performance-fee-bps))
+  (ok (contract-call? .protocol-config get-protocol-performance-fee-bps))
 )
 
 (define-read-only (is-protocol-supported (protocol-id uint))
@@ -493,17 +490,15 @@
 
 ;; Access pattern: permissionless-query
 (define-public (get-next-executable-block (vault-id uint))
-  (match (contract-call? vault-core-contract get-vault vault-id)
-    vault-entry
-      (let
-        (
-          (exec-state (get-execution-state-or-default vault-id))
-          (cooldown-blocks (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
-          (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) (get last-execution-block vault-entry)))
-        )
-        (ok (+ effective-last-block cooldown-blocks))
-      )
-    err-vault-not-found
+  (let
+    (
+      (vault (unwrap! (contract-call? .vault-core get-vault-for-execution vault-id) err-vault-not-found))
+      (vault-last-block (get last-execution-block vault))
+      (exec-state (get-execution-state-or-default vault-id))
+      (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
+      (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) vault-last-block))
+    )
+    (ok (+ effective-last-block cooldown-blocks))
   )
 )
 

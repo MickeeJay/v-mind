@@ -658,9 +658,31 @@
   (map-get? vaults { vault-id: vault-id })
 )
 
+;; Access pattern: permissionless-query
+(define-public (get-vault-for-execution (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok vault-entry)
+    err-vault-not-found
+  )
+)
+
 (define-read-only (get-vault-status (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry (ok (get vault-status vault-entry))
+    err-vault-not-found
+  )
+)
+
+(define-read-only (get-vault-strategy-id (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok (get strategy-id vault-entry))
+    err-vault-not-found
+  )
+)
+
+(define-read-only (get-vault-last-execution-block (vault-id uint))
+  (match (map-get? vaults { vault-id: vault-id })
+    vault-entry (ok (get last-execution-block vault-entry))
     err-vault-not-found
   )
 )
