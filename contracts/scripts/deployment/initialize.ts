@@ -1,11 +1,14 @@
 import {
+  ClarityValue,
   ClarityType,
   callReadOnlyFunction,
+  falseCV,
   noneCV,
   principalCV,
   someCV,
   stringAsciiCV,
   stringUtf8CV,
+  trueCV,
   uintCV,
 } from '@stacks/transactions';
 
@@ -139,7 +142,7 @@ async function readOnly(
   senderAddress: string,
   contractPrincipal: string,
   functionName: string,
-  args: ReturnType<typeof uintCV>[],
+  args: ClarityValue[],
 ): Promise<unknown> {
   const { contractAddress, contractName } = splitContractPrincipal(contractPrincipal);
 
@@ -179,7 +182,7 @@ async function configureRoles(
     const hasRole = await readOnly(network, senderAddress, accessControlPrincipal, 'has-role', [
       principalCV(grant.account),
       uintCV(roleToId(grant.role)),
-    ] as unknown as ReturnType<typeof uintCV>[]);
+    ]);
 
     expectBool(hasRole, true, `has-role(${grant.account}, ${grant.role})`);
     console.log(`Verified role ${grant.role} for ${grant.account}`);
@@ -291,7 +294,7 @@ async function main(): Promise<void> {
           protocolConfigAddress,
           protocolConfigName,
           'set-supported-asset-active',
-          [principalCV(asset.assetContract), asset.active ? uintCV(1n) : uintCV(0n)] as never,
+          [principalCV(asset.assetContract), asset.active ? trueCV() : falseCV()],
         ),
       );
     }
@@ -310,8 +313,8 @@ async function main(): Promise<void> {
       await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
         callPublicFnTx(network, env.deployerPrivateKey, protocolConfigAddress, protocolConfigName, 'set-fee-override-active', [
           stringAsciiCV(override.key),
-          uintCV(0n),
-        ] as never),
+          falseCV(),
+        ]),
       );
     }
   }
@@ -337,7 +340,7 @@ async function main(): Promise<void> {
           protocolConfigAddress,
           protocolConfigName,
           'set-whitelisted-strategy-type-active',
-          [stringAsciiCV(strategyType.strategyType), uintCV(0n)] as never,
+          [stringAsciiCV(strategyType.strategyType), falseCV()],
         ),
       );
     }
