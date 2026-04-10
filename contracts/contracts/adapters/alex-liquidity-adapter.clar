@@ -1,5 +1,9 @@
 ;; @title V-Mind ALEX Liquidity Adapter
 ;; @notice Routes V-Mind vault interactions to ALEX AMM interfaces.
+;; @public-functions
+;; - set-mock-mode / set-alex-config (owner-only): Adapter configuration.
+;; - provide-alex-liquidity / withdraw-alex-liquidity / emergency-exit-alex (strategy-execution-or-owner): Position management.
+;; - collect-alex-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (define-constant one-8 u100000000)
 
@@ -7,6 +11,10 @@
 (define-constant err-invalid-amount (err u3501))
 (define-constant err-insufficient-position (err u3502))
 (define-constant err-external-call-failed (err u3503))
+(define-constant err-unauthorized-caller (err u3504))
+(define-constant err-invalid-treasury (err u3505))
+
+(define-constant strategy-execution-contract .strategy-execution)
 
 (define-constant alex-mainnet-amm 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.amm-swap-pool-v1-1)
 
@@ -26,6 +34,13 @@
 
 (define-private (assert-owner)
   (if (is-eq tx-sender (var-get owner)) (ok true) err-owner-only)
+)
+
+(define-private (assert-authorized-caller)
+  (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
+    (ok true)
+    err-unauthorized-caller
+  )
 )
 
 (define-private (get-position (vault-id uint))
@@ -75,6 +90,7 @@
 
 (define-public (provide-alex-liquidity (vault-id uint) (amount uint))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (match (call-add-position amount)
       add-result
@@ -125,6 +141,7 @@
       (current-token-x (get token-x-deployed position))
     )
     (begin
+      (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-lp amount) err-insufficient-position)
       (let ((percent (if (is-eq amount current-lp) one-8 (/ (* amount one-8) current-lp))))
@@ -170,7 +187,9 @@
 
 (define-public (collect-alex-fee (amount uint) (treasury principal))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
     (print {
       event: "v-mind-alex-fee-collected",
       amount: amount,
@@ -182,10 +201,13 @@
 )
 
 (define-public (emergency-exit-alex (vault-id uint))
-  (let ((current-lp (get lp-balance (get-position vault-id))))
-    (if (is-eq current-lp u0)
-      (ok u0)
-      (withdraw-alex-liquidity vault-id current-lp)
+  (begin
+    (try! (assert-authorized-caller))
+    (let ((current-lp (get lp-balance (get-position vault-id))))
+      (if (is-eq current-lp u0)
+        (ok u0)
+        (withdraw-alex-liquidity vault-id current-lp)
+      )
     )
   )
 )

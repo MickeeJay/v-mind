@@ -17,11 +17,11 @@
 ;; @maps
 ;; - role-membership: Tracks account-to-role membership boolean.
 ;; @public-functions
-;; - transfer-ownership: Proposes new contract owner.
-;; - accept-ownership: Completes two-step ownership transfer.
-;; - grant-role: Grants a role to an account.
-;; - revoke-role: Revokes a role from an account.
-;; - renounce-role: Allows caller to drop one of their roles.
+;; - transfer-ownership (owner-only): Proposes new contract owner.
+;; - accept-ownership (pending-owner-only): Completes two-step ownership transfer.
+;; - grant-role (owner-only): Grants a role to an account.
+;; - revoke-role (owner-only): Revokes a role from an account.
+;; - renounce-role (self-only): Allows caller to drop one of their roles.
 ;; @external-contracts
 ;; - Read by: protocol-config, strategy-registry, vault-registry, strategy-vault.
 ;; @limitations
@@ -32,7 +32,8 @@
 (define-constant role-guardian u3)
 (define-constant role-strategy-registrar u4)
 (define-constant err-owner-only (err u2000))
-(define-constant err-not-implemented (err u2999))
+(define-constant err-invalid-role (err u2001))
+(define-constant err-role-not-assigned (err u2002))
 
 (define-data-var contract-owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
@@ -45,6 +46,15 @@
   {
     enabled: bool
   }
+)
+
+(define-private (is-valid-role (role uint))
+  (or
+    (is-eq role role-owner)
+    (is-eq role role-operator)
+    (is-eq role role-guardian)
+    (is-eq role role-strategy-registrar)
+  )
 )
 
 (define-public (transfer-ownership (new-owner principal))
@@ -67,15 +77,34 @@
 )
 
 (define-public (grant-role (account principal) (role uint))
-  err-not-implemented
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
+    (asserts! (is-valid-role role) err-invalid-role)
+    (map-set role-membership
+      { account: account, role: role }
+      { enabled: true }
+    )
+    (ok true)
+  )
 )
 
 (define-public (revoke-role (account principal) (role uint))
-  err-not-implemented
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
+    (asserts! (is-valid-role role) err-invalid-role)
+    (asserts! (default-to false (get enabled (map-get? role-membership { account: account, role: role }))) err-role-not-assigned)
+    (map-delete role-membership { account: account, role: role })
+    (ok true)
+  )
 )
 
 (define-public (renounce-role (role uint))
-  err-not-implemented
+  (begin
+    (asserts! (is-valid-role role) err-invalid-role)
+    (asserts! (default-to false (get enabled (map-get? role-membership { account: tx-sender, role: role }))) err-role-not-assigned)
+    (map-delete role-membership { account: tx-sender, role: role })
+    (ok true)
+  )
 )
 
 (define-read-only (has-role (account principal) (role uint))

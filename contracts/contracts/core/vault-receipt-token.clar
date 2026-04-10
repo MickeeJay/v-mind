@@ -2,6 +2,10 @@
 ;; @version 0.1.0
 ;; @author V-Mind Core Team
 ;; @notice SIP-010 vault receipt token scaffold for vault share accounting.
+;; @public-functions
+;; - initialize-token (owner-only): One-time token metadata setup.
+;; - transfer (token-owner-only): SIP-010 transfer with vault-context reconciliation.
+;; - mint / burn / sync-vault-assets (vault-core-only): Authorized supply and asset accounting mutations.
 
 (impl-trait .sip-010-ft-trait.sip-010-ft-trait)
 
@@ -16,6 +20,7 @@
 (define-constant err-insufficient-vault-shares (err u2806))
 (define-constant err-vault-context-required (err u2807))
 (define-constant err-insufficient-vault-assets (err u2808))
+(define-constant err-supply-invariant (err u2809))
 
 (define-constant max-token-decimals u18)
 (define-constant share-scaling-factor u1000000)
@@ -165,7 +170,7 @@
         )
       )
     )
-    (match memo memo-value (print memo-value) false)
+    (match memo memo-value (begin (print memo-value) true) true)
     (ok true)
   )
 )
@@ -176,7 +181,7 @@
     (asserts! (> deposit-amount u0) err-invalid-amount)
     (let
       (
-        (price-per-share (try! (get-price-per-share vault-id)))
+        (price-per-share (unwrap-panic (get-price-per-share vault-id)))
         (shares-to-mint (/ (* deposit-amount share-scaling-factor) price-per-share))
         (current-vault-balance (get-vault-balance-internal vault-id recipient))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
@@ -222,7 +227,7 @@
     (asserts! (> share-amount u0) err-invalid-amount)
     (let
       (
-        (price-per-share (try! (get-price-per-share vault-id)))
+        (price-per-share (unwrap-panic (get-price-per-share vault-id)))
         (current-vault-balance (get-vault-balance-internal vault-id holder))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
         (current-vault-assets (get-vault-total-assets-internal vault-id))
@@ -230,6 +235,7 @@
       )
       (begin
         (asserts! (>= current-vault-balance share-amount) err-insufficient-vault-shares)
+        (asserts! (>= current-vault-supply share-amount) err-insufficient-vault-shares)
         (asserts! (>= current-vault-assets withdrawn-amount) err-insufficient-vault-assets)
         (try! (ft-burn? v-mind-vault-share-token share-amount holder))
         (map-set vault-share-balances
@@ -276,8 +282,13 @@
 (define-public (sync-vault-assets (vault-id uint) (total-assets uint))
   (begin
     (try! (assert-vault-core))
-    (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
-    (ok total-assets)
+    (let ((supply-before (get-vault-total-supply-internal vault-id)))
+      (begin
+        (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
+        (asserts! (is-eq supply-before (get-vault-total-supply-internal vault-id)) err-supply-invariant)
+        (ok total-assets)
+      )
+    )
   )
 )
 

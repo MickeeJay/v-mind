@@ -1,5 +1,8 @@
 ;; V-Mind Core Contract
 ;; Main contract for DeFi strategy automation
+;; Access patterns:
+;; - pause-contract (owner-only)
+;; - unpause-contract (owner-only)
 
 ;; Constants
 (define-constant contract-owner tx-sender)

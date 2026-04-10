@@ -1,5 +1,9 @@
 ;; @title V-Mind StackingDAO Adapter
 ;; @notice Routes V-Mind vault interactions to StackingDAO stSTX contracts.
+;; @public-functions
+;; - set-mock-mode / set-stackingdao-config (owner-only): Adapter configuration.
+;; - mint-ststx / redeem-ststx / emergency-exit-stackingdao (strategy-execution-or-owner): Position management.
+;; - collect-stackingdao-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (define-constant one-8 u100000000)
 
@@ -7,6 +11,10 @@
 (define-constant err-invalid-amount (err u3601))
 (define-constant err-insufficient-position (err u3602))
 (define-constant err-external-call-failed (err u3603))
+(define-constant err-unauthorized-caller (err u3604))
+(define-constant err-invalid-treasury (err u3605))
+
+(define-constant strategy-execution-contract .strategy-execution)
 
 (define-constant stackingdao-core-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stacking-dao-core-v6)
 (define-constant stackingdao-reserve-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1)
@@ -36,6 +44,13 @@
 
 (define-private (assert-owner)
   (if (is-eq tx-sender (var-get owner)) (ok true) err-owner-only)
+)
+
+(define-private (assert-authorized-caller)
+  (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
+    (ok true)
+    err-unauthorized-caller
+  )
 )
 
 (define-private (adapter-principal)
@@ -88,6 +103,7 @@
 
 (define-public (mint-ststx (vault-id uint) (amount uint))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (match
       (contract-call? .mock-stackingdao-core deposit
@@ -142,6 +158,7 @@
       (current-principal (get stx-principal-deployed position))
     )
     (begin
+      (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-shares amount) err-insufficient-position)
       (match
@@ -191,7 +208,9 @@
 
 (define-public (collect-stackingdao-fee (amount uint) (treasury principal))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
     (print {
       event: "v-mind-stackingdao-fee-collected",
       amount: amount,
@@ -203,10 +222,13 @@
 )
 
 (define-public (emergency-exit-stackingdao (vault-id uint))
-  (let ((shares (get ststx-shares (get-position vault-id))))
-    (if (is-eq shares u0)
-      (ok u0)
-      (redeem-ststx vault-id shares)
+  (begin
+    (try! (assert-authorized-caller))
+    (let ((shares (get ststx-shares (get-position vault-id))))
+      (if (is-eq shares u0)
+        (ok u0)
+        (redeem-ststx vault-id shares)
+      )
     )
   )
 )

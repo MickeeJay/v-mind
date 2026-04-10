@@ -3,9 +3,21 @@
 ;; @author V-Mind Core Team
 ;; @notice Security-focused vault core handling creation, deposits, withdrawals, and emergency exits.
 ;; @dev This contract tracks vault state in a vault-id keyed map and validates protocol policy before state changes.
+;; @public-functions
+;; - create-vault (permissionless): Create a vault using a supported asset and active strategy.
+;; - deposit (vault-owner-only): Add assets and mint vault shares.
+;; - withdraw (vault-owner-only): Burn shares and withdraw assets.
+;; - pause-vault / unpause-vault / close-vault (vault-owner-only): Lifecycle controls.
+;; - emergency-withdraw (protocol-owner-only): Pause vault and force assets to zero.
+;; - lock-vault-for-execution / unlock-vault-after-execution (strategy-executor-or-protocol-owner): Execution lock controls.
+;; - execute-approved-strategy (strategy-executor-or-protocol-owner): Records strategy execution metadata.
+;; - apply-performance-fee / accrue-yield (protocol-owner-only): Protocol accounting updates.
+;; - set-max-aum-drop-bps-per-tx (protocol-owner-only): Circuit-breaker configuration.
 ;; @contract strategy-vault
 
 (define-constant role-owner u1)
+(define-constant bps-denominator u10000)
+(define-constant max-bps u10000)
 
 (define-constant vault-status-active u1)
 (define-constant vault-status-paused u2)
@@ -29,8 +41,12 @@
 (define-constant err-vault-not-empty (err u2415))
 (define-constant err-vault-closed (err u2416))
 (define-constant err-invalid-fee-amount (err u2417))
+(define-constant err-invalid-aum-threshold (err u2418))
+(define-constant err-aum-drop-exceeded (err u2419))
+(define-constant err-vault-asset-invariant (err u2420))
 
 (define-data-var next-vault-id uint u1)
+(define-data-var max-aum-drop-bps-per-tx uint u10000)
 
 (define-map vaults
   { vault-id: uint }
@@ -104,6 +120,31 @@
   )
 )
 
+(define-private (assert-vault-assets-synced (vault-id uint) (expected-assets uint))
+  (let ((receipt-assets (unwrap-panic (contract-call? .vault-receipt-token get-vault-total-assets vault-id))))
+    (if (is-eq receipt-assets expected-assets)
+      (ok true)
+      err-vault-asset-invariant
+    )
+  )
+)
+
+(define-private (assert-aum-drop-within-threshold (previous-assets uint) (updated-assets uint) (allow-full-exit bool))
+  (if (or
+        (>= updated-assets previous-assets)
+        (is-eq previous-assets u0)
+        (and allow-full-exit (is-eq updated-assets u0))
+      )
+    (ok true)
+    (let ((drop-bps (/ (* (- previous-assets updated-assets) bps-denominator) previous-assets)))
+      (begin
+        (asserts! (<= drop-bps (var-get max-aum-drop-bps-per-tx)) err-aum-drop-exceeded)
+        (ok true)
+      )
+    )
+  )
+)
+
 (define-public (create-vault (asset-contract principal) (initial-deposit uint) (strategy-id uint))
   (let
     (
@@ -129,6 +170,7 @@
         }
       )
       (try! (contract-call? .vault-receipt-token mint vault-id tx-sender initial-deposit))
+      (try! (assert-vault-assets-synced vault-id initial-deposit))
       (var-set next-vault-id (+ vault-id u1))
       (print {
         event: "vault-created",
@@ -158,7 +200,8 @@
           (let ((protocol-asset (unwrap! (contract-call? .protocol-config get-supported-asset asset-contract) err-asset-not-supported)))
             (begin
               (asserts! (get active protocol-asset) err-asset-inactive)
-              (asserts! (<= (+ (get total-assets vault-entry) amount) (get max-deposit-microstx protocol-asset)) err-deposit-above-asset-max)
+              (asserts! (<= (get total-assets vault-entry) (get max-deposit-microstx protocol-asset)) err-deposit-above-asset-max)
+              (asserts! (<= amount (- (get max-deposit-microstx protocol-asset) (get total-assets vault-entry))) err-deposit-above-asset-max)
               true
             )
           )
@@ -179,6 +222,7 @@
                   execution-locked: (get execution-locked vault-entry)
                 }
               )
+              (try! (assert-vault-assets-synced vault-id updated-assets))
               (print {
                 event: "vault-deposit",
                 vault-id: vault-id,
@@ -208,34 +252,39 @@
           (let
             (
               (withdrawn-amount (try! (contract-call? .vault-receipt-token burn vault-id tx-sender share-amount)))
-              (updated-assets (- (get total-assets vault-entry) withdrawn-amount))
             )
             (begin
               (asserts! (>= (get total-assets vault-entry) withdrawn-amount) err-insufficient-balance)
-              (map-set vaults
-                { vault-id: vault-id }
-                {
-                  vault-owner: (get vault-owner vault-entry),
-                  asset-contract: (get asset-contract vault-entry),
-                  total-assets: updated-assets,
-                  strategy-id: (get strategy-id vault-entry),
-                  created-at-block: (get created-at-block vault-entry),
-                  last-execution-block: (get last-execution-block vault-entry),
-                  vault-status: (get vault-status vault-entry),
-                  cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-                  execution-locked: (get execution-locked vault-entry)
-                }
+              (let ((updated-assets (- (get total-assets vault-entry) withdrawn-amount)))
+                (begin
+                  (try! (assert-aum-drop-within-threshold (get total-assets vault-entry) updated-assets true))
+                  (map-set vaults
+                    { vault-id: vault-id }
+                    {
+                      vault-owner: (get vault-owner vault-entry),
+                      asset-contract: (get asset-contract vault-entry),
+                      total-assets: updated-assets,
+                      strategy-id: (get strategy-id vault-entry),
+                      created-at-block: (get created-at-block vault-entry),
+                      last-execution-block: (get last-execution-block vault-entry),
+                      vault-status: (get vault-status vault-entry),
+                      cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+                      execution-locked: (get execution-locked vault-entry)
+                    }
+                  )
+                  (try! (assert-vault-assets-synced vault-id updated-assets))
+                  (print {
+                    event: "vault-withdrawal",
+                    vault-id: vault-id,
+                    withdrawer: tx-sender,
+                    shares-burned: share-amount,
+                    amount: withdrawn-amount,
+                    total-assets: updated-assets,
+                    full-withdrawal: (is-eq updated-assets u0)
+                  })
+                  (ok withdrawn-amount)
+                )
               )
-              (print {
-                event: "vault-withdrawal",
-                vault-id: vault-id,
-                withdrawer: tx-sender,
-                shares-burned: share-amount,
-                amount: withdrawn-amount,
-                total-assets: updated-assets,
-                full-withdrawal: (is-eq updated-assets u0)
-              })
-              (ok withdrawn-amount)
             )
           )
         )
@@ -346,6 +395,7 @@
       vault-entry
         (let ((withdrawn-amount (get total-assets vault-entry)))
           (begin
+            (try! (assert-aum-drop-within-threshold (get total-assets vault-entry) u0 true))
             (map-set vaults
               { vault-id: vault-id }
               {
@@ -361,6 +411,7 @@
               }
             )
             (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id u0))
+            (try! (assert-vault-assets-synced vault-id u0))
             (print {
               event: "vault-emergency-withdrawal",
               vault-id: vault-id,
@@ -495,6 +546,7 @@
               (updated-fees (+ (get cumulative-fees-paid vault-entry) fee-amount))
             )
             (begin
+              (try! (assert-aum-drop-within-threshold (get total-assets vault-entry) updated-assets false))
               (map-set vaults
                 { vault-id: vault-id }
                 {
@@ -510,6 +562,7 @@
                 }
               )
               (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
+              (try! (assert-vault-assets-synced vault-id updated-assets))
               (print {
                 event: "vault-performance-fee-applied",
                 vault-id: vault-id,
@@ -552,6 +605,7 @@
                 }
               )
               (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
+              (try! (assert-vault-assets-synced vault-id updated-assets))
               (print {
                 event: "vault-yield-accrued",
                 vault-id: vault-id,
@@ -565,6 +619,16 @@
         )
       err-vault-not-found
     )
+  )
+)
+
+(define-public (set-max-aum-drop-bps-per-tx (new-threshold uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (asserts! (> new-threshold u0) err-invalid-aum-threshold)
+    (asserts! (<= new-threshold max-bps) err-invalid-aum-threshold)
+    (var-set max-aum-drop-bps-per-tx new-threshold)
+    (ok new-threshold)
   )
 )
 
@@ -607,4 +671,8 @@
 
 (define-read-only (get-vault-price-per-share (vault-id uint))
   (contract-call? .vault-receipt-token get-price-per-share vault-id)
+)
+
+(define-read-only (get-max-aum-drop-bps-per-tx)
+  (ok (var-get max-aum-drop-bps-per-tx))
 )

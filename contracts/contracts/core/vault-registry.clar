@@ -15,9 +15,9 @@
 ;; - vaults: Maps vault IDs to vault contract principal, strategy ID, and lifecycle metadata.
 ;; - vault-id-by-contract: Reverse lookup from vault principal to vault ID.
 ;; @public-functions
-;; - register-vault: Registers a newly deployed vault contract and metadata.
-;; - set-vault-enabled: Enables or disables a registered vault.
-;; - update-vault-metadata: Updates human-readable metadata URI.
+;; - register-vault (owner-only): Registers a newly deployed vault contract and metadata.
+;; - set-vault-enabled (owner-only): Enables or disables a registered vault.
+;; - update-vault-metadata (owner-only): Updates human-readable metadata URI.
 ;; @external-contracts
 ;; - Depends on: strategy-registry for strategy ID linkage validation (planned).
 ;; - Consumed by: frontends, strategy-vault deployments, protocol analytics.

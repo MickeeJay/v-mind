@@ -1,5 +1,9 @@
 ;; @title V-Mind Hermetica Adapter
 ;; @notice Routes V-Mind vault interactions to Hermetica USDh staking contracts.
+;; @public-functions
+;; - set-mock-mode / set-cached-rate / set-hermetica-config (owner-only): Adapter configuration.
+;; - deposit-usdh / withdraw-usdh / emergency-exit-hermetica (strategy-execution-or-owner): Position management.
+;; - collect-hermetica-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (define-constant one-8 u100000000)
 
@@ -7,6 +11,10 @@
 (define-constant err-invalid-amount (err u3701))
 (define-constant err-insufficient-position (err u3702))
 (define-constant err-external-call-failed (err u3703))
+(define-constant err-unauthorized-caller (err u3704))
+(define-constant err-invalid-treasury (err u3705))
+
+(define-constant strategy-execution-contract .strategy-execution)
 
 (define-constant hermetica-staking-mainnet 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1)
 (define-constant hermetica-susdh-mainnet 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1)
@@ -28,6 +36,13 @@
 
 (define-private (assert-owner)
   (if (is-eq tx-sender (var-get owner)) (ok true) err-owner-only)
+)
+
+(define-private (assert-authorized-caller)
+  (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
+    (ok true)
+    err-unauthorized-caller
+  )
 )
 
 (define-private (adapter-principal)
@@ -73,6 +88,7 @@
 
 (define-public (deposit-usdh (vault-id uint) (amount uint))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (let ((before-balance (get-susdh-balance)))
       (match
@@ -132,6 +148,7 @@
       (current-principal (get usdh-principal-deployed position))
     )
     (begin
+      (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-shares amount) err-insufficient-position)
       (match
@@ -171,7 +188,9 @@
 
 (define-public (collect-hermetica-fee (amount uint) (treasury principal))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
     (print {
       event: "v-mind-hermetica-fee-collected",
       amount: amount,
@@ -183,10 +202,13 @@
 )
 
 (define-public (emergency-exit-hermetica (vault-id uint))
-  (let ((shares (get susdh-shares (get-position vault-id))))
-    (if (is-eq shares u0)
-      (ok u0)
-      (withdraw-usdh vault-id shares)
+  (begin
+    (try! (assert-authorized-caller))
+    (let ((shares (get susdh-shares (get-position vault-id))))
+      (if (is-eq shares u0)
+        (ok u0)
+        (withdraw-usdh vault-id shares)
+      )
     )
   )
 )
