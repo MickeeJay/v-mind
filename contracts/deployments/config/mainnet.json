@@ -58,19 +58,19 @@
   "initialConfig": {
     "roleGrants": [
       {
-        "account": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "owner"
       },
       {
-        "account": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "strategy-registrar"
       },
       {
-        "account": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "operator"
       },
       {
-        "account": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "guardian"
       }
     ],
@@ -79,7 +79,7 @@
       "maxActiveVaultsPerUser": "10",
       "minimumDepositMicrostx": "1000000",
       "maxStrategyRebalanceFrequencyBlocks": "144",
-      "protocolTreasury": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V",
+      "protocolTreasury": "${DEPLOYER_ADDRESS}",
       "supportedAssets": [
         {
           "assetContract": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
@@ -128,23 +128,23 @@
       {
         "strategyName": "zest-mainnet-yield",
         "strategyType": "yield",
-        "targetProtocol": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V.zest-protocol-adapter",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.zest-protocol-adapter",
         "riskTier": "moderate",
-        "authorizedExecutor": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V"
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
       },
       {
         "strategyName": "stackingdao-mainnet-yield",
         "strategyType": "yield",
-        "targetProtocol": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V.stackingdao-adapter",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.stackingdao-adapter",
         "riskTier": "conservative",
-        "authorizedExecutor": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V"
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
       },
       {
         "strategyName": "alex-mainnet-rebalance",
         "strategyType": "rebalance",
-        "targetProtocol": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V.alex-liquidity-adapter",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.alex-liquidity-adapter",
         "riskTier": "aggressive",
-        "authorizedExecutor": "SP2C2W5D6S5K4ATGM5Y8A4P8AZ6G5E8QMX9T0Q8V"
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
       }
     ],
     "vaultMaxAumDropBpsPerTx": "1500"

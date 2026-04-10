@@ -19,6 +19,8 @@ This runbook defines a scripted, reproducible deployment flow for V-Mind contrac
 
 Run all commands from the repository root.
 
+Deployment config files support `${DEPLOYER_ADDRESS}` and `${STACKS_NODE_URL}` token substitution at runtime.
+
 ### 1) Install dependencies
 
 ```bash

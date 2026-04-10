@@ -58,15 +58,15 @@
   "initialConfig": {
     "roleGrants": [
       {
-        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "owner"
       },
       {
-        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "strategy-registrar"
       },
       {
-        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "account": "${DEPLOYER_ADDRESS}",
         "role": "operator"
       }
     ],
@@ -75,7 +75,7 @@
       "maxActiveVaultsPerUser": "15",
       "minimumDepositMicrostx": "500000",
       "maxStrategyRebalanceFrequencyBlocks": "72",
-      "protocolTreasury": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+      "protocolTreasury": "${DEPLOYER_ADDRESS}",
       "supportedAssets": [
         {
           "assetContract": "ST3Y2EJ7A6B9CY2Y0M5NPHM8VQ8TS3Y5Y3SJ4A0A1.sbtc-token",
@@ -120,16 +120,16 @@
       {
         "strategyName": "zest-yield-core",
         "strategyType": "yield",
-        "targetProtocol": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV.zest-protocol-adapter",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.zest-protocol-adapter",
         "riskTier": "moderate",
-        "authorizedExecutor": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV"
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
       },
       {
         "strategyName": "alex-rebalance-core",
         "strategyType": "rebalance",
-        "targetProtocol": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV.alex-liquidity-adapter",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.alex-liquidity-adapter",
         "riskTier": "moderate",
-        "authorizedExecutor": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV"
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
       }
     ],
     "vaultMaxAumDropBpsPerTx": "2500"

@@ -27,9 +27,15 @@ function resolveConfigPath(env: DeployerEnv): string {
   return path.resolve('deployments', 'config', `${env.stacksNetwork}.json`);
 }
 
+function applyEnvTokens(raw: string, env: DeployerEnv): string {
+  return raw
+    .replaceAll('${DEPLOYER_ADDRESS}', env.deployerAddress)
+    .replaceAll('${STACKS_NODE_URL}', env.stacksNodeUrl);
+}
+
 export function loadDeploymentConfig(env: DeployerEnv): DeploymentConfig {
   const configPath = resolveConfigPath(env);
-  const configRaw = fs.readFileSync(configPath, 'utf8');
+  const configRaw = applyEnvTokens(fs.readFileSync(configPath, 'utf8'), env);
   const config = JSON.parse(configRaw) as DeploymentConfig;
 
   assert(config.network === env.stacksNetwork, `Config network mismatch: expected ${env.stacksNetwork}, got ${config.network}`);
