@@ -1,4 +1,4 @@
-import { ClarityType, callReadOnlyFunction, principalCV, stringAsciiCV, uintCV } from '@stacks/transactions';
+import { ClarityType, ClarityValue, callReadOnlyFunction, principalCV, stringAsciiCV, uintCV } from '@stacks/transactions';
 
 import { CORE_CONTRACT_NAMES } from './constants';
 import { loadDeployerEnv } from './env';
@@ -49,7 +49,7 @@ async function readOnly(
   senderAddress: string,
   contractPrincipal: string,
   functionName: string,
-  functionArgs: ReturnType<typeof uintCV>[],
+  functionArgs: ClarityValue[],
 ): Promise<unknown> {
   const { contractAddress, contractName } = splitContractPrincipal(contractPrincipal);
 
@@ -103,7 +103,7 @@ async function main(): Promise<void> {
   }
 
   const accessControlPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.accessControl);
-  const owner = await readOnly(network, env.deployerAddress, accessControlPrincipal, 'get-owner', [] as never);
+  const owner = await readOnly(network, env.deployerAddress, accessControlPrincipal, 'get-owner', []);
   if (!comparePrincipal(owner, env.deployerAddress)) {
     discrepancies.push(`access-control.get-owner mismatch. Expected ${env.deployerAddress}`);
   }
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     env.deployerAddress,
     protocolConfigPrincipal,
     'get-protocol-performance-fee-bps',
-    [] as never,
+    [],
   );
   if (!compareUInt(performanceFee, asUInt(config.initialConfig.protocolConfig.performanceFeeBps))) {
     discrepancies.push('protocol-config.get-protocol-performance-fee-bps mismatch.');
@@ -125,7 +125,7 @@ async function main(): Promise<void> {
     env.deployerAddress,
     protocolConfigPrincipal,
     'get-minimum-deposit-microstx',
-    [] as never,
+    [],
   );
   if (!compareUInt(minDeposit, asUInt(config.initialConfig.protocolConfig.minimumDepositMicrostx))) {
     discrepancies.push('protocol-config.get-minimum-deposit-microstx mismatch.');
@@ -136,13 +136,13 @@ async function main(): Promise<void> {
     env.deployerAddress,
     protocolConfigPrincipal,
     'get-max-strategy-rebalance-frequency-blocks',
-    [] as never,
+    [],
   );
   if (!compareUInt(maxFrequency, asUInt(config.initialConfig.protocolConfig.maxStrategyRebalanceFrequencyBlocks))) {
     discrepancies.push('protocol-config.get-max-strategy-rebalance-frequency-blocks mismatch.');
   }
 
-  const treasury = await readOnly(network, env.deployerAddress, protocolConfigPrincipal, 'get-protocol-treasury', [] as never);
+  const treasury = await readOnly(network, env.deployerAddress, protocolConfigPrincipal, 'get-protocol-treasury', []);
   if (!comparePrincipal(treasury, config.initialConfig.protocolConfig.protocolTreasury)) {
     discrepancies.push(`protocol-config.get-protocol-treasury mismatch. Expected ${config.initialConfig.protocolConfig.protocolTreasury}.`);
   }
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
   for (const asset of config.initialConfig.protocolConfig.supportedAssets) {
     const assetEntry = await readOnly(network, env.deployerAddress, protocolConfigPrincipal, 'get-supported-asset', [
       principalCV(asset.assetContract),
-    ] as never);
+    ]);
 
     const cv = assetEntry as { type: number; value?: unknown };
     if (cv.type !== ClarityType.OptionalSome) {
@@ -159,7 +159,7 @@ async function main(): Promise<void> {
   }
 
   const strategyRegistryPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.strategyRegistry);
-  const totalStrategies = await readOnly(network, env.deployerAddress, strategyRegistryPrincipal, 'get-total-strategies', [] as never);
+  const totalStrategies = await readOnly(network, env.deployerAddress, strategyRegistryPrincipal, 'get-total-strategies', []);
   if (!compareUInt(totalStrategies, BigInt(config.initialConfig.strategies.length))) {
     discrepancies.push(`strategy-registry.get-total-strategies mismatch. Expected ${config.initialConfig.strategies.length}.`);
   }
@@ -169,7 +169,7 @@ async function main(): Promise<void> {
     const strategyId = BigInt(index + 1);
     const strategyEntry = await readOnly(network, env.deployerAddress, strategyRegistryPrincipal, 'get-strategy-by-id', [
       uintCV(strategyId),
-    ] as never);
+    ]);
 
     const cv = strategyEntry as { type: number; value?: unknown };
     if (cv.type !== ClarityType.OptionalSome) {
@@ -179,14 +179,14 @@ async function main(): Promise<void> {
 
     const isActive = await readOnly(network, env.deployerAddress, strategyRegistryPrincipal, 'is-strategy-active', [
       uintCV(strategyId),
-    ] as never);
+    ]);
     if (!compareBool(isActive, true)) {
       discrepancies.push(`strategy-registry.is-strategy-active false for id ${strategyId} (${strategy.strategyName}).`);
     }
   }
 
   const vaultReceiptTokenPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.vaultReceiptToken);
-  const tokenInitialized = await readOnly(network, env.deployerAddress, vaultReceiptTokenPrincipal, 'is-initialized', [] as never);
+  const tokenInitialized = await readOnly(network, env.deployerAddress, vaultReceiptTokenPrincipal, 'is-initialized', []);
   if (!compareBool(tokenInitialized, true)) {
     discrepancies.push('vault-receipt-token.is-initialized mismatch.');
   }
@@ -197,16 +197,21 @@ async function main(): Promise<void> {
     env.deployerAddress,
     vaultReceiptTokenPrincipal,
     'get-vault-core-contract',
-    [] as never,
+    [],
   );
   if (!comparePrincipal(vaultCoreContract, strategyVaultPrincipal)) {
     discrepancies.push(`vault-receipt-token.get-vault-core-contract mismatch. Expected ${strategyVaultPrincipal}.`);
   }
 
-  const tokenName = await readOnly(network, env.deployerAddress, vaultReceiptTokenPrincipal, 'get-name', [] as never);
+  const tokenName = await readOnly(network, env.deployerAddress, vaultReceiptTokenPrincipal, 'get-name', []);
   const tokenNameCv = tokenName as { type: number; value?: unknown };
   if (tokenNameCv.type !== ClarityType.ResponseOk) {
     discrepancies.push('vault-receipt-token.get-name did not return ok response.');
+  } else {
+    const inner = tokenNameCv.value as { type: number; data?: string };
+    if (inner.type !== ClarityType.StringASCII || inner.data !== config.initialConfig.token.name) {
+      discrepancies.push(`vault-receipt-token.get-name mismatch. Expected ${config.initialConfig.token.name}.`);
+    }
   }
 
   const strategyVaultAum = await readOnly(
@@ -214,20 +219,25 @@ async function main(): Promise<void> {
     env.deployerAddress,
     strategyVaultPrincipal,
     'get-max-aum-drop-bps-per-tx',
-    [] as never,
+    [],
   );
   const strategyVaultAumCv = strategyVaultAum as { type: number; value?: unknown };
   if (strategyVaultAumCv.type !== ClarityType.ResponseOk) {
     discrepancies.push('strategy-vault.get-max-aum-drop-bps-per-tx did not return ok response.');
+  } else {
+    const inner = strategyVaultAumCv.value as { type: number; value?: unknown };
+    if (inner.type !== ClarityType.UInt || BigInt(String(inner.value)) !== asUInt(config.initialConfig.vaultMaxAumDropBpsPerTx)) {
+      discrepancies.push('strategy-vault.get-max-aum-drop-bps-per-tx mismatch.');
+    }
   }
 
   const strategyExecutionPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.strategyExecution);
-  const cooldown = await readOnly(network, env.deployerAddress, strategyExecutionPrincipal, 'get-cooldown-blocks', [] as never);
+  const cooldown = await readOnly(network, env.deployerAddress, strategyExecutionPrincipal, 'get-cooldown-blocks', []);
   if (!compareUInt(cooldown, asUInt(config.initialConfig.protocolConfig.maxStrategyRebalanceFrequencyBlocks))) {
     discrepancies.push('strategy-execution.get-cooldown-blocks mismatch.');
   }
 
-  const performanceFeeBps = await readOnly(network, env.deployerAddress, strategyExecutionPrincipal, 'get-performance-fee-bps', [] as never);
+  const performanceFeeBps = await readOnly(network, env.deployerAddress, strategyExecutionPrincipal, 'get-performance-fee-bps', []);
   if (!compareUInt(performanceFeeBps, asUInt(config.initialConfig.protocolConfig.performanceFeeBps))) {
     discrepancies.push('strategy-execution.get-performance-fee-bps mismatch.');
   }
@@ -239,7 +249,7 @@ async function main(): Promise<void> {
       env.deployerAddress,
       protocolConfigPrincipal,
       'get-whitelisted-strategy-type',
-      [stringAsciiCV(whitelistedType.strategyType)] as never,
+      [stringAsciiCV(whitelistedType.strategyType)],
     );
 
     const cv = whitelistEntry as { type: number; value?: unknown };
