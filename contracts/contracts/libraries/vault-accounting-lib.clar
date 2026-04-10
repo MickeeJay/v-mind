@@ -20,6 +20,29 @@
 ;; - Callers must ensure decimal normalization for underlying assets.
 
 (define-constant err-invalid-input (err u1200))
+(define-constant bps-denominator u10000)
+(define-constant initial-price-per-share u1000000)
+
+(define-read-only (compute-price-per-share (total-assets uint) (total-shares uint))
+  (if (is-eq total-shares u0)
+      (ok initial-price-per-share)
+      (ok (/ (* total-assets initial-price-per-share) total-shares))
+  )
+)
+
+(define-read-only (compute-performance-fee (amount uint) (fee-bps uint))
+  (if (> fee-bps bps-denominator)
+      err-invalid-input
+      (ok (/ (* amount fee-bps) bps-denominator))
+  )
+)
+
+(define-read-only (compute-proportional-allocation (amount uint) (weight-bps uint))
+  (if (> weight-bps bps-denominator)
+      err-invalid-input
+      (ok (/ (* amount weight-bps) bps-denominator))
+  )
+)
 
 (define-read-only (preview-shares (assets uint) (total-assets uint) (total-shares uint))
   (if (is-eq assets u0)
