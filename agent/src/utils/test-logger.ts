@@ -1,5 +1,4 @@
-import type pino from 'pino';
-import type { AppLogger } from './logger';
+import type { AppLogger, LogContext } from './logger';
 
 export interface TestLogEntry {
   level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -61,7 +60,7 @@ export class TestLogger implements AppLogger {
     this.record('fatal', args);
   }
 
-  child(bindings: pino.Bindings): AppLogger {
+  child(bindings: LogContext): AppLogger {
     return new TestLogger(this.sink, { ...this.boundContext, ...bindings });
   }
 
