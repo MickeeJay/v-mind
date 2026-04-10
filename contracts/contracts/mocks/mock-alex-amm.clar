@@ -1,4 +1,6 @@
+;; MOCK CONTRACT - FOR LOCAL TESTING ONLY. NOT FOR DEPLOYMENT.
 ;; @title Mock ALEX AMM
+;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for ALEX add/reduce liquidity interfaces.
 
 (define-constant one-8 u100000000)
