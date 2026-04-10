@@ -1,9 +1,12 @@
 ;; @title V-Mind ALEX Liquidity Adapter
+;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to ALEX AMM interfaces.
 ;; @public-functions
 ;; - set-mock-mode / set-alex-config (owner-only): Adapter configuration.
 ;; - provide-alex-liquidity / withdraw-alex-liquidity / emergency-exit-alex (strategy-execution-or-owner): Position management.
 ;; - collect-alex-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
+
+(impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant one-8 u100000000)
 
@@ -16,12 +19,10 @@
 
 (define-constant strategy-execution-contract .strategy-execution)
 
-(define-constant alex-mainnet-amm 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.amm-swap-pool-v1-1)
-
 (define-data-var owner principal tx-sender)
 (define-data-var use-mock bool true)
-(define-data-var token-x principal 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token)
-(define-data-var token-y principal 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1)
+(define-data-var token-x principal tx-sender)
+(define-data-var token-y principal tx-sender)
 (define-data-var pool-factor uint u1000)
 
 (define-map vault-positions
@@ -222,4 +223,23 @@
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-public (deposit (vault-id uint) (amount uint))
+  (provide-alex-liquidity vault-id amount)
+)
+
+(define-public (withdraw (vault-id uint) (amount uint))
+  (withdraw-alex-liquidity vault-id amount)
+)
+
+(define-read-only (get-balance (vault-id uint))
+  (get-vault-alex-token-x-balance vault-id)
+)
+
+(define-read-only (get-protocol-info)
+  (ok {
+    protocol-name: "ALEX",
+    protocol-version: "v1"
+  })
 )
