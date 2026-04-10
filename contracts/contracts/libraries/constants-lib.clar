@@ -1,5 +1,5 @@
 ;; @title V-Mind Constants Library
-;; @version 0.1.0
+;; @version 2026-04-10 expanded protocol constants and external principal placeholders
 ;; @author V-Mind Core Team
 ;; @notice Defines global protocol constants used in validation and fee calculations.
 ;; @dev Constants are exposed through read-only functions for discovery by off-chain services.
