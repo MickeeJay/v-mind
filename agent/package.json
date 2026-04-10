@@ -23,7 +23,6 @@
     "@stacks/stacks-blockchain-api-types": "^7.8.2",
     "@stacks/transactions": "6.13.1",
     "dotenv": "^16.4.5",
-    "envalid": "^8.0.0",
     "p-retry": "6.2.1",
     "pino": "9.11.0",
     "zod": "3.25.76"
