@@ -1,0 +1,137 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://api.testnet.hiro.so",
+  "confirmationPollIntervalMs": 10000,
+  "confirmationTimeoutMs": 900000,
+  "contracts": [
+    {
+      "name": "access-control",
+      "kind": "access-control",
+      "path": "contracts/core/access-control.clar"
+    },
+    {
+      "name": "protocol-config",
+      "kind": "protocol-config",
+      "path": "contracts/core/protocol-config.clar"
+    },
+    {
+      "name": "strategy-registry",
+      "kind": "strategy-registry",
+      "path": "contracts/core/strategy-registry.clar"
+    },
+    {
+      "name": "vault-receipt-token",
+      "kind": "vault-receipt-token",
+      "path": "contracts/core/vault-receipt-token.clar"
+    },
+    {
+      "name": "zest-protocol-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/zest-protocol-adapter.clar"
+    },
+    {
+      "name": "alex-liquidity-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/alex-liquidity-adapter.clar"
+    },
+    {
+      "name": "stackingdao-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/stackingdao-adapter.clar"
+    },
+    {
+      "name": "hermetica-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/hermetica-adapter.clar"
+    },
+    {
+      "name": "strategy-vault",
+      "kind": "vault-core",
+      "path": "contracts/core/strategy-vault.clar"
+    },
+    {
+      "name": "strategy-execution",
+      "kind": "vault-execution-engine",
+      "path": "contracts/core/strategy-execution.clar"
+    }
+  ],
+  "initialConfig": {
+    "roleGrants": [
+      {
+        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "role": "owner"
+      },
+      {
+        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "role": "strategy-registrar"
+      },
+      {
+        "account": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+        "role": "operator"
+      }
+    ],
+    "protocolConfig": {
+      "performanceFeeBps": "1000",
+      "maxActiveVaultsPerUser": "15",
+      "minimumDepositMicrostx": "500000",
+      "maxStrategyRebalanceFrequencyBlocks": "72",
+      "protocolTreasury": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV",
+      "supportedAssets": [
+        {
+          "assetContract": "ST3Y2EJ7A6B9CY2Y0M5NPHM8VQ8TS3Y5Y3SJ4A0A1.sbtc-token",
+          "symbol": "sBTC",
+          "minDepositMicrostx": "500000",
+          "maxDepositMicrostx": "25000000000",
+          "active": true
+        },
+        {
+          "assetContract": "ST14Q4D47W4R5VVGWVEAHT8U22ZQ0PQGYB8V4Q8R0.usdh-token",
+          "symbol": "USDh",
+          "minDepositMicrostx": "500000",
+          "maxDepositMicrostx": "50000000000",
+          "active": true
+        }
+      ],
+      "feeOverrides": [
+        {
+          "key": "treasury-vault",
+          "feeRateBps": "700",
+          "active": true
+        }
+      ],
+      "whitelistedStrategyTypes": [
+        {
+          "strategyType": "yield",
+          "active": true
+        },
+        {
+          "strategyType": "rebalance",
+          "active": true
+        }
+      ]
+    },
+    "token": {
+      "name": "V-Mind Vault Share",
+      "symbol": "vSHARE",
+      "decimals": "6",
+      "uri": null
+    },
+    "strategies": [
+      {
+        "strategyName": "zest-yield-core",
+        "strategyType": "yield",
+        "targetProtocol": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV.zest-protocol-adapter",
+        "riskTier": "moderate",
+        "authorizedExecutor": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV"
+      },
+      {
+        "strategyName": "alex-rebalance-core",
+        "strategyType": "rebalance",
+        "targetProtocol": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV.alex-liquidity-adapter",
+        "riskTier": "moderate",
+        "authorizedExecutor": "ST2J8EVYHVMM5K4NSSVQ47P9VC5Y0N5P7P5A1Q8QV"
+      }
+    ],
+    "vaultMaxAumDropBpsPerTx": "2500"
+  }
+}
