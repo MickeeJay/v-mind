@@ -1,5 +1,5 @@
 ;; @title V-Mind Vault Core
-;; @version 0.2.0
+;; @version 2026-04-10 reconciled vault-core naming, emergency controls, and public access-pattern coverage
 ;; @author V-Mind Core Team
 ;; @notice Security-focused vault core handling creation, deposits, withdrawals, and emergency exits.
 ;; @dev This contract tracks vault state in a vault-id keyed map and validates protocol policy before state changes.
@@ -145,6 +145,7 @@
   )
 )
 
+;; Access pattern: permissionless
 (define-public (create-vault (asset-contract principal) (initial-deposit uint) (strategy-id uint))
   (let
     (
@@ -187,6 +188,7 @@
   )
 )
 
+;; Access pattern: vault-owner-only
 (define-public (deposit (vault-id uint) (asset-contract principal) (amount uint))
   (begin
     (asserts! (> amount u0) err-invalid-amount)
@@ -240,6 +242,7 @@
   )
 )
 
+;; Access pattern: vault-owner-only
 (define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
     (asserts! (> share-amount u0) err-invalid-amount)
@@ -293,6 +296,7 @@
   )
 )
 
+;; Access pattern: vault-owner-only
 (define-public (pause-vault (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -324,6 +328,7 @@
   )
 )
 
+;; Access pattern: vault-owner-only
 (define-public (unpause-vault (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -355,6 +360,7 @@
   )
 )
 
+;; Access pattern: vault-owner-only
 (define-public (close-vault (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -388,6 +394,7 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
 (define-public (emergency-withdraw (vault-id uint))
   (begin
     (try! (assert-protocol-owner))
@@ -428,6 +435,12 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
+(define-public (emergency-withdraw-all (vault-id uint))
+  (emergency-withdraw vault-id)
+)
+
+;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (lock-vault-for-execution (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -463,6 +476,7 @@
   )
 )
 
+;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (unlock-vault-after-execution (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -496,6 +510,7 @@
   )
 )
 
+;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (execute-approved-strategy (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry
@@ -531,6 +546,7 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
 (define-public (apply-performance-fee (vault-id uint) (fee-amount uint))
   (begin
     (try! (assert-protocol-owner))
@@ -580,6 +596,7 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
 (define-public (accrue-yield (vault-id uint) (yield-amount uint))
   (begin
     (try! (assert-protocol-owner))
@@ -622,6 +639,7 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
 (define-public (set-max-aum-drop-bps-per-tx (new-threshold uint))
   (begin
     (try! (assert-protocol-owner))
