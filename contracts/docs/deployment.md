@@ -84,3 +84,14 @@ Verification checks include:
 6. Strategy execution read-only values match protocol configuration.
 
 If discrepancies are found, the script exits non-zero and prints each mismatch.
+
+## Rollback and failure handling
+
+Stacks contract deployments are immutable once confirmed. Rollback is handled operationally:
+
+1. Stop immediately on the first failed deployment, initialization, or verification step.
+2. Record failed txid, error message, and block height from script logs.
+3. Do not continue initialization after a failure; fix root cause and redeploy a new contract set with new contract names if required by governance process.
+4. If a partial initialization occurred, use owner-controlled remediation transactions (role revocation, deactivation, treasury correction) before reattempting launch.
+5. Re-run full verification after remediation to ensure there are no state mismatches.
+6. Maintain manifest and initialization logs in release artifacts for auditability.
