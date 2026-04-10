@@ -1,45 +1,61 @@
-import dotenv from 'dotenv';
-import { env } from './config/env';
+import 'dotenv/config';
+import { StacksApiBlockchainClient } from './blockchain';
+import { config } from './config';
+import { InFlightSubmissionTracker } from './execution';
+import { InMemoryMetricsRecorder, PollingAgentLoop } from './monitoring';
+import { createLogger, registerGracefulShutdown, withRequestContext } from './utils';
 
-// Load environment variables first
-dotenv.config();
+async function main(): Promise<void> {
+  const logger = createLogger({
+    level: config.logLevel,
+    serviceName: config.serviceName,
+    nodeEnv: config.nodeEnv,
+  });
 
-// Validate environment variables on startup
-// This will throw descriptive errors if any required variables are missing
-console.log('🔍 Validating environment variables...');
-try {
-  // Access env to trigger validation
-  const config = {
-    nodeEnv: env.NODE_ENV,
-    port: env.PORT,
-    stacksNetwork: env.STACKS_NETWORK,
-  };
-  console.log('✅ Environment validation passed');
-  console.log('📋 Configuration:', JSON.stringify(config, null, 2));
-} catch (error) {
-  console.error('❌ Environment validation failed:');
-  console.error(error);
-  process.exit(1);
+  const startupLogger = withRequestContext(logger, { component: 'startup' });
+  const submissionTracker = new InFlightSubmissionTracker();
+  const metrics = new InMemoryMetricsRecorder();
+  const blockchainClient = new StacksApiBlockchainClient(config, startupLogger);
+
+  const agentLoop = new PollingAgentLoop({
+    blockchainClient,
+    metrics,
+    logger,
+    pollIntervalMs: config.loop.pollIntervalMs,
+    logEveryNBlocks: config.loop.logEveryNBlocks,
+  });
+
+  registerGracefulShutdown({
+    logger,
+    timeoutMs: config.shutdown.timeoutMs,
+    onShutdown: async () => {
+      logger.info('Stopping agent loop before shutdown');
+      await agentLoop.stop();
+
+      logger.info('Waiting for in-flight transaction submissions to settle');
+      await submissionTracker.drain();
+    },
+  });
+
+  logger.info(
+    {
+      network: config.stacks.network,
+      apiBaseUrl: config.stacks.apiBaseUrl,
+      pollIntervalMs: config.loop.pollIntervalMs,
+      logEveryNBlocks: config.loop.logEveryNBlocks,
+    },
+    'Starting V-Mind autonomous agent service'
+  );
+
+  await agentLoop.start();
 }
 
-console.log('🤖 V-Mind Agent Service Starting...');
-console.log('Environment:', env.NODE_ENV);
-console.log('Stacks Network:', env.STACKS_NETWORK);
-console.log('Port:', env.PORT);
-
-// TODO: Initialize agent services
-
-async function main() {
-  try {
-    console.log('✅ Agent service initialized successfully');
-    // Keep the process running
-  } catch (error) {
-    console.error('❌ Failed to initialize agent service:', error);
-    process.exit(1);
-  }
-}
-
-main().catch((error) => {
-  console.error('Fatal error:', error);
+void main().catch((error) => {
+  const fallbackLogger = createLogger({
+    level: config.logLevel,
+    serviceName: config.serviceName,
+    nodeEnv: config.nodeEnv,
+  });
+  fallbackLogger.fatal({ err: error }, 'Agent startup failed');
   process.exit(1);
 });
