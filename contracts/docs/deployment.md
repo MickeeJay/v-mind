@@ -12,8 +12,9 @@ This runbook defines a scripted, reproducible deployment flow for V-Mind contrac
 4. Run static checks before any live deployment:
    - `npm run check --workspace=contracts`
    - `npm run deploy:type-check --workspace=contracts`
-5. Confirm deployer wallet has sufficient STX for all contract deployments and initialization transactions.
-6. Confirm protocol treasury and role addresses in the selected config are reviewed by governance/security owners.
+5. Ensure Clarity files use LF line endings (`\n`), not CRLF, or `clarinet check` will fail.
+6. Confirm deployer wallet has sufficient STX for all contract deployments and initialization transactions.
+7. Confirm protocol treasury and role addresses in the selected config are reviewed by governance/security owners.
 
 ## Deployment commands
 
