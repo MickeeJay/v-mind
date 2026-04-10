@@ -1,0 +1,152 @@
+{
+  "network": "mainnet",
+  "rpcUrl": "https://api.hiro.so",
+  "confirmationPollIntervalMs": 15000,
+  "confirmationTimeoutMs": 1800000,
+  "contracts": [
+    {
+      "name": "access-control",
+      "kind": "access-control",
+      "path": "contracts/core/access-control.clar"
+    },
+    {
+      "name": "protocol-config",
+      "kind": "protocol-config",
+      "path": "contracts/core/protocol-config.clar"
+    },
+    {
+      "name": "strategy-registry",
+      "kind": "strategy-registry",
+      "path": "contracts/core/strategy-registry.clar"
+    },
+    {
+      "name": "vault-receipt-token",
+      "kind": "vault-receipt-token",
+      "path": "contracts/core/vault-receipt-token.clar"
+    },
+    {
+      "name": "zest-protocol-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/zest-protocol-adapter.clar"
+    },
+    {
+      "name": "alex-liquidity-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/alex-liquidity-adapter.clar"
+    },
+    {
+      "name": "stackingdao-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/stackingdao-adapter.clar"
+    },
+    {
+      "name": "hermetica-adapter",
+      "kind": "protocol-adapter",
+      "path": "contracts/adapters/hermetica-adapter.clar"
+    },
+    {
+      "name": "strategy-vault",
+      "kind": "vault-core",
+      "path": "contracts/core/strategy-vault.clar"
+    },
+    {
+      "name": "strategy-execution",
+      "kind": "vault-execution-engine",
+      "path": "contracts/core/strategy-execution.clar"
+    }
+  ],
+  "initialConfig": {
+    "roleGrants": [
+      {
+        "account": "${DEPLOYER_ADDRESS}",
+        "role": "owner"
+      },
+      {
+        "account": "${DEPLOYER_ADDRESS}",
+        "role": "strategy-registrar"
+      },
+      {
+        "account": "${DEPLOYER_ADDRESS}",
+        "role": "operator"
+      },
+      {
+        "account": "${DEPLOYER_ADDRESS}",
+        "role": "guardian"
+      }
+    ],
+    "protocolConfig": {
+      "performanceFeeBps": "800",
+      "maxActiveVaultsPerUser": "10",
+      "minimumDepositMicrostx": "1000000",
+      "maxStrategyRebalanceFrequencyBlocks": "144",
+      "protocolTreasury": "${DEPLOYER_ADDRESS}",
+      "supportedAssets": [
+        {
+          "assetContract": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+          "symbol": "sBTC",
+          "minDepositMicrostx": "1000000",
+          "maxDepositMicrostx": "100000000000",
+          "active": true
+        },
+        {
+          "assetContract": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1",
+          "symbol": "USDh",
+          "minDepositMicrostx": "1000000",
+          "maxDepositMicrostx": "100000000000",
+          "active": true
+        }
+      ],
+      "feeOverrides": [
+        {
+          "key": "institutional",
+          "feeRateBps": "600",
+          "active": true
+        }
+      ],
+      "whitelistedStrategyTypes": [
+        {
+          "strategyType": "yield",
+          "active": true
+        },
+        {
+          "strategyType": "rebalance",
+          "active": true
+        },
+        {
+          "strategyType": "exit",
+          "active": true
+        }
+      ]
+    },
+    "token": {
+      "name": "V-Mind Vault Share",
+      "symbol": "vSHARE",
+      "decimals": "6",
+      "uri": null
+    },
+    "strategies": [
+      {
+        "strategyName": "zest-mainnet-yield",
+        "strategyType": "yield",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.zest-protocol-adapter",
+        "riskTier": "moderate",
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
+      },
+      {
+        "strategyName": "stackingdao-mainnet-yield",
+        "strategyType": "yield",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.stackingdao-adapter",
+        "riskTier": "conservative",
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
+      },
+      {
+        "strategyName": "alex-mainnet-rebalance",
+        "strategyType": "rebalance",
+        "targetProtocol": "${DEPLOYER_ADDRESS}.alex-liquidity-adapter",
+        "riskTier": "aggressive",
+        "authorizedExecutor": "${DEPLOYER_ADDRESS}"
+      }
+    ],
+    "vaultMaxAumDropBpsPerTx": "1500"
+  }
+}
