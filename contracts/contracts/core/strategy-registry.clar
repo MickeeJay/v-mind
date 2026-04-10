@@ -1,5 +1,5 @@
 ;; @title V-Mind Strategy Registry
-;; @version 0.1.0
+;; @version 2026-04-10 added access-pattern annotations and reconciled registry dependency notes
 ;; @author V-Mind Core Team
 ;; @notice Registry of approved strategy contracts and their configuration metadata.
 ;; @dev Vaults and frontends query this contract to resolve active strategies and constraints.
@@ -19,14 +19,14 @@
 ;; - update-strategy-metadata (strategy-registrar-or-owner): Updates display metadata and risk score.
 ;; @external-contracts
 ;; - Depends on: access-control, protocol-config, strategy-validation-lib (planned integration).
-;; - Consumed by: vault-registry, vault-core, off-chain indexers.
+;; - Consumed by: vault-core, strategy-execution, off-chain indexers.
 ;; @limitations
 ;; - Strategy contract trait compliance checks are not yet enforced in this scaffold.
 
 (define-constant err-already-registered (err u2201))
 (define-constant err-not-found (err u2202))
 
-(define-constant role-strategy-registrar u4)
+(define-constant role-strategy-registrar u3)
 
 (define-constant err-registrar-only (err u2203))
 (define-constant err-invalid-strategy-type (err u2204))
@@ -115,6 +115,7 @@
   )
 )
 
+;; Access pattern: strategy-registrar-or-owner
 (define-public
   (register-strategy
     (strategy-name (string-ascii 64))
@@ -167,6 +168,7 @@
   )
 )
 
+;; Access pattern: strategy-registrar-or-owner
 (define-public (activate-strategy (strategy-id uint))
   (begin
     (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
@@ -199,6 +201,7 @@
   )
 )
 
+;; Access pattern: strategy-registrar-or-owner
 (define-public (deactivate-strategy (strategy-id uint))
   (begin
     (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
@@ -231,6 +234,7 @@
   )
 )
 
+;; Access pattern: strategy-registrar-or-owner
 (define-public
   (update-strategy-metadata
     (strategy-id uint)
@@ -281,7 +285,19 @@
 )
 
 (define-read-only (get-strategy (strategy-id uint))
-  (get-strategy-by-id strategy-id)
+  (match (get-strategy-by-id strategy-id)
+    strategy-entry
+      (some {
+        name: (get strategy-name strategy-entry),
+        type: (get strategy-type strategy-entry),
+        target-protocol-principal: (get target-protocol strategy-entry),
+        risk-tier: (get risk-tier strategy-entry),
+        is-active: (get active strategy-entry),
+        created-at-block: (get created-at-block strategy-entry),
+        updated-at-block: (get last-updated-block strategy-entry)
+      })
+    none
+  )
 )
 
 (define-read-only (is-strategy-active (strategy-id uint))
@@ -312,4 +328,8 @@
       )
     err-not-found
   )
+)
+
+(define-read-only (validate-strategy-for-execution (strategy-id uint))
+  (validate-strategy-execution strategy-id)
 )
