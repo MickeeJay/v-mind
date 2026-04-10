@@ -1,0 +1,2 @@
+*.clar text eol=lf
+contracts/**/*.ts text eol=lf
