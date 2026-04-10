@@ -65,3 +65,22 @@ The script waits for transaction confirmation before moving to the next contract
 set DEPLOYMENT_MANIFEST_PATH=contracts/deployments/manifests/<manifest-file>.json
 npm run deploy:init --workspace=contracts -- --manifest %DEPLOYMENT_MANIFEST_PATH%
 ```
+
+## Post-deployment verification
+
+Run verification against the same manifest used for initialization:
+
+```bash
+npm run deploy:verify --workspace=contracts -- --manifest %DEPLOYMENT_MANIFEST_PATH%
+```
+
+Verification checks include:
+
+1. Every contract in the manifest exists on the target node at the expected address.
+2. Access control owner state is correct.
+3. Protocol configuration values match configured initialization parameters.
+4. Strategy registry contains all configured initial strategies.
+5. Vault receipt token initialization is complete and linked to the deployed vault core.
+6. Strategy execution read-only values match protocol configuration.
+
+If discrepancies are found, the script exits non-zero and prints each mismatch.
