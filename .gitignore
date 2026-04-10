@@ -319,6 +319,12 @@ test-results/
 playwright-report/
 test-output/
 
+# Deployment config files are safe to commit; manifests and generated artifacts remain ignored.
+!contracts/deployments/
+contracts/deployments/**
+!contracts/deployments/config/
+!contracts/deployments/config/*.json
+
 # Compiled files
 *.com
 *.class
