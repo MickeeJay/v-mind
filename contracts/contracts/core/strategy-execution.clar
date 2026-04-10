@@ -1,5 +1,5 @@
 ;; @title V-Mind Strategy Execution Engine
-;; @version 0.1.0
+;; @version 2026-04-10 reconciled dependency wiring, query helpers, and public access-pattern annotations
 ;; @author V-Mind Core Team
 ;; @notice Executes approved vault strategies against supported external DeFi integrations.
 ;; @dev Handles cooldown enforcement, execution audit state, protocol fee accounting, rebalance, and emergency exits.
@@ -24,6 +24,10 @@
 (define-constant protocol-alex u2)
 (define-constant protocol-stackingdao u3)
 (define-constant protocol-hermetica u4)
+
+(define-constant vault-core-contract .vault-core)
+(define-constant strategy-registry-contract .strategy-registry)
+(define-constant protocol-config-contract .protocol-config)
 
 (define-constant err-executor-only (err u2600))
 (define-constant err-owner-only (err u2601))
@@ -114,7 +118,7 @@
 )
 
 (define-private (assert-cooldown-and-strategy (vault-id uint) (strategy-id uint))
-  (match (contract-call? .vault-core get-vault vault-id)
+  (match (contract-call? vault-core-contract get-vault vault-id)
     vault-entry
       (let
         (
@@ -122,13 +126,13 @@
           (vault-status (get vault-status vault-entry))
           (vault-last-block (get last-execution-block vault-entry))
           (exec-state (get-execution-state-or-default vault-id))
-          (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
+          (cooldown-blocks (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
           (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) vault-last-block))
         )
         (begin
           (asserts! (is-eq vault-status vault-status-active) err-vault-not-active)
           (asserts! (is-eq strategy-id vault-strategy-id) err-strategy-mismatch)
-          (asserts! (contract-call? .strategy-registry is-strategy-active strategy-id) err-strategy-inactive)
+          (asserts! (contract-call? strategy-registry-contract is-strategy-active strategy-id) err-strategy-inactive)
           (asserts! (>= block-height (+ effective-last-block cooldown-blocks)) err-cooldown-active)
           (ok true)
         )
@@ -138,7 +142,7 @@
 )
 
 (define-private (calculate-performance-fee (yield-generated uint))
-  (/ (* yield-generated (contract-call? .protocol-config get-protocol-performance-fee-bps)) bps-denominator)
+  (unwrap-panic (contract-call? .vault-accounting-lib compute-performance-fee yield-generated (contract-call? protocol-config-contract get-protocol-performance-fee-bps)))
 )
 
 (define-private (deposit-into-protocol
@@ -259,7 +263,7 @@
       (stackingdao-assets (get allocated-assets (get-position-or-default vault-id protocol-stackingdao)))
       (hermetica-assets (get allocated-assets (get-position-or-default vault-id protocol-hermetica)))
       (total-allocated (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
-      (vault-assets (try! (contract-call? .vault-core get-vault-total-assets vault-id)))
+      (vault-assets (try! (contract-call? vault-core-contract get-vault-total-assets vault-id)))
     )
     (begin
       (asserts! (<= total-allocated vault-assets) err-allocation-exceeds-vault-assets)
@@ -268,6 +272,7 @@
   )
 )
 
+;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (execute-strategy
   (vault-id uint)
   (strategy-id uint)
@@ -284,14 +289,14 @@
     (asserts! (> asset-amount u0) err-invalid-amount)
     (asserts! (is-supported-protocol protocol-id) err-invalid-protocol)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
     (let
       (
         (fee-amount (calculate-performance-fee yield-generated))
         (net-yield (if (>= yield-generated fee-amount) (- yield-generated fee-amount) u0))
         (position (get-position-or-default vault-id protocol-id))
         (updated-allocation (+ (+ (get allocated-assets position) asset-amount) net-yield))
-        (treasury (contract-call? .protocol-config get-protocol-treasury))
+        (treasury (contract-call? protocol-config-contract get-protocol-treasury))
       )
       (begin
         (map-set vault-strategy-positions
@@ -305,7 +310,7 @@
           true
         )
         (write-execution-state vault-id fee-amount yield-generated)
-        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+        (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
         (print {
           event: "strategy-executed",
           vault-id: vault-id,
@@ -316,7 +321,7 @@
           yield-generated: yield-generated,
           fee-collected: fee-amount,
           treasury: treasury,
-          cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
+          cooldown-blocks: (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks),
           execution-block: block-height,
           execution-burn-block: burn-block-height
         })
@@ -334,6 +339,7 @@
   )
 )
 
+;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (rebalance-vault
   (vault-id uint)
   (strategy-id uint)
@@ -355,7 +361,7 @@
     (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
     (asserts! (is-eq (+ from-target-weight-bps to-target-weight-bps) bps-denominator) err-invalid-weight-split)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
     (let
       (
         (from-position (get-position-or-default vault-id from-protocol-id))
@@ -381,7 +387,7 @@
             (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (write-execution-state vault-id u0 u0)
-            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+            (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
             (print {
               event: "vault-rebalanced",
               vault-id: vault-id,
@@ -394,7 +400,7 @@
               to-target-weight-bps: to-target-weight-bps,
               from-remaining-assets: updated-from-assets,
               to-resulting-assets: updated-to-assets,
-              cooldown-blocks: (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks),
+              cooldown-blocks: (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks),
               execution-block: block-height
             })
             (ok true)
@@ -405,6 +411,7 @@
   )
 )
 
+;; Access pattern: protocol-owner-only
 (define-public (emergency-exit-vault
   (vault-id uint)
   (zest <zest-lending-trait>)
@@ -414,7 +421,7 @@
 )
   (begin
     (try! (assert-owner))
-    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+    (try! (contract-call? vault-core-contract lock-vault-for-execution vault-id))
     (let
       (
         (zest-position (get-position-or-default vault-id protocol-zest))
@@ -437,7 +444,7 @@
             (total-returned (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
           )
           (begin
-            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+            (try! (contract-call? vault-core-contract unlock-vault-after-execution vault-id))
             (print {
               event: "vault-emergency-exit",
               vault-id: vault-id,
@@ -470,25 +477,28 @@
   (map-get? vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id })
 )
 
-(define-read-only (get-cooldown-blocks)
-  (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks)
+;; Access pattern: permissionless-query
+(define-public (get-cooldown-blocks)
+  (ok (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
 )
 
-(define-read-only (get-performance-fee-bps)
-  (contract-call? .protocol-config get-protocol-performance-fee-bps)
+;; Access pattern: permissionless-query
+(define-public (get-performance-fee-bps)
+  (ok (contract-call? protocol-config-contract get-protocol-performance-fee-bps))
 )
 
 (define-read-only (is-protocol-supported (protocol-id uint))
   (is-supported-protocol protocol-id)
 )
 
-(define-read-only (get-next-executable-block (vault-id uint))
-  (match (contract-call? .vault-core get-vault vault-id)
+;; Access pattern: permissionless-query
+(define-public (get-next-executable-block (vault-id uint))
+  (match (contract-call? vault-core-contract get-vault vault-id)
     vault-entry
       (let
         (
           (exec-state (get-execution-state-or-default vault-id))
-          (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
+          (cooldown-blocks (contract-call? protocol-config-contract get-max-strategy-rebalance-frequency-blocks))
           (effective-last-block (if (> (get total-executions exec-state) u0) (get last-executed-block exec-state) (get last-execution-block vault-entry)))
         )
         (ok (+ effective-last-block cooldown-blocks))
@@ -511,4 +521,33 @@
 
 (define-read-only (get-vault-fees-collected (vault-id uint))
   (ok (get cumulative-fees-collected (get-execution-state-or-default vault-id)))
+)
+
+;; Access pattern: strategy-executor-or-protocol-owner
+(define-public (rebalance
+  (vault-id uint)
+  (strategy-id uint)
+  (from-protocol-id uint)
+  (to-protocol-id uint)
+  (rebalance-amount uint)
+  (from-target-weight-bps uint)
+  (to-target-weight-bps uint)
+  (zest <zest-lending-trait>)
+  (alex <alex-liquidity-trait>)
+  (stackingdao <stackingdao-ststx-trait>)
+  (hermetica <hermetica-usdh-trait>)
+)
+  (rebalance-vault
+    vault-id
+    strategy-id
+    from-protocol-id
+    to-protocol-id
+    rebalance-amount
+    from-target-weight-bps
+    to-target-weight-bps
+    zest
+    alex
+    stackingdao
+    hermetica
+  )
 )
