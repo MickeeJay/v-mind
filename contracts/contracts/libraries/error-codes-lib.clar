@@ -1,5 +1,5 @@
 ;; @title V-Mind Error Codes Library
-;; @version 0.1.0
+;; @version 2026-04-10 consolidated protocol-wide named error code catalog
 ;; @author V-Mind Core Team
 ;; @notice Canonical error code definitions for the V-Mind protocol contract suite.
 ;; @dev This contract provides a single source of truth for error classes used across modules.
