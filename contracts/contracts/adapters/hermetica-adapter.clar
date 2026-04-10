@@ -1,9 +1,12 @@
 ;; @title V-Mind Hermetica Adapter
+;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to Hermetica USDh staking contracts.
 ;; @public-functions
 ;; - set-mock-mode / set-cached-rate / set-hermetica-config (owner-only): Adapter configuration.
 ;; - deposit-usdh / withdraw-usdh / emergency-exit-hermetica (strategy-execution-or-owner): Position management.
 ;; - collect-hermetica-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
+
+(impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant one-8 u100000000)
 
@@ -16,15 +19,12 @@
 
 (define-constant strategy-execution-contract .strategy-execution)
 
-(define-constant hermetica-staking-mainnet 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1)
-(define-constant hermetica-susdh-mainnet 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1)
-
 (define-data-var owner principal tx-sender)
 (define-data-var use-mock bool true)
 (define-data-var cached-usdh-per-susdh uint one-8)
 
-(define-data-var staking-contract principal 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1)
-(define-data-var susdh-contract principal 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1)
+(define-data-var staking-contract principal tx-sender)
+(define-data-var susdh-contract principal tx-sender)
 
 (define-map vault-positions
   { vault-id: uint }
@@ -240,4 +240,23 @@
 
 (define-read-only (get-cached-rate)
   (ok (var-get cached-usdh-per-susdh))
+)
+
+(define-public (deposit (vault-id uint) (amount uint))
+  (deposit-usdh vault-id amount)
+)
+
+(define-public (withdraw (vault-id uint) (amount uint))
+  (withdraw-usdh vault-id amount)
+)
+
+(define-read-only (get-balance (vault-id uint))
+  (get-vault-usdh-balance vault-id)
+)
+
+(define-read-only (get-protocol-info)
+  (ok {
+    protocol-name: "HERMETICA",
+    protocol-version: "v1"
+  })
 )
