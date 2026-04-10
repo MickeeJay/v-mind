@@ -4,6 +4,15 @@
 ;; @notice Single source of truth for protocol-level parameters and risk limits.
 ;; @dev All mutating methods are intended to be owner-gated through access-control.
 ;; @contract protocol-config
+;; @public-functions
+;; - set-protocol-performance-fee-bps (owner-only)
+;; - set-max-active-vaults-per-user (owner-only)
+;; - set-minimum-deposit-microstx (owner-only)
+;; - set-max-strategy-rebalance-frequency-blocks (owner-only)
+;; - set-protocol-treasury (owner-only)
+;; - add/remove/set-supported-asset-active (owner-only)
+;; - set/remove/set-fee-override-active (owner-only)
+;; - add/remove/set-whitelisted-strategy-type-active (owner-only)
 ;; @data-vars
 ;; - protocol-performance-fee-bps
 ;; - max-active-vaults-per-user
