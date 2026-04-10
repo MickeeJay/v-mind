@@ -1,5 +1,5 @@
 ;; @title V-Mind Strategy Validation Library
-;; @version 0.1.0
+;; @version 2026-04-10 added canonical strategy-type and risk-tier validation helpers
 ;; @author V-Mind Core Team
 ;; @notice Shared validation helpers for strategy metadata and execution boundaries.
 ;; @dev This contract standardizes checks used by strategy registry and vault contracts.
