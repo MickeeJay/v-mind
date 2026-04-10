@@ -1,4 +1,6 @@
+;; MOCK CONTRACT - FOR LOCAL TESTING ONLY. NOT FOR DEPLOYMENT.
 ;; @title Mock Strategy
+;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @version 0.1.0
 ;; @author V-Mind Core Team
 ;; @notice Test-only strategy implementation used for local Clarinet and integration tests.
@@ -19,7 +21,7 @@
 ;; - on-deposit: No-op hook that returns true.
 ;; - on-withdraw: No-op hook that returns true.
 ;; @external-contracts
-;; - Used by test suites targeting strategy-vault and strategy-registry.
+;; - Used by test suites targeting vault-core and strategy-registry.
 ;; @limitations
 ;; - Mock behavior is intentionally simplistic and not production safe.
 
@@ -34,6 +36,14 @@
 
 (define-public (get-strategy-id)
   (ok (var-get strategy-id))
+)
+
+(define-public (get-strategy-info)
+  (ok {
+    strategy-type: u1,
+    risk-tier: u1,
+    is-active: (var-get executable)
+  })
 )
 
 (define-public (can-execute (vault-balance uint) (current-cycle uint))

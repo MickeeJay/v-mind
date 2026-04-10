@@ -9,7 +9,7 @@ Clarinet.test({
     const asset = accounts.get('wallet_1')!;
     const executor = accounts.get('wallet_2')!;
 
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const setup = chain.mineBlock([
       Tx.contractCall(
@@ -36,7 +36,7 @@ Clarinet.test({
         [types.ascii('SIP010 Strategy'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
       Tx.contractCall(
         'vault-receipt-token',
         'transfer',

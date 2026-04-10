@@ -17,13 +17,18 @@
 ;; - on-deposit: Optional hook called by vault after user deposit.
 ;; - on-withdraw: Optional hook called by vault before or after withdrawal.
 ;; @external-contracts
-;; - Called by core strategy-vault contracts.
+;; - Called by core vault-core contracts.
 ;; @limitations
 ;; - Trait enforces signature compatibility only; it cannot enforce economic safety.
 
 (define-trait strategy-trait
   (
     (get-strategy-id () (response uint uint))
+    (get-strategy-info () (response {
+      strategy-type: uint,
+      risk-tier: uint,
+      is-active: bool
+    } uint))
     (can-execute (uint uint) (response bool uint))
     (execute (uint principal) (response int uint))
     (on-deposit (uint principal) (response bool uint))

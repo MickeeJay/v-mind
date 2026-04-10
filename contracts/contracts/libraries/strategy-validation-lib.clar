@@ -1,5 +1,5 @@
 ;; @title V-Mind Strategy Validation Library
-;; @version 0.1.0
+;; @version 2026-04-10 added canonical strategy-type and risk-tier validation helpers
 ;; @author V-Mind Core Team
 ;; @notice Shared validation helpers for strategy metadata and execution boundaries.
 ;; @dev This contract standardizes checks used by strategy registry and vault contracts.
@@ -23,6 +23,32 @@
 (define-constant max-name-len u64)
 (define-constant max-uri-len u256)
 (define-constant err-validation-failed (err u1300))
+
+(define-read-only (is-valid-strategy-type (strategy-type uint))
+  (ok (and (>= strategy-type u1) (<= strategy-type u4)))
+)
+
+(define-read-only (is-valid-risk-tier (risk-tier uint))
+  (ok (and (>= risk-tier u1) (<= risk-tier u3)))
+)
+
+(define-read-only (
+  validate-strategy-params
+  (name (string-ascii 64))
+  (strategy-type uint)
+  (risk-tier uint)
+)
+  (let (
+      (valid-name (and (> (len name) u0) (<= (len name) max-name-len)))
+      (valid-type (unwrap-panic (is-valid-strategy-type strategy-type)))
+      (valid-risk (unwrap-panic (is-valid-risk-tier risk-tier)))
+    )
+    (if (and valid-name valid-type valid-risk)
+      (ok true)
+      err-validation-failed
+    )
+  )
+)
 
 (define-read-only (validate-strategy-metadata (name (string-ascii 64)) (metadata-uri (string-ascii 256)))
   (if (or (is-eq (len name) u0) (is-eq (len metadata-uri) u0))

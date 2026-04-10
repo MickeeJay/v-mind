@@ -410,7 +410,7 @@ async function main(): Promise<void> {
   const { contractAddress: strategyVaultAddress, contractName: strategyVaultName } =
     splitContractPrincipal(strategyVaultPrincipalFromManifest);
 
-  console.log('Setting strategy-vault max AUM drop threshold');
+  console.log('Setting vault-core max AUM drop threshold');
   await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
     callPublicFnTx(network, env.deployerPrivateKey, strategyVaultAddress, strategyVaultName, 'set-max-aum-drop-bps-per-tx', [
       uintCV(asUInt(config.initialConfig.vaultMaxAumDropBpsPerTx)),

@@ -1,9 +1,12 @@
 ;; @title V-Mind StackingDAO Adapter
+;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to StackingDAO stSTX contracts.
 ;; @public-functions
 ;; - set-mock-mode / set-stackingdao-config (owner-only): Adapter configuration.
 ;; - mint-ststx / redeem-ststx / emergency-exit-stackingdao (strategy-execution-or-owner): Position management.
 ;; - collect-stackingdao-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
+
+(impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant one-8 u100000000)
 
@@ -16,20 +19,14 @@
 
 (define-constant strategy-execution-contract .strategy-execution)
 
-(define-constant stackingdao-core-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stacking-dao-core-v6)
-(define-constant stackingdao-reserve-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1)
-(define-constant stackingdao-commission-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.commission-v2)
-(define-constant stackingdao-staking-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.staking-v0)
-(define-constant stackingdao-helpers-mainnet 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.direct-helpers-v4)
-
 (define-data-var owner principal tx-sender)
 (define-data-var use-mock bool true)
 
-(define-data-var core-contract principal 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stacking-dao-core-v6)
-(define-data-var reserve-contract principal 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1)
-(define-data-var commission-contract principal 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.commission-v2)
-(define-data-var staking-contract principal 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.staking-v0)
-(define-data-var helpers-contract principal 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.direct-helpers-v4)
+(define-data-var core-contract principal tx-sender)
+(define-data-var reserve-contract principal tx-sender)
+(define-data-var commission-contract principal tx-sender)
+(define-data-var staking-contract principal tx-sender)
+(define-data-var helpers-contract principal tx-sender)
 
 (define-data-var total-ststx-shares uint u0)
 (define-data-var total-principal-tracked uint u0)
@@ -67,7 +64,7 @@
 
 (define-private (get-total-underlying)
   (if (var-get use-mock)
-    (match (contract-call? .mock-stackingdao-core get-user-balance-in-protocol (adapter-principal) stackingdao-staking-mainnet u0)
+    (match (contract-call? .mock-stackingdao-core get-user-balance-in-protocol (adapter-principal) (var-get staking-contract) u0)
       amount amount
       helper-err (var-get total-principal-tracked)
     )
@@ -107,10 +104,10 @@
     (asserts! (> amount u0) err-invalid-amount)
     (match
       (contract-call? .mock-stackingdao-core deposit
-        stackingdao-reserve-mainnet
-        stackingdao-commission-mainnet
-        stackingdao-staking-mainnet
-        stackingdao-helpers-mainnet
+        (var-get reserve-contract)
+        (var-get commission-contract)
+        (var-get staking-contract)
+        (var-get helpers-contract)
         amount
         none
         none
@@ -163,10 +160,10 @@
       (asserts! (>= current-shares amount) err-insufficient-position)
       (match
         (contract-call? .mock-stackingdao-core withdraw-idle
-          stackingdao-reserve-mainnet
-          stackingdao-helpers-mainnet
-          stackingdao-commission-mainnet
-          stackingdao-staking-mainnet
+          (var-get reserve-contract)
+          (var-get helpers-contract)
+          (var-get commission-contract)
+          (var-get staking-contract)
           amount
         )
         withdraw-result
@@ -268,4 +265,23 @@
 
 (define-read-only (get-total-principal-tracked)
   (ok (var-get total-principal-tracked))
+)
+
+(define-public (deposit (vault-id uint) (amount uint))
+  (mint-ststx vault-id amount)
+)
+
+(define-public (withdraw (vault-id uint) (amount uint))
+  (redeem-ststx vault-id amount)
+)
+
+(define-read-only (get-balance (vault-id uint))
+  (get-vault-stx-balance vault-id)
+)
+
+(define-read-only (get-protocol-info)
+  (ok {
+    protocol-name: "STACKINGDAO",
+    protocol-version: "v1"
+  })
 )

@@ -24,7 +24,7 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'set-protocol-performance-fee-bps', [types.uint(1000)], deployer.address),
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Execution Engine Flow'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk().expectUint(1);
@@ -93,7 +93,7 @@ Clarinet.test({
         ],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'withdraw', [types.uint(1), types.uint(1_000_000)], deployer.address),
+      Tx.contractCall('vault-core', 'withdraw', [types.uint(1), types.uint(1_000_000)], deployer.address),
       Tx.contractCall(
         'strategy-execution',
         'emergency-exit-vault',
@@ -131,7 +131,7 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'set-max-strategy-rebalance-frequency-blocks', [types.uint(1)], deployer.address),
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Unauthorized Executor'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[3].result.expectOk().expectUint(1);
@@ -169,7 +169,7 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'set-max-strategy-rebalance-frequency-blocks', [types.uint(1)], deployer.address),
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Invalid Protocol'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[3].result.expectOk().expectUint(1);
@@ -208,7 +208,7 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Primary Strategy'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Secondary Strategy'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[4].result.expectOk().expectUint(1);

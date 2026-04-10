@@ -1,9 +1,12 @@
 ;; @title V-Mind Zest Protocol Adapter
+;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to Zest lending interfaces.
 ;; @public-functions
 ;; - set-mock-mode (owner-only): Toggle mock mode.
 ;; - deposit-to-zest / withdraw-from-zest / emergency-exit-zest (strategy-execution-or-owner): Position management.
 ;; - collect-zest-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
+
+(impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant err-owner-only (err u3400))
 (define-constant err-invalid-amount (err u3401))
@@ -14,16 +17,14 @@
 
 (define-constant strategy-execution-contract .strategy-execution)
 
-(define-constant zest-borrow-helper 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.borrow-helper-v2-1-5)
-(define-constant zest-pool-reserve 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve)
-(define-constant zest-ztoken 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsbtc-v2-0)
-(define-constant zest-asset 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token)
-(define-constant zest-oracle 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.oracle-sbtc)
-(define-constant zest-incentives 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.incentives)
-
 (define-data-var owner principal tx-sender)
 (define-data-var use-mock bool true)
 (define-data-var total-deployed uint u0)
+(define-data-var zest-pool-reserve principal tx-sender)
+(define-data-var zest-ztoken principal tx-sender)
+(define-data-var zest-asset principal tx-sender)
+(define-data-var zest-oracle principal tx-sender)
+(define-data-var zest-incentives principal tx-sender)
 
 (define-map vault-positions
   { vault-id: uint }
@@ -55,26 +56,26 @@
 
 (define-private (call-supply (amount uint))
   (contract-call? .mock-zest-protocol supply
-    zest-ztoken
-    zest-pool-reserve
-    zest-asset
+    (var-get zest-ztoken)
+    (var-get zest-pool-reserve)
+    (var-get zest-asset)
     amount
     (adapter-principal)
     none
-    zest-incentives
+    (var-get zest-incentives)
   )
 )
 
 (define-private (call-withdraw (amount uint))
   (contract-call? .mock-zest-protocol withdraw
-    zest-ztoken
-    zest-pool-reserve
-    zest-asset
-    zest-oracle
+    (var-get zest-ztoken)
+    (var-get zest-pool-reserve)
+    (var-get zest-asset)
+    (var-get zest-oracle)
     amount
     (adapter-principal)
-    (list { asset: zest-asset, lp-token: zest-ztoken, oracle: zest-oracle })
-    zest-incentives
+    (list { asset: (var-get zest-asset), lp-token: (var-get zest-ztoken), oracle: (var-get zest-oracle) })
+    (var-get zest-incentives)
     none
   )
 )
@@ -203,8 +204,8 @@
     (let
       (
         (total-underlying (unwrap-panic (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
-          zest-ztoken
-          zest-asset
+          (var-get zest-ztoken)
+          (var-get zest-asset)
           (adapter-principal)
         )))
         (vault-deployed (get-vault-position vault-id))
@@ -222,4 +223,23 @@
 
 (define-read-only (get-total-deployed)
   (ok (var-get total-deployed))
+)
+
+(define-public (deposit (vault-id uint) (amount uint))
+  (deposit-to-zest vault-id amount)
+)
+
+(define-public (withdraw (vault-id uint) (amount uint))
+  (withdraw-from-zest vault-id amount)
+)
+
+(define-read-only (get-balance (vault-id uint))
+  (get-vault-zest-underlying-balance vault-id)
+)
+
+(define-read-only (get-protocol-info)
+  (ok {
+    protocol-name: "ZEST",
+    protocol-version: "v1"
+  })
 )

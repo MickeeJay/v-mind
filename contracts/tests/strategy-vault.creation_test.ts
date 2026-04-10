@@ -2,7 +2,7 @@
 import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
 
 Clarinet.test({
-  name: 'strategy-vault: create-vault succeeds with supported asset and active strategy',
+  name: 'vault-core: create-vault succeeds with supported asset and active strategy',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const protocol = accounts.get('wallet_1')!;
@@ -21,26 +21,26 @@ Clarinet.test({
         [types.ascii('Yield Strategy'), types.uint(1), types.principal(protocol.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk();
     setup.receipts[1].result.expectOk().expectUint(1);
     setup.receipts[2].result.expectOk().expectUint(1);
 
-    const status = chain.callReadOnlyFn('strategy-vault', 'get-vault-status', [types.uint(1)], deployer.address);
+    const status = chain.callReadOnlyFn('vault-core', 'get-vault-status', [types.uint(1)], deployer.address);
     status.result.expectOk().expectUint(1);
 
-    const assets = chain.callReadOnlyFn('strategy-vault', 'get-vault-total-assets', [types.uint(1)], deployer.address);
+    const assets = chain.callReadOnlyFn('vault-core', 'get-vault-total-assets', [types.uint(1)], deployer.address);
     assets.result.expectOk().expectUint(2_000_000);
 
-    const nextId = chain.callReadOnlyFn('strategy-vault', 'get-next-vault-id', [], deployer.address);
+    const nextId = chain.callReadOnlyFn('vault-core', 'get-next-vault-id', [], deployer.address);
     nextId.result.expectUint(2);
   },
 });
 
 Clarinet.test({
-  name: 'strategy-vault: create-vault rejects unsupported asset',
+  name: 'vault-core: create-vault rejects unsupported asset',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const protocol = accounts.get('wallet_1')!;
@@ -54,7 +54,7 @@ Clarinet.test({
         [types.ascii('Yield Strategy'), types.uint(1), types.principal(protocol.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(unsupported.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(unsupported.address), types.uint(2_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk().expectUint(1);
@@ -63,7 +63,7 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: 'strategy-vault: create-vault rejects deposit below threshold',
+  name: 'vault-core: create-vault rejects deposit below threshold',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const protocol = accounts.get('wallet_1')!;
@@ -82,7 +82,7 @@ Clarinet.test({
         [types.ascii('Rebalance Strategy'), types.uint(2), types.principal(protocol.address), types.uint(2), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(protocol.address), types.uint(1_500_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(protocol.address), types.uint(1_500_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk();
@@ -92,7 +92,7 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: 'strategy-vault: create-vault rejects missing or inactive strategy',
+  name: 'vault-core: create-vault rejects missing or inactive strategy',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const protocol = accounts.get('wallet_1')!;
@@ -105,7 +105,7 @@ Clarinet.test({
         [types.principal(protocol.address), types.ascii('ALEX'), types.uint(1_000_000), types.uint(10_000_000)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(99)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(99)], deployer.address),
       Tx.contractCall(
         'strategy-registry',
         'register-strategy',
@@ -113,7 +113,7 @@ Clarinet.test({
         deployer.address,
       ),
       Tx.contractCall('strategy-registry', 'deactivate-strategy', [types.uint(1)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(protocol.address), types.uint(2_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk();

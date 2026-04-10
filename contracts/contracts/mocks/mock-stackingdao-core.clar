@@ -1,4 +1,6 @@
+;; MOCK CONTRACT - FOR LOCAL TESTING ONLY. NOT FOR DEPLOYMENT.
 ;; @title Mock StackingDAO Core
+;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for StackingDAO core/reserve/helper interfaces.
 
 (define-constant one-8 u100000000)

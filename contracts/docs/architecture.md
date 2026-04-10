@@ -2,254 +2,96 @@
 
 ## Overview
 
-V-Mind is a Stacks-native strategy automation protocol for Bitcoin L2 DeFi vault management. The architecture is intentionally modular so governance, configuration, strategy approval, vault deployment, and integration layers can evolve independently.
+V-Mind is a Stacks-native strategy automation protocol for Bitcoin L2 DeFi vault management. The contract system is organized so traits and libraries stay dependency-free, adapters wrap external integrations, and core contracts enforce protocol policy and user state transitions.
 
-This document defines the baseline contract architecture and responsibilities before full business logic implementation.
+## Reconciled Contract Layout
 
-Related documentation:
+Canonical layout under contracts/contracts:
 
-- Configuration changelog: docs/configuration-changelog.md
+- traits/
+- libraries/
+- adapters/
+- core/
+- mocks/
 
-## Directory Structure
+Contract inventory by responsibility:
 
-The smart contract layout under contracts/contracts is structured as follows:
+- traits/sip-010-ft-trait.clar: Canonical SIP-010 FT trait.
+- traits/strategy-trait.clar: Strategy executor interface.
+- traits/vault-token-trait.clar: Vault receipt token interface.
+- traits/protocol-adapter-trait.clar: Common adapter interface.
+- traits/alex-liquidity-trait.clar: ALEX adapter trait.
+- traits/zest-lending-trait.clar: Zest adapter trait.
+- traits/stackingdao-ststx-trait.clar: StackingDAO adapter trait.
+- traits/hermetica-usdh-trait.clar: Hermetica adapter trait.
 
-- core/: State-heavy protocol modules and user-facing contracts.
-- traits/: Interface definitions for strategies, vault tokens, and external adapters.
-- libraries/: Shared constants, validations, and accounting helpers.
-- mocks/: Test-only contracts for deterministic local and CI workflows.
+- libraries/constants-lib.clar: Protocol constants, role IDs, external principals.
+- libraries/error-codes-lib.clar: Canonical error code catalog.
+- libraries/strategy-validation-lib.clar: Strategy parameter/risk validation helpers.
+- libraries/vault-accounting-lib.clar: Share-price, fee, and proportional-allocation math.
 
-Current scaffold:
+- adapters/zest-protocol-adapter.clar: Zest integration wrapper.
+- adapters/alex-liquidity-adapter.clar: ALEX integration wrapper.
+- adapters/stackingdao-adapter.clar: StackingDAO integration wrapper.
+- adapters/hermetica-adapter.clar: Hermetica integration wrapper.
 
-- core/access-control.clar
-- core/protocol-config.clar
-- core/strategy-registry.clar
-- core/vault-registry.clar
-- core/strategy-vault.clar
-- traits/strategy-trait.clar
-- traits/vault-token-trait.clar
-- traits/protocol-adapter-trait.clar
-- libraries/error-codes-lib.clar
-- libraries/constants-lib.clar
-- libraries/vault-accounting-lib.clar
-- libraries/strategy-validation-lib.clar
+- core/access-control.clar: Ownership, role lifecycle, emergency pause state.
+- core/protocol-config.clar: Protocol parameters, supported assets, fee overrides.
+- core/strategy-registry.clar: Strategy registry, activation state, metadata.
+- core/vault-receipt-token.clar: SIP-010 receipt token with vault-scoped share accounting.
+- core/vault-core.clar: User vault lifecycle, accounting, and privileged controls.
+- core/strategy-execution.clar: Strategy execution, rebalance, cooldown and fee orchestration.
+
 - mocks/mock-strategy.clar
 - mocks/mock-vault-token.clar
 - mocks/mock-protocol-adapter.clar
+- mocks/mock-defi-integrations.clar
+- mocks/mock-zest-protocol.clar
+- mocks/mock-alex-amm.clar
+- mocks/mock-stackingdao-core.clar
+- mocks/mock-hermetica-staking.clar
 
-## Naming Conventions
+## Dependency Graph
 
-- Trait files end with -trait.clar.
-- Library files end with -lib.clar.
-- Mock contracts used only for testing start with mock-.
-- Core production contracts use functional protocol names without prefix or suffix.
+Expected direction:
 
-## Contract Responsibilities
+1. Traits and libraries have no upstream protocol dependencies.
+2. Adapters depend on traits and libraries only.
+3. Core contracts depend on traits, libraries, and adapters (strategy-execution path).
+4. No production contract depends on mocks.
 
-### core/access-control.clar
+Practical dependency sequence for deployment and analysis:
 
-Purpose:
-- Defines protocol ownership and role membership state.
-- Serves as canonical authorization layer for admin-gated actions.
-
-Primary responsibilities:
-- Role grant and revoke lifecycle.
-- Ownership transfer lifecycle.
-- Role lookup utility for dependent contracts.
-
-### core/protocol-config.clar
-
-Purpose:
-- Stores global protocol configuration and emergency pause state.
-
-Primary responsibilities:
-- Fee parameter storage and update controls.
-- Treasury address management.
-- Supported asset, strategy-type whitelist, and fee-override management.
-- Configuration versioning and on-chain event emission.
-
-### core/strategy-registry.clar
-
-Purpose:
-- Stores approved strategy contracts and strategy metadata.
-
-Primary responsibilities:
-- Strategy onboarding and status management.
-- Risk score and metadata URI storage.
-- Strategy discovery for vault deployments and frontends.
-
-### core/vault-registry.clar
-
-Purpose:
-- Tracks all deployed strategy vaults and vault metadata.
-
-Primary responsibilities:
-- Vault registration and status toggles.
-- Mapping vault contracts to strategy IDs.
-- Canonical vault discovery endpoint for clients.
-
-### core/strategy-vault.clar
-
-Purpose:
-- Holds user positions, issues shares, and executes approved strategy lifecycle calls.
-
-Primary responsibilities:
-- Deposit and withdrawal accounting.
-- Share mint and burn accounting.
-- Strategy execution triggers under policy checks.
-
-### traits/strategy-trait.clar
-
-Purpose:
-- Defines required interface every approved strategy must implement.
-
-Primary responsibilities:
-- Execution readiness checks.
-- Execution entry point.
-- Deposit and withdraw lifecycle hooks.
-
-### traits/vault-token-trait.clar
-
-Purpose:
-- Defines share token interface for vault receipt tokens.
-
-Primary responsibilities:
-- Share mint and burn hooks.
-- Transfer and balance read APIs.
-- Total supply visibility.
-
-### traits/protocol-adapter-trait.clar
-
-Purpose:
-- Defines composable interface for external protocol adapters.
-
-Primary responsibilities:
-- Deposit and withdraw operations into external protocols.
-- Harvest and quote operations.
-
-### libraries/*.clar
-
-Purpose:
-- Reusable constants, errors, accounting and validation utilities.
-
-Primary responsibilities:
-- Reduce duplicated logic across core contracts.
-- Normalize validation behavior and fee math semantics.
-
-### mocks/*.clar
-
-Purpose:
-- Deterministic non-production implementations used in tests.
-
-Primary responsibilities:
-- Isolate core protocol tests from external protocol assumptions.
-- Validate trait compatibility and integration points.
-
-## Dependencies and Interaction Model
-
-Dependency order from lowest to highest:
-
-1. libraries/error-codes-lib.clar
-2. libraries/constants-lib.clar
-3. libraries/vault-accounting-lib.clar
-4. libraries/strategy-validation-lib.clar
-5. traits/strategy-trait.clar
-6. traits/vault-token-trait.clar
-7. traits/protocol-adapter-trait.clar
+1. traits/sip-010-ft-trait.clar
+2. remaining trait contracts
+3. libraries/constants-lib.clar
+4. libraries/error-codes-lib.clar
+5. libraries/strategy-validation-lib.clar
+6. libraries/vault-accounting-lib.clar
+7. adapter contracts
 8. core/access-control.clar
 9. core/protocol-config.clar
 10. core/strategy-registry.clar
-11. core/vault-registry.clar
-12. core/strategy-vault.clar
-13. mocks/*
+11. core/vault-receipt-token.clar
+12. core/vault-core.clar
+13. core/strategy-execution.clar
 
-Logical runtime relationships:
+## Runtime Interaction Model
 
-- strategy-vault reads protocol-config for pause and global fee parameters.
-- strategy-vault references strategy-registry to ensure strategy approval and status.
-- strategy-vault references vault-registry for canonical vault status and metadata checks.
-- strategy-vault relies on access-control for operator and guardian authorization.
-- strategy contracts implement strategy-trait and may call protocol-adapter-trait implementations.
+- access-control is the source of truth for owner and role checks across core contracts.
+- protocol-config provides mutable policy values such as fee rate, cooldown bounds, treasury, and supported assets.
+- strategy-registry gates strategy activation and metadata used by vault and execution flows.
+- vault-core owns user vault state and share/accounting lifecycle.
+- vault-receipt-token mints, burns, and tracks receipt shares per vault.
+- strategy-execution validates cooldown and strategy status, routes assets through adapters, and records execution state.
 
-## Function Access Conditions
+## Network and Mock Policy
 
-Expected call-condition policy by module:
+- Mocks are local-test contracts and are excluded from public-network deployment plans.
+- Simnet/devnet workflows include mocks for deterministic testing.
+- Testnet/mainnet deployment plans must target production contracts only.
 
-- access-control:
-	- grant-role and revoke-role require owner authorization.
-	- renounce-role requires tx-sender to be the role holder.
-- protocol-config:
-	- set-treasury and fee setters require owner role.
-	- pause and unpause require owner or guardian role.
-- strategy-registry and vault-registry:
-	- registration and metadata updates require owner or governance role.
-	- read-only getters are permissionless.
-- strategy-vault:
-	- deposit and withdraw are permissionless for users unless paused.
-	- execute-strategy requires operator role, vault enabled state, and strategy enabled state.
-	- set-vault-enabled requires vault owner or governance role.
+## Notes
 
-## Deployment Sequencing
-
-Recommended deployment sequence for production:
-
-1. Deploy libraries and traits.
-2. Deploy access-control and assign bootstrap roles.
-3. Deploy protocol-config and wire governance owner.
-4. Deploy strategy-registry and vault-registry with access-control references.
-5. Deploy strategy-vault instances and register them in vault-registry.
-6. Register approved strategies after trait compliance and risk review.
-7. Enable automation callers for execute-strategy.
-
-## Funds Flow: Deposit to Execution to Withdrawal
-
-### 1. Deposit
-
-- User submits deposit to strategy-vault.
-- Vault validates pause state and vault status.
-- Vault updates internal total-assets and user share balance.
-- Optional strategy on-deposit hook is called for post-accounting integration.
-
-### 2. Strategy Execution
-
-- Authorized operator or automation caller invokes execute-strategy.
-- Vault validates global pause state and strategy enabled state.
-- Vault calls strategy-trait can-execute and then execute.
-- Strategy may route assets through a protocol-adapter-trait implementation.
-- Vault records resulting position delta and updates accounting.
-
-### 3. Withdrawal
-
-- User submits share amount for redemption.
-- Vault validates balances, pause policy, and liquidity assumptions.
-- Vault burns shares and computes asset amount via accounting library rules.
-- Vault optionally calls strategy on-withdraw hook for unwind coordination.
-- User receives assets according to final settlement amount.
-
-## Security Model Summary
-
-Authorization boundaries:
-
-- Owner/admin functions: role assignment, protocol configuration, registry onboarding and status controls.
-- Operator functions: strategy execution and selected vault operations.
-- User functions: deposit, withdraw, and read-only queries.
-
-Emergency controls:
-
-- protocol-config provides global pause circuit breaker.
-- Vault-level enable flags allow per-vault containment.
-- Guardian role is expected to trigger emergency pause actions.
-
-Key invariants:
-
-- Only approved strategies can be selected for production vaults.
-- Registered vault IDs map one-to-one with vault contract principals.
-- total-shares must remain consistent with share balance ledger.
-- total-assets and withdrawals must not underflow under any execution path.
-
-## Known Design Assumptions
-
-- Access control and protocol config are authoritative and non-malicious once governed.
-- Off-chain automation callers are replaceable and not trusted for safety-critical validation.
-- External protocol adapters can fail or return adversarial values; vaults must enforce strict checks.
-- Metadata URIs are advisory and should not be trusted for on-chain critical logic.
+- There is no vault-registry contract in the reconciled architecture.
+- Vault identity and lifecycle state are handled directly by core/vault-core.clar.

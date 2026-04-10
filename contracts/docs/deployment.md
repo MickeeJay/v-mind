@@ -57,7 +57,7 @@ This script deploys contracts in the enforced order:
 3. strategy-registry
 4. vault-receipt-token
 5. protocol adapters
-6. strategy-vault
+6. vault-core
 7. strategy-execution
 
 The script waits for transaction confirmation before moving to the next contract and writes a deployment manifest to `contracts/deployments/manifests`.

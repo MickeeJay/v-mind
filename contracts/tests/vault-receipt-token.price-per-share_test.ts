@@ -8,7 +8,7 @@ Clarinet.test({
     const asset = accounts.get('wallet_1')!;
     const executor = accounts.get('wallet_2')!;
 
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const setup = chain.mineBlock([
       Tx.contractCall(
@@ -35,7 +35,7 @@ Clarinet.test({
         [types.ascii('PPS Strategy'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk().expectBool(true);
@@ -45,7 +45,7 @@ Clarinet.test({
     initialPrice.result.expectOk().expectUint(1_000_000);
 
     const accrue = chain.mineBlock([
-      Tx.contractCall('strategy-vault', 'accrue-yield', [types.uint(1), types.uint(500_000)], deployer.address),
+      Tx.contractCall('vault-core', 'accrue-yield', [types.uint(1), types.uint(500_000)], deployer.address),
     ]);
     accrue.receipts[0].result.expectOk().expectUint(2_500_000);
 

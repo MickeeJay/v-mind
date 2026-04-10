@@ -8,14 +8,13 @@ This checklist covers all production V-Mind contracts under `contracts/contracts
 - `core/protocol-config.clar`
 - `core/strategy-registry.clar`
 - `core/vault-registry.clar`
-- `core/strategy-vault.clar`
+- `core/vault-core.clar`
 - `core/vault-receipt-token.clar`
 - `core/strategy-execution.clar`
 - `adapters/zest-protocol-adapter.clar`
 - `adapters/alex-liquidity-adapter.clar`
 - `adapters/stackingdao-adapter.clar`
 - `adapters/hermetica-adapter.clar`
-- `v-mind-core.clar`
 
 Mocks and traits are out of direct production scope, but are reviewed for test realism and assumptions.
 
@@ -32,7 +31,7 @@ Mocks and traits are out of direct production scope, but are reviewed for test r
 ### Vault Core and Share Accounting
 
 - Vault asset accounting parity:
-  - `strategy-vault` map `total-assets` must equal `vault-receipt-token` map `vault-total-assets` after every state-mutating vault operation.
+  - `vault-core` map `total-assets` must equal `vault-receipt-token` map `vault-total-assets` after every state-mutating vault operation.
 - Share supply mutation constraints:
   - Vault share supply can only be changed through `vault-receipt-token.mint` and `vault-receipt-token.burn`.
   - `sync-vault-assets` must not change share supply.
@@ -42,13 +41,13 @@ Mocks and traits are out of direct production scope, but are reviewed for test r
 
 ### Execution Engine and Allocation
 
-- Sum of protocol allocations in `strategy-execution` must never exceed `strategy-vault` tracked vault assets.
+- Sum of protocol allocations in `strategy-execution` must never exceed `vault-core` tracked vault assets.
 - Execution lock must be acquired before external protocol calls and released on successful completion.
 - On failure, lock/state rollback depends on transaction atomicity and must leave vault unlocked.
 
 ### Circuit Breaker
 
-- `strategy-vault.max-aum-drop-bps-per-tx` defines the allowed maximum single-transaction AUM drop.
+- `vault-core.max-aum-drop-bps-per-tx` defines the allowed maximum single-transaction AUM drop.
 - Any controlled vault-asset reduction that exceeds this threshold must revert with `err-aum-drop-exceeded`.
 
 ## Authorization Matrix
@@ -67,7 +66,7 @@ Mocks and traits are out of direct production scope, but are reviewed for test r
   - all mutating functions: strategy-registrar role or owner fallback
 - `vault-registry`
   - all mutating functions: owner-only
-- `strategy-vault`
+- `vault-core`
   - `create-vault`: permissionless by design
   - `deposit`, `withdraw`, lifecycle controls: vault-owner-only
   - `apply-performance-fee`, `accrue-yield`, `emergency-withdraw`, `set-max-aum-drop-bps-per-tx`: protocol-owner-only

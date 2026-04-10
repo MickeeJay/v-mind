@@ -1,5 +1,5 @@
 ;; @title V-Mind Protocol Configuration
-;; @version 0.2.0
+;; @version 2026-04-10 added explicit access-pattern comments and owner-gated setter annotations
 ;; @author V-Mind Core Team
 ;; @notice Single source of truth for protocol-level parameters and risk limits.
 ;; @dev All mutating methods are intended to be owner-gated through access-control.
@@ -104,6 +104,7 @@
 	)
 )
 
+;; Access pattern: owner-only
 (define-public (set-protocol-performance-fee-bps (new-fee-rate-bps uint))
 	(begin
 		(try! (assert-owner))
@@ -124,6 +125,7 @@
 	)
 )
 
+;; Access pattern: owner-only
 (define-public (set-max-active-vaults-per-user (new-max-active-vaults uint))
 	(begin
 		(try! (assert-owner))
@@ -145,6 +147,7 @@
 	)
 )
 
+;; Access pattern: owner-only
 (define-public (set-minimum-deposit-microstx (new-minimum-deposit uint))
 	(begin
 		(try! (assert-owner))
@@ -166,6 +169,7 @@
 	)
 )
 
+;; Access pattern: owner-only
 (define-public (set-max-strategy-rebalance-frequency-blocks (new-max-frequency uint))
 	(begin
 		(try! (assert-owner))
@@ -187,6 +191,7 @@
 	)
 )
 
+;; Access pattern: owner-only
 (define-public (set-protocol-treasury (new-treasury principal))
 	(begin
 		(try! (assert-owner))
@@ -207,6 +212,7 @@
 
 )
 
+	;; Access pattern: owner-only
 	(define-public (add-supported-asset
 		(asset-contract principal)
 		(symbol (string-ascii 16))
@@ -248,6 +254,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (remove-supported-asset (asset-contract principal))
 		(begin
 			(try! (assert-owner))
@@ -267,6 +274,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (set-supported-asset-active (asset-contract principal) (active bool))
 		(begin
 			(try! (assert-owner))
@@ -301,6 +309,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (set-fee-override (override-key (string-ascii 32)) (fee-rate-bps uint))
 		(begin
 			(try! (assert-owner))
@@ -330,6 +339,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (remove-fee-override (override-key (string-ascii 32)))
 		(begin
 			(try! (assert-owner))
@@ -349,6 +359,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
 		(begin
 			(try! (assert-owner))
@@ -380,6 +391,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (add-whitelisted-strategy-type (strategy-type (string-ascii 32)))
 		(begin
 			(try! (assert-owner))
@@ -402,6 +414,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (remove-whitelisted-strategy-type (strategy-type (string-ascii 32)))
 		(begin
 			(try! (assert-owner))
@@ -421,6 +434,7 @@
 		)
 	)
 
+	;; Access pattern: owner-only
 	(define-public (set-whitelisted-strategy-type-active (strategy-type (string-ascii 32)) (active bool))
 		(begin
 			(try! (assert-owner))
@@ -480,4 +494,53 @@
 
 (define-read-only (get-whitelisted-strategy-type (strategy-type (string-ascii 32)))
 	(map-get? whitelisted-strategy-types { strategy-type: strategy-type })
+)
+
+;; Access pattern: owner-only
+(define-public (set-performance-fee-rate-bps (new-fee-rate-bps uint))
+	(set-protocol-performance-fee-bps new-fee-rate-bps)
+)
+
+;; Access pattern: owner-only
+(define-public (set-max-vaults-per-user (new-max-vaults uint))
+	(set-max-active-vaults-per-user new-max-vaults)
+)
+
+;; Access pattern: owner-only
+(define-public (set-min-deposit-amount (new-minimum uint))
+	(set-minimum-deposit-microstx new-minimum)
+)
+
+;; Access pattern: owner-only
+(define-public (set-max-rebalance-frequency-blocks (new-max-frequency uint))
+	(set-max-strategy-rebalance-frequency-blocks new-max-frequency)
+)
+
+;; Access pattern: owner-only
+(define-public (set-treasury-address (new-treasury principal))
+	(set-protocol-treasury new-treasury)
+)
+
+(define-read-only (get-performance-fee-rate-bps)
+	(get-protocol-performance-fee-bps)
+)
+
+(define-read-only (get-max-vaults-per-user)
+	(get-max-active-vaults-per-user)
+)
+
+(define-read-only (get-min-deposit-amount)
+	(get-minimum-deposit-microstx)
+)
+
+(define-read-only (get-max-rebalance-frequency-blocks)
+	(get-max-strategy-rebalance-frequency-blocks)
+)
+
+(define-read-only (get-treasury-address)
+	(get-protocol-treasury)
+)
+
+(define-read-only (get-configuration-version)
+	(get-config-version)
 )

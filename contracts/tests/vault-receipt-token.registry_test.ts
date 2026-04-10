@@ -8,7 +8,7 @@ Clarinet.test({
     const assetA = accounts.get('wallet_1')!;
     const assetB = accounts.get('wallet_4')!;
     const executor = accounts.get('wallet_2')!;
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const block = chain.mineBlock([
       Tx.contractCall(
@@ -21,8 +21,8 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(assetB.address), types.ascii('sBTC'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Vault A Strategy'), types.uint(1), types.principal(assetA.address), types.uint(1), types.principal(executor.address)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Vault B Strategy'), types.uint(1), types.principal(assetB.address), types.uint(1), types.principal(executor.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(assetA.address), types.uint(1_000_000), types.uint(1)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(assetB.address), types.uint(3_000_000), types.uint(2)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(assetA.address), types.uint(1_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(assetB.address), types.uint(3_000_000), types.uint(2)], deployer.address),
     ]);
 
     block.receipts[0].result.expectOk().expectBool(true);

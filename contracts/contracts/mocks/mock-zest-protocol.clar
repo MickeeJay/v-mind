@@ -1,4 +1,6 @@
+;; MOCK CONTRACT - FOR LOCAL TESTING ONLY. NOT FOR DEPLOYMENT.
 ;; @title Mock Zest Protocol
+;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for Zest borrow-helper and reserve interfaces.
 
 (define-constant err-forced-failure (err u8001))

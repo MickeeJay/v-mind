@@ -1,4 +1,6 @@
+;; MOCK CONTRACT - FOR LOCAL TESTING ONLY. NOT FOR DEPLOYMENT.
 ;; @title Mock Protocol Adapter
+;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @version 0.1.0
 ;; @author V-Mind Core Team
 ;; @notice Test-only protocol adapter that emulates external DeFi position accounting.

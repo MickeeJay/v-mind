@@ -8,7 +8,7 @@ Clarinet.test({
     const asset = accounts.get('wallet_1')!;
     const executor = accounts.get('wallet_2')!;
 
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const setup = chain.mineBlock([
       Tx.contractCall(
@@ -35,9 +35,9 @@ Clarinet.test({
         [types.ascii('Withdraw Strategy'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
-      Tx.contractCall('strategy-vault', 'accrue-yield', [types.uint(1), types.uint(1_000_000)], deployer.address),
-      Tx.contractCall('strategy-vault', 'withdraw', [types.uint(1), types.uint(1_000_000)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'accrue-yield', [types.uint(1), types.uint(1_000_000)], deployer.address),
+      Tx.contractCall('vault-core', 'withdraw', [types.uint(1), types.uint(1_000_000)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk().expectBool(true);
@@ -45,10 +45,10 @@ Clarinet.test({
     setup.receipts[4].result.expectOk().expectUint(3_000_000);
     setup.receipts[5].result.expectOk().expectUint(1_500_000);
 
-    const remainingAssets = chain.callReadOnlyFn('strategy-vault', 'get-vault-total-assets', [types.uint(1)], deployer.address);
+    const remainingAssets = chain.callReadOnlyFn('vault-core', 'get-vault-total-assets', [types.uint(1)], deployer.address);
     remainingAssets.result.expectOk().expectUint(1_500_000);
 
-    const remainingShares = chain.callReadOnlyFn('strategy-vault', 'get-vault-share-balance', [types.uint(1), types.principal(deployer.address)], deployer.address);
+    const remainingShares = chain.callReadOnlyFn('vault-core', 'get-vault-share-balance', [types.uint(1), types.principal(deployer.address)], deployer.address);
     remainingShares.result.expectOk().expectUint(1_000_000);
   },
 });

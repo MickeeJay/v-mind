@@ -5,7 +5,7 @@ Clarinet.test({
   name: 'vault-receipt-token: metadata is configurable once via initializer',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const block = chain.mineBlock([
       Tx.contractCall(
