@@ -17,7 +17,7 @@
 ;; - on-deposit: Optional hook called by vault after user deposit.
 ;; - on-withdraw: Optional hook called by vault before or after withdrawal.
 ;; @external-contracts
-;; - Called by core strategy-vault contracts.
+;; - Called by core vault-core contracts.
 ;; @limitations
 ;; - Trait enforces signature compatibility only; it cannot enforce economic safety.
 

@@ -223,11 +223,11 @@ async function main(): Promise<void> {
   );
   const strategyVaultAumCv = strategyVaultAum as { type: number; value?: unknown };
   if (strategyVaultAumCv.type !== ClarityType.ResponseOk) {
-    discrepancies.push('strategy-vault.get-max-aum-drop-bps-per-tx did not return ok response.');
+    discrepancies.push('vault-core.get-max-aum-drop-bps-per-tx did not return ok response.');
   } else {
     const inner = strategyVaultAumCv.value as { type: number; value?: unknown };
     if (inner.type !== ClarityType.UInt || BigInt(String(inner.value)) !== asUInt(config.initialConfig.vaultMaxAumDropBpsPerTx)) {
-      discrepancies.push('strategy-vault.get-max-aum-drop-bps-per-tx mismatch.');
+      discrepancies.push('vault-core.get-max-aum-drop-bps-per-tx mismatch.');
     }
   }
 

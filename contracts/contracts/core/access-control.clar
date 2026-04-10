@@ -23,7 +23,7 @@
 ;; - revoke-role (owner-only): Revokes a role from an account.
 ;; - renounce-role (self-only): Allows caller to drop one of their roles.
 ;; @external-contracts
-;; - Read by: protocol-config, strategy-registry, vault-registry, strategy-vault.
+;; - Read by: protocol-config, strategy-registry, vault-registry, vault-core.
 ;; @limitations
 ;; - Role admin hierarchy is not fully implemented in this scaffold.
 

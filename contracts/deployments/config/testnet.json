@@ -45,9 +45,9 @@
       "path": "contracts/adapters/hermetica-adapter.clar"
     },
     {
-      "name": "strategy-vault",
+      "name": "vault-core",
       "kind": "vault-core",
-      "path": "contracts/core/strategy-vault.clar"
+      "path": "contracts/core/vault-core.clar"
     },
     {
       "name": "strategy-execution",

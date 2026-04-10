@@ -1,7 +1,7 @@
 ;; @title Mock Vault Token
 ;; @version 0.1.0
 ;; @author V-Mind Core Team
-;; @notice Test-only receipt token implementation for strategy-vault accounting tests.
+;; @notice Test-only receipt token implementation for vault-core accounting tests.
 ;; @dev Mimics vault-token-trait methods with in-contract balance storage.
 ;; @contract mock-vault-token
 ;; @constants
@@ -17,7 +17,7 @@
 ;; - get-balance: Reads account share balance.
 ;; - get-total-supply: Reads total supply.
 ;; @external-contracts
-;; - Used by strategy-vault tests.
+;; - Used by vault-core tests.
 ;; @limitations
 ;; - No operator approvals or metadata fields are implemented.
 

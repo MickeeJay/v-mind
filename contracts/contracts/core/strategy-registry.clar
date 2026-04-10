@@ -19,7 +19,7 @@
 ;; - update-strategy-metadata (strategy-registrar-or-owner): Updates display metadata and risk score.
 ;; @external-contracts
 ;; - Depends on: access-control, protocol-config, strategy-validation-lib (planned integration).
-;; - Consumed by: vault-registry, strategy-vault, off-chain indexers.
+;; - Consumed by: vault-registry, vault-core, off-chain indexers.
 ;; @limitations
 ;; - Strategy contract trait compliance checks are not yet enforced in this scaffold.
 

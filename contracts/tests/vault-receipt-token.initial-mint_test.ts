@@ -8,7 +8,7 @@ Clarinet.test({
     const asset = accounts.get('wallet_1')!;
     const executor = accounts.get('wallet_2')!;
 
-    const strategyVaultPrincipal = `${deployer.address}.strategy-vault`;
+    const strategyVaultPrincipal = `${deployer.address}.vault-core`;
 
     const block = chain.mineBlock([
       Tx.contractCall(
@@ -35,7 +35,7 @@ Clarinet.test({
         [types.ascii('Vault Yield'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(executor.address)],
         deployer.address,
       ),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(2_000_000), types.uint(1)], deployer.address),
     ]);
 
     block.receipts[0].result.expectOk().expectBool(true);
@@ -43,13 +43,13 @@ Clarinet.test({
     block.receipts[2].result.expectOk().expectUint(1);
     block.receipts[3].result.expectOk().expectUint(1);
 
-    const vaultShares = chain.callReadOnlyFn('strategy-vault', 'get-vault-share-balance', [types.uint(1), types.principal(deployer.address)], deployer.address);
+    const vaultShares = chain.callReadOnlyFn('vault-core', 'get-vault-share-balance', [types.uint(1), types.principal(deployer.address)], deployer.address);
     vaultShares.result.expectOk().expectUint(2_000_000);
 
     const totalSupply = chain.callReadOnlyFn('vault-receipt-token', 'get-total-supply', [], deployer.address);
     totalSupply.result.expectOk().expectUint(2_000_000);
 
-    const price = chain.callReadOnlyFn('strategy-vault', 'get-vault-price-per-share', [types.uint(1)], deployer.address);
+    const price = chain.callReadOnlyFn('vault-core', 'get-vault-price-per-share', [types.uint(1)], deployer.address);
     price.result.expectOk().expectUint(1_000_000);
   },
 });

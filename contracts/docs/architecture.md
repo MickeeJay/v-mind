@@ -25,7 +25,7 @@ Current scaffold:
 - core/protocol-config.clar
 - core/strategy-registry.clar
 - core/vault-registry.clar
-- core/strategy-vault.clar
+- core/vault-core.clar
 - traits/strategy-trait.clar
 - traits/vault-token-trait.clar
 - traits/protocol-adapter-trait.clar
@@ -88,7 +88,7 @@ Primary responsibilities:
 - Mapping vault contracts to strategy IDs.
 - Canonical vault discovery endpoint for clients.
 
-### core/strategy-vault.clar
+### core/vault-core.clar
 
 Purpose:
 - Holds user positions, issues shares, and executes approved strategy lifecycle calls.
@@ -160,15 +160,15 @@ Dependency order from lowest to highest:
 9. core/protocol-config.clar
 10. core/strategy-registry.clar
 11. core/vault-registry.clar
-12. core/strategy-vault.clar
+12. core/vault-core.clar
 13. mocks/*
 
 Logical runtime relationships:
 
-- strategy-vault reads protocol-config for pause and global fee parameters.
-- strategy-vault references strategy-registry to ensure strategy approval and status.
-- strategy-vault references vault-registry for canonical vault status and metadata checks.
-- strategy-vault relies on access-control for operator and guardian authorization.
+- vault-core reads protocol-config for pause and global fee parameters.
+- vault-core references strategy-registry to ensure strategy approval and status.
+- vault-core references vault-registry for canonical vault status and metadata checks.
+- vault-core relies on access-control for operator and guardian authorization.
 - strategy contracts implement strategy-trait and may call protocol-adapter-trait implementations.
 
 ## Function Access Conditions
@@ -184,7 +184,7 @@ Expected call-condition policy by module:
 - strategy-registry and vault-registry:
 	- registration and metadata updates require owner or governance role.
 	- read-only getters are permissionless.
-- strategy-vault:
+- vault-core:
 	- deposit and withdraw are permissionless for users unless paused.
 	- execute-strategy requires operator role, vault enabled state, and strategy enabled state.
 	- set-vault-enabled requires vault owner or governance role.
@@ -197,7 +197,7 @@ Recommended deployment sequence for production:
 2. Deploy access-control and assign bootstrap roles.
 3. Deploy protocol-config and wire governance owner.
 4. Deploy strategy-registry and vault-registry with access-control references.
-5. Deploy strategy-vault instances and register them in vault-registry.
+5. Deploy vault-core instances and register them in vault-registry.
 6. Register approved strategies after trait compliance and risk review.
 7. Enable automation callers for execute-strategy.
 
@@ -205,7 +205,7 @@ Recommended deployment sequence for production:
 
 ### 1. Deposit
 
-- User submits deposit to strategy-vault.
+- User submits deposit to vault-core.
 - Vault validates pause state and vault status.
 - Vault updates internal total-assets and user share balance.
 - Optional strategy on-deposit hook is called for post-accounting integration.

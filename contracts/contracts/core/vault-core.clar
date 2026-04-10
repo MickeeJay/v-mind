@@ -13,7 +13,7 @@
 ;; - execute-approved-strategy (strategy-executor-or-protocol-owner): Records strategy execution metadata.
 ;; - apply-performance-fee / accrue-yield (protocol-owner-only): Protocol accounting updates.
 ;; - set-max-aum-drop-bps-per-tx (protocol-owner-only): Circuit-breaker configuration.
-;; @contract strategy-vault
+;; @contract vault-core
 
 (define-constant role-owner u1)
 (define-constant bps-denominator u10000)

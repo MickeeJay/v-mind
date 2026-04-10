@@ -19,7 +19,7 @@
 ;; - on-deposit: No-op hook that returns true.
 ;; - on-withdraw: No-op hook that returns true.
 ;; @external-contracts
-;; - Used by test suites targeting strategy-vault and strategy-registry.
+;; - Used by test suites targeting vault-core and strategy-registry.
 ;; @limitations
 ;; - Mock behavior is intentionally simplistic and not production safe.
 

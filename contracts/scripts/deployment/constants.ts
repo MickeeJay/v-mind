@@ -23,7 +23,7 @@ export const CORE_CONTRACT_NAMES = {
   protocolConfig: 'protocol-config',
   strategyRegistry: 'strategy-registry',
   vaultReceiptToken: 'vault-receipt-token',
-  strategyVault: 'strategy-vault',
+  strategyVault: 'vault-core',
   strategyExecution: 'strategy-execution',
 } as const;
 

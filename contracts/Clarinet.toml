@@ -107,8 +107,8 @@ path = "contracts/core/vault-registry.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.strategy-vault]
-path = "contracts/core/strategy-vault.clar"
+[contracts.vault-core]
+path = "contracts/core/vault-core.clar"
 clarity_version = 2
 epoch = 2.4
 
@@ -162,8 +162,6 @@ path = "contracts/mocks/mock-hermetica-staking.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.v-mind-core]
-path = "contracts/v-mind-core.clar"
 clarity_version = 2
 epoch = 2.4
 

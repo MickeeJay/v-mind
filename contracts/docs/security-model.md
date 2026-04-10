@@ -31,16 +31,16 @@ This document defines trust assumptions, authorization boundaries, emergency con
 - vault-registry.register-vault
 - vault-registry.set-vault-enabled
 - vault-registry.update-vault-metadata
-- strategy-vault.set-vault-enabled (vault owner)
+- vault-core.set-vault-enabled (vault owner)
 
 ### Operator-callable functions
 
-- strategy-vault.execute-strategy (planned operator role gate)
+- vault-core.execute-strategy (planned operator role gate)
 
 ### User-callable functions
 
-- strategy-vault.deposit
-- strategy-vault.withdraw
+- vault-core.deposit
+- vault-core.withdraw
 
 ### Public read-only functions
 
@@ -67,7 +67,7 @@ Additional expected conditions for privileged calls:
 
 ### Local vault containment
 
-- Stored per vault via strategy-vault.vault-enabled.
+- Stored per vault via vault-core.vault-enabled.
 - Allows quarantine of a single vault without stopping protocol-wide operations.
 
 ### Expected emergency process

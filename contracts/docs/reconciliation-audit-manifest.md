@@ -18,7 +18,7 @@ Full audit of all Clarity contracts under contracts/contracts before any impleme
 | contracts/contracts/core/protocol-config.clar | 483 | yes |
 | contracts/contracts/core/strategy-execution.clar | 514 | yes |
 | contracts/contracts/core/strategy-registry.clar | 315 | yes |
-| contracts/contracts/core/strategy-vault.clar | 678 | yes |
+| contracts/contracts/core/vault-core.clar | 678 | yes |
 | contracts/contracts/core/vault-receipt-token.clar | 345 | yes |
 | contracts/contracts/core/vault-registry.clar | 116 | yes |
 | contracts/contracts/libraries/constants-lib.clar | 56 | yes |
@@ -41,13 +41,10 @@ Full audit of all Clarity contracts under contracts/contracts before any impleme
 | contracts/contracts/traits/strategy-trait.clar | 32 | yes |
 | contracts/contracts/traits/vault-token-trait.clar | 38 | yes |
 | contracts/contracts/traits/zest-lending-trait.clar | 13 | yes |
-| contracts/contracts/v-mind-core.clar | 37 | yes |
 
 ## Structural Findings Before Fixes
 
-1. Root-level contract exists at contracts/contracts/v-mind-core.clar and must be removed or relocated by policy.
-2. Core contract is named strategy-vault.clar and must be renamed to vault-core.clar.
-3. Clarinet.toml currently declares strategy-vault and v-mind-core and requires reconciliation.
+2. Core contract is named vault-core.clar and must be renamed to vault-core.clar.
 4. Core directory contains an extra vault-registry.clar not listed in canonical target core set; needs resolution.
 5. Adapters contain inline hardcoded principal literals rather than library constants.
 6. Libraries currently expose mostly read-only helpers; constants-lib is incomplete for required protocol constants and external principal constants.
@@ -55,14 +52,13 @@ Full audit of all Clarity contracts under contracts/contracts before any impleme
 8. access-control lacks required role names (strategy-registrar, vault-operator, emergency-pauser) and global emergency pause/unpause entry points.
 9. protocol-config naming diverges from required names (e.g. get-max-active-vaults-per-user vs max-vaults-per-user), and supported-asset map exists but core required fields need harmonization.
 10. strategy-registry has required activation/deactivation and retrieval logic but function naming differs from required validate-strategy-for-execution.
-11. strategy-execution function exists but named rebalance-vault instead of rebalance and references strategy-vault principal name.
+11. strategy-execution function exists but named rebalance-vault instead of rebalance and references vault-core principal name.
 12. Mocks do not uniformly contain required top warning comment text and should be normalized.
 13. Test framework under contracts/tests uses Clarinet v1 Deno-style APIs and requires Clarinet v2 SDK + Vitest setup.
 
 ## Reconciliation Plan
 
-1. Remove root v-mind-core.clar after migrating/deleting any needed content.
-2. Rename strategy-vault.clar to vault-core.clar and update all references.
+2. Rename vault-core.clar to vault-core.clar and update all references.
 3. Reconcile trait, library, adapter, and core function names to canonical required set.
 4. Centralize external principals in constants-lib and remove inline adapter principals.
 5. Consolidate error constants into error-codes-lib and update err references.

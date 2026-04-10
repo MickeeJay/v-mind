@@ -11,18 +11,18 @@ Clarinet.test({
     const setup = chain.mineBlock([
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(20_000_000)], owner.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Drain Guard'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(owner.address)], owner.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(3_000_000), types.uint(1)], owner.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(3_000_000), types.uint(1)], owner.address),
     ]);
 
     setup.receipts[2].result.expectOk().expectUint(1);
 
     const attack = chain.mineBlock([
-      Tx.contractCall('strategy-vault', 'withdraw', [types.uint(1), types.uint(1_000_000)], attacker.address),
+      Tx.contractCall('vault-core', 'withdraw', [types.uint(1), types.uint(1_000_000)], attacker.address),
     ]);
 
     attack.receipts[0].result.expectErr().expectUint(2401);
 
-    const vaultAssets = chain.callReadOnlyFn('strategy-vault', 'get-vault-total-assets', [types.uint(1)], owner.address);
+    const vaultAssets = chain.callReadOnlyFn('vault-core', 'get-vault-total-assets', [types.uint(1)], owner.address);
     vaultAssets.result.expectOk().expectUint(3_000_000);
   },
 });

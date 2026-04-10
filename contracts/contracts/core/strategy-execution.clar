@@ -114,7 +114,7 @@
 )
 
 (define-private (assert-cooldown-and-strategy (vault-id uint) (strategy-id uint))
-  (match (contract-call? .strategy-vault get-vault vault-id)
+  (match (contract-call? .vault-core get-vault vault-id)
     vault-entry
       (let
         (
@@ -259,7 +259,7 @@
       (stackingdao-assets (get allocated-assets (get-position-or-default vault-id protocol-stackingdao)))
       (hermetica-assets (get allocated-assets (get-position-or-default vault-id protocol-hermetica)))
       (total-allocated (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
-      (vault-assets (try! (contract-call? .strategy-vault get-vault-total-assets vault-id)))
+      (vault-assets (try! (contract-call? .vault-core get-vault-total-assets vault-id)))
     )
     (begin
       (asserts! (<= total-allocated vault-assets) err-allocation-exceeds-vault-assets)
@@ -284,7 +284,7 @@
     (asserts! (> asset-amount u0) err-invalid-amount)
     (asserts! (is-supported-protocol protocol-id) err-invalid-protocol)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? .strategy-vault lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (fee-amount (calculate-performance-fee yield-generated))
@@ -305,7 +305,7 @@
           true
         )
         (write-execution-state vault-id fee-amount yield-generated)
-        (try! (contract-call? .strategy-vault unlock-vault-after-execution vault-id))
+        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
         (print {
           event: "strategy-executed",
           vault-id: vault-id,
@@ -355,7 +355,7 @@
     (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
     (asserts! (is-eq (+ from-target-weight-bps to-target-weight-bps) bps-denominator) err-invalid-weight-split)
     (try! (assert-cooldown-and-strategy vault-id strategy-id))
-    (try! (contract-call? .strategy-vault lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (from-position (get-position-or-default vault-id from-protocol-id))
@@ -381,7 +381,7 @@
             (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
             (write-execution-state vault-id u0 u0)
-            (try! (contract-call? .strategy-vault unlock-vault-after-execution vault-id))
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
             (print {
               event: "vault-rebalanced",
               vault-id: vault-id,
@@ -414,7 +414,7 @@
 )
   (begin
     (try! (assert-owner))
-    (try! (contract-call? .strategy-vault lock-vault-for-execution vault-id))
+    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
         (zest-position (get-position-or-default vault-id protocol-zest))
@@ -437,7 +437,7 @@
             (total-returned (+ (+ zest-assets alex-assets) (+ stackingdao-assets hermetica-assets)))
           )
           (begin
-            (try! (contract-call? .strategy-vault unlock-vault-after-execution vault-id))
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
             (print {
               event: "vault-emergency-exit",
               vault-id: vault-id,
@@ -483,7 +483,7 @@
 )
 
 (define-read-only (get-next-executable-block (vault-id uint))
-  (match (contract-call? .strategy-vault get-vault vault-id)
+  (match (contract-call? .vault-core get-vault vault-id)
     vault-entry
       (let
         (

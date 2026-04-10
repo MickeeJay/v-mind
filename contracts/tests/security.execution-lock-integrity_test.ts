@@ -17,7 +17,7 @@ Clarinet.test({
       Tx.contractCall('protocol-config', 'set-max-strategy-rebalance-frequency-blocks', [types.uint(1)], deployer.address),
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(asset.address), types.ascii('STX'), types.uint(1_000_000), types.uint(30_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Lock Integrity'), types.uint(1), types.principal(asset.address), types.uint(1), types.principal(deployer.address)], deployer.address),
-      Tx.contractCall('strategy-vault', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
+      Tx.contractCall('vault-core', 'create-vault', [types.principal(asset.address), types.uint(8_000_000), types.uint(1)], deployer.address),
     ]);
 
     setup.receipts[3].result.expectOk().expectUint(1);
@@ -43,7 +43,7 @@ Clarinet.test({
 
     exec.receipts[0].result.expectOk();
 
-    const locked = chain.callReadOnlyFn('strategy-vault', 'is-vault-locked', [types.uint(1)], deployer.address);
+    const locked = chain.callReadOnlyFn('vault-core', 'is-vault-locked', [types.uint(1)], deployer.address);
     locked.result.expectOk().expectBool(false);
   },
 });
