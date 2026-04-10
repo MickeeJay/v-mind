@@ -5,7 +5,8 @@
   "description": "V-Mind smart contracts for Stacks blockchain",
   "scripts": {
     "dev": "clarinet integrate",
-    "test": "clarinet test --coverage",
+    "test": "vitest run",
+    "test:legacy": "clarinet test --coverage",
     "check": "clarinet check",
     "deploy:testnet": "clarinet deployments apply -p deployments/testnet.yaml",
     "deploy:mainnet": "clarinet deployments apply -p deployments/mainnet.yaml",
@@ -22,9 +23,11 @@
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
+    "@hirosystems/clarinet-sdk": "^3.8.1",
     "@types/node": "^20.11.24",
     "tsx": "^4.7.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1"
   },
   "keywords": [
     "stacks",
