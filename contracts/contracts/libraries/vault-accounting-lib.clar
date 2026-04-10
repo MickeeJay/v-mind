@@ -1,5 +1,5 @@
 ;; @title V-Mind Vault Accounting Library
-;; @version 0.1.0
+;; @version 2026-04-10 hardened share-price and fee arithmetic helper semantics
 ;; @author V-Mind Core Team
 ;; @notice Provides deterministic accounting helpers for asset-to-share and share-to-asset conversions.
 ;; @dev Functions are pure calculations and do not mutate global state.
