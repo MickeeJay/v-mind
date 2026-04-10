@@ -95,3 +95,28 @@ Stacks contract deployments are immutable once confirmed. Rollback is handled op
 4. If a partial initialization occurred, use owner-controlled remediation transactions (role revocation, deactivation, treasury correction) before reattempting launch.
 5. Re-run full verification after remediation to ensure there are no state mismatches.
 6. Maintain manifest and initialization logs in release artifacts for auditability.
+
+## Dry-run mode (Clarinet simnet)
+
+Dry-run mode deploys to a local Clarinet simnet endpoint, never a live testnet/mainnet endpoint.
+
+### 1) Start Clarinet simulated network
+
+Use your local Clarinet devnet/simnet workflow to expose a node RPC endpoint.
+
+### 2) Configure dry-run environment
+
+```bash
+set STACKS_NETWORK=testnet
+set STACKS_NODE_URL=https://api.testnet.hiro.so
+set DEPLOY_CONFIG_PATH=contracts/deployments/config/testnet.json
+set CLARINET_SIMNET_URL=http://127.0.0.1:3999
+```
+
+### 3) Run dry-run deployment
+
+```bash
+npm run deploy:dry-run --workspace=contracts
+```
+
+The script will print deployment steps and txids from the local simulated network and will still produce a manifest, allowing you to review exact order and transaction flow before a live deployment.
