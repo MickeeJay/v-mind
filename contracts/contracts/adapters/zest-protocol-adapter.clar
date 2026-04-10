@@ -1,10 +1,18 @@
 ;; @title V-Mind Zest Protocol Adapter
 ;; @notice Routes V-Mind vault interactions to Zest lending interfaces.
+;; @public-functions
+;; - set-mock-mode (owner-only): Toggle mock mode.
+;; - deposit-to-zest / withdraw-from-zest / emergency-exit-zest (strategy-execution-or-owner): Position management.
+;; - collect-zest-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (define-constant err-owner-only (err u3400))
 (define-constant err-invalid-amount (err u3401))
 (define-constant err-insufficient-position (err u3402))
 (define-constant err-external-call-failed (err u3403))
+(define-constant err-unauthorized-caller (err u3404))
+(define-constant err-invalid-treasury (err u3405))
+
+(define-constant strategy-execution-contract .strategy-execution)
 
 (define-constant zest-borrow-helper 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.borrow-helper-v2-1-5)
 (define-constant zest-pool-reserve 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve)
@@ -24,6 +32,13 @@
 
 (define-private (assert-owner)
   (if (is-eq tx-sender (var-get owner)) (ok true) err-owner-only)
+)
+
+(define-private (assert-authorized-caller)
+  (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
+    (ok true)
+    err-unauthorized-caller
+  )
 )
 
 (define-private (adapter-principal)
@@ -74,6 +89,7 @@
 
 (define-public (deposit-to-zest (vault-id uint) (amount uint))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (match (call-supply amount)
       supply-result
@@ -112,6 +128,7 @@
 (define-public (withdraw-from-zest (vault-id uint) (amount uint))
   (let ((current (get-vault-position vault-id)))
     (begin
+      (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current amount) err-insufficient-position)
       (match (call-withdraw amount)
@@ -119,6 +136,7 @@
           (if withdraw-result
             (let ((updated (- current amount)))
               (begin
+                (asserts! (>= (var-get total-deployed) amount) err-insufficient-position)
                 (set-vault-position vault-id updated)
                 (var-set total-deployed (- (var-get total-deployed) amount))
                 (print {
@@ -151,7 +169,9 @@
 
 (define-public (collect-zest-fee (amount uint) (treasury principal))
   (begin
+    (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
     (print {
       event: "v-mind-zest-fee-collected",
       amount: amount,
@@ -163,10 +183,13 @@
 )
 
 (define-public (emergency-exit-zest (vault-id uint))
-  (let ((current (get-vault-position vault-id)))
-    (if (is-eq current u0)
-      (ok u0)
-      (withdraw-from-zest vault-id current)
+  (begin
+    (try! (assert-authorized-caller))
+    (let ((current (get-vault-position vault-id)))
+      (if (is-eq current u0)
+        (ok u0)
+        (withdraw-from-zest vault-id current)
+      )
     )
   )
 )
