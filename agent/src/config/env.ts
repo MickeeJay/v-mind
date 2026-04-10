@@ -77,4 +77,3 @@ export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
   });
 }
 
-export const config = buildConfig(process.env);
