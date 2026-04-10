@@ -14,9 +14,9 @@
 ;; @maps
 ;; - strategies: Stores strategy contract principal, status, and metadata fields keyed by strategy ID.
 ;; @public-functions
-;; - register-strategy: Registers a new strategy contract and metadata.
-;; - set-strategy-enabled: Enables or disables an existing strategy.
-;; - update-strategy-metadata: Updates display metadata and risk score.
+;; - register-strategy (strategy-registrar-or-owner): Registers a new strategy contract and metadata.
+;; - activate-strategy / deactivate-strategy (strategy-registrar-or-owner): Toggles strategy lifecycle state.
+;; - update-strategy-metadata (strategy-registrar-or-owner): Updates display metadata and risk score.
 ;; @external-contracts
 ;; - Depends on: access-control, protocol-config, strategy-validation-lib (planned integration).
 ;; - Consumed by: vault-registry, strategy-vault, off-chain indexers.
