@@ -13,8 +13,8 @@
 ;; @public-functions
 ;; - deposit: Sends assets into an external protocol position.
 ;; - withdraw: Pulls assets from an external protocol position.
-;; - harvest: Realizes rewards and returns harvested amount.
-;; - quote-withdraw: Estimates assets for a prospective withdrawal size.
+;; - get-balance: Returns the tracked balance for a vault position.
+;; - get-protocol-info: Returns adapter protocol metadata.
 ;; @external-contracts
 ;; - Implemented by adapter contracts wrapping external protocol entry points.
 ;; @limitations
@@ -22,9 +22,12 @@
 
 (define-trait protocol-adapter-trait
   (
-    (deposit (uint principal) (response uint uint))
-    (withdraw (uint principal) (response uint uint))
-    (harvest (principal) (response uint uint))
-    (quote-withdraw (uint) (response uint uint))
+    (deposit (uint uint) (response uint uint))
+    (withdraw (uint uint) (response uint uint))
+    (get-balance (uint) (response uint uint))
+    (get-protocol-info () (response {
+      protocol-name: (string-ascii 32),
+      protocol-version: (string-ascii 16)
+    } uint))
   )
 )

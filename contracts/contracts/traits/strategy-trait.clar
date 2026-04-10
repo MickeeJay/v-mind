@@ -24,6 +24,11 @@
 (define-trait strategy-trait
   (
     (get-strategy-id () (response uint uint))
+    (get-strategy-info () (response {
+      strategy-type: uint,
+      risk-tier: uint,
+      is-active: bool
+    } uint))
     (can-execute (uint uint) (response bool uint))
     (execute (uint principal) (response int uint))
     (on-deposit (uint principal) (response bool uint))
