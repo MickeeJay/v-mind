@@ -9,7 +9,14 @@ import {
   StacksNetwork,
   StacksTestnet,
 } from '@stacks/network';
-import { cvToValue, deserializeCV, serializeCV, type ClarityValue } from '@stacks/transactions';
+import {
+  ClarityType,
+  deserializeCV,
+  principalToString,
+  serializeCV,
+  type ClarityValue,
+  type PrincipalCV,
+} from '@stacks/transactions';
 import { z } from 'zod';
 import type { AgentConfig } from '../config';
 import type { AppLogger } from '../utils/logger';
@@ -138,7 +145,7 @@ export class StacksClient implements BlockchainClient {
     }
 
     const clarityValue = deserializeCV(response.result);
-    const decoded = cvToValue(clarityValue) as unknown;
+    const decoded = decodeClarityValue(clarityValue);
     return request.responseSchema.parse(decoded);
   }
 
@@ -225,6 +232,48 @@ function getErrorStatusCode(error: unknown): number | undefined {
   }
 
   return undefined;
+}
+
+function decodeClarityValue(value: ClarityValue): unknown {
+  switch (value.type) {
+    case ClarityType.Int:
+    case ClarityType.UInt:
+      return value.value;
+    case ClarityType.BoolTrue:
+      return true;
+    case ClarityType.BoolFalse:
+      return false;
+    case ClarityType.StringASCII:
+    case ClarityType.StringUTF8:
+      return value.data;
+    case ClarityType.Buffer:
+      return `0x${Buffer.from(value.buffer).toString('hex')}`;
+    case ClarityType.PrincipalStandard:
+    case ClarityType.PrincipalContract:
+      return principalToString(value as PrincipalCV);
+    case ClarityType.OptionalNone:
+      return null;
+    case ClarityType.OptionalSome:
+      return decodeClarityValue(value.value);
+    case ClarityType.ResponseOk:
+      return {
+        type: 'ok',
+        value: decodeClarityValue(value.value),
+      };
+    case ClarityType.ResponseErr:
+      return {
+        type: 'err',
+        value: decodeClarityValue(value.value),
+      };
+    case ClarityType.List:
+      return value.list.map((item) => decodeClarityValue(item));
+    case ClarityType.Tuple:
+      return Object.fromEntries(
+        Object.entries(value.data).map(([key, tupleValue]) => [key, decodeClarityValue(tupleValue)])
+      );
+    default:
+      throw new Error(`Unsupported Clarity type: ${(value as { type: number }).type}`);
+  }
 }
 
 export function createStacksNetwork(network: AgentConfig['stacks']['network'], apiBaseUrl: string): StacksNetwork {
