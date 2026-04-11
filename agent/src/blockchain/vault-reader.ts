@@ -8,10 +8,12 @@ import {
   type VaultState,
 } from './schemas';
 import type { StacksClient } from './stacks-client';
+import { parseContractIdentifier, type ContractReference } from './contracts';
 
 export interface VaultReaderOptions {
-  contractAddress: string;
+  contractAddress?: string;
   contractName?: string;
+  contractIdentifier?: string;
 }
 
 const optionalVaultEntrySchema = z.union([vaultEntrySchema, z.null()]);
@@ -25,17 +27,21 @@ export class VaultReaderError extends Error {
 }
 
 export class VaultReader {
+  private readonly contractRef: ContractReference;
+
   constructor(
     private readonly client: StacksClient,
     private readonly options: VaultReaderOptions,
     private readonly logger: AppLogger
-  ) {}
+  ) {
+    this.contractRef = resolveContractReference(options);
+  }
 
   async getVaultState(vaultId: bigint): Promise<VaultState> {
     try {
       const vaultEntry = await this.client.callReadOnlyFunction({
-        contractAddress: this.options.contractAddress,
-        contractName: this.options.contractName,
+        contractAddress: this.contractRef.address,
+        contractName: this.contractRef.name,
         functionName: 'get-vault',
         functionArgs: [uintCV(vaultId)],
         responseSchema: optionalVaultEntrySchema,
@@ -75,8 +81,8 @@ export class VaultReader {
 
   private async readOkUint(functionName: string, vaultId: bigint): Promise<bigint> {
     const response = await this.client.callReadOnlyFunction({
-      contractAddress: this.options.contractAddress,
-      contractName: this.options.contractName,
+      contractAddress: this.contractRef.address,
+      contractName: this.contractRef.name,
       functionName,
       functionArgs: [uintCV(vaultId)],
       responseSchema: vaultUintResponseSchema,
@@ -84,4 +90,19 @@ export class VaultReader {
 
     return response.value;
   }
+}
+
+function resolveContractReference(options: VaultReaderOptions): ContractReference {
+  if (options.contractIdentifier) {
+    return parseContractIdentifier(options.contractIdentifier);
+  }
+
+  if (!options.contractAddress || !options.contractName) {
+    throw new Error('VaultReader requires either contractIdentifier or both contractAddress and contractName');
+  }
+
+  return {
+    address: options.contractAddress,
+    name: options.contractName,
+  };
 }
