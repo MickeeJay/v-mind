@@ -7,6 +7,7 @@ cache_dir = "./.cache"
 requirements = []
 boot_contracts = []
 
+# --- Traits (no inter-contract dependencies) -----------------------------------
 [contracts.sip-010-ft-trait]
 path = "contracts/traits/sip-010-ft-trait.clar"
 clarity_version = 2
@@ -47,6 +48,7 @@ path = "contracts/traits/hermetica-usdh-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+# --- Libraries (depend only on traits) ----------------------------------------
 [contracts.constants-lib]
 path = "contracts/libraries/constants-lib.clar"
 clarity_version = 2
@@ -67,22 +69,18 @@ path = "contracts/libraries/vault-accounting-lib.clar"
 clarity_version = 2
 epoch = 2.4
 
-[network.simnet]
-description = "Local testing network configuration"
-include_mocks = true
+# --- Core infrastructure (must precede anything that calls access-control) -----
+[contracts.access-control]
+path = "contracts/core/access-control.clar"
+clarity_version = 2
+epoch = 2.4
 
-[network.devnet]
-description = "Development network configuration"
-include_mocks = true
+[contracts.protocol-config]
+path = "contracts/core/protocol-config.clar"
+clarity_version = 2
+epoch = 2.4
 
-[network.testnet]
-description = "Public testnet deployment configuration"
-include_mocks = false
-
-[network.mainnet]
-description = "Mainnet deployment configuration"
-include_mocks = false
-
+# --- Mock contracts (depend on traits; adapters depend on mocks in simnet) -----
 [contracts.mock-strategy]
 path = "contracts/mocks/mock-strategy.clar"
 clarity_version = 2
@@ -123,6 +121,7 @@ path = "contracts/mocks/mock-hermetica-staking.clar"
 clarity_version = 2
 epoch = 2.4
 
+# --- Adapters (depend on access-control, protocol-config, and mock contracts) --
 [contracts.zest-protocol-adapter]
 path = "contracts/adapters/zest-protocol-adapter.clar"
 clarity_version = 2
@@ -143,16 +142,7 @@ path = "contracts/adapters/hermetica-adapter.clar"
 clarity_version = 2
 epoch = 2.4
 
-[contracts.access-control]
-path = "contracts/core/access-control.clar"
-clarity_version = 2
-epoch = 2.4
-
-[contracts.protocol-config]
-path = "contracts/core/protocol-config.clar"
-clarity_version = 2
-epoch = 2.4
-
+# --- Core contracts (depend on access-control, protocol-config, adapters) ------
 [contracts.strategy-registry]
 path = "contracts/core/strategy-registry.clar"
 clarity_version = 2
@@ -173,6 +163,24 @@ path = "contracts/core/strategy-execution.clar"
 clarity_version = 2
 epoch = 2.4
 
+# --- Network configurations ----------------------------------------------------
+[network.simnet]
+description = "Local testing network configuration"
+include_mocks = true
+
+[network.devnet]
+description = "Development network configuration"
+include_mocks = true
+
+[network.testnet]
+description = "Public testnet deployment configuration"
+include_mocks = false
+
+[network.mainnet]
+description = "Mainnet deployment configuration"
+include_mocks = false
+
+# --- REPL / analysis settings --------------------------------------------------
 [repl]
 costs_version = 2
 parser_version = 2
@@ -185,4 +193,3 @@ strict = true
 trusted_sender = false
 trusted_caller = false
 callee_filter = false
-

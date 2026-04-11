@@ -1,18 +1,20 @@
 ;; @title V-Mind Vault Core
-;; @version 2026-04-10 reconciled vault-core naming, emergency controls, and public access-pattern coverage
+;; @version 2026-04-10-B fixes:
+;;   C-1  Protocol-pause not enforced - assert-not-paused added to every mutating public fn.
+;;   C-2  unlock-vault-after-execution returned err-vault-not-active when vault was not locked -
+;;        replaced with new err-vault-not-locked (u2421).
+;;   C-3  emergency-withdraw zeroed total-assets and left shares unredeemable -
+;;        revised to set vault-status-emergency and PRESERVE total-assets so existing shares
+;;        retain value and users can withdraw normally via the standard withdraw path.
+;;        New clear-emergency-vault-status (protocol-owner) restores active state after resolution.
+;;   H-1  get-vault-for-execution was define-public despite being a pure read - now define-read-only.
+;;   NEW  STX transfers: create-vault and deposit call (stx-transfer? amount tx-sender vault-contract).
+;;        withdraw calls (as-contract (stx-transfer? amount tx-sender vault-owner)).
+;;        apply-performance-fee transfers fee STX to protocol treasury.
+;;   NEW  vault-status-emergency (u4) constant for emergency lifecycle state.
+;;   NEW  lock-vault-for-execution allows locking in emergency status so strategy-execution
+;;        can call emergency-exit-vault on an emergency-status vault.
 ;; @author V-Mind Core Team
-;; @notice Security-focused vault core handling creation, deposits, withdrawals, and emergency exits.
-;; @dev This contract tracks vault state in a vault-id keyed map and validates protocol policy before state changes.
-;; @public-functions
-;; - create-vault (permissionless): Create a vault using a supported asset and active strategy.
-;; - deposit (vault-owner-only): Add assets and mint vault shares.
-;; - withdraw (vault-owner-only): Burn shares and withdraw assets.
-;; - pause-vault / unpause-vault / close-vault (vault-owner-only): Lifecycle controls.
-;; - emergency-withdraw (protocol-owner-only): Pause vault and force assets to zero.
-;; - lock-vault-for-execution / unlock-vault-after-execution (strategy-executor-or-protocol-owner): Execution lock controls.
-;; - execute-approved-strategy (strategy-executor-or-protocol-owner): Records strategy execution metadata.
-;; - apply-performance-fee / accrue-yield (protocol-owner-only): Protocol accounting updates.
-;; - set-max-aum-drop-bps-per-tx (protocol-owner-only): Circuit-breaker configuration.
 ;; @contract vault-core
 
 (define-constant role-owner u1)
@@ -22,6 +24,7 @@
 (define-constant vault-status-active u1)
 (define-constant vault-status-paused u2)
 (define-constant vault-status-closed u3)
+(define-constant vault-status-emergency u4)
 
 (define-constant err-vault-not-found (err u2400))
 (define-constant err-owner-only (err u2401))
@@ -44,6 +47,10 @@
 (define-constant err-invalid-aum-threshold (err u2418))
 (define-constant err-aum-drop-exceeded (err u2419))
 (define-constant err-vault-asset-invariant (err u2420))
+(define-constant err-vault-not-locked (err u2421))
+(define-constant err-protocol-paused (err u2422))
+(define-constant err-transfer-failed (err u2423))
+(define-constant err-vault-not-emergency (err u2424))
 
 (define-data-var next-vault-id uint u1)
 (define-data-var max-aum-drop-bps-per-tx uint u10000)
@@ -63,6 +70,8 @@
   }
 )
 
+;; --- private helpers -----------------------------------------------------------
+
 (define-private (is-protocol-owner (caller principal))
   (or
     (contract-call? .access-control has-role caller role-owner)
@@ -81,6 +90,14 @@
   (if (is-eq tx-sender owner)
     (ok true)
     err-owner-only
+  )
+)
+
+;; FIX C-1: every mutating public function calls (try! (assert-not-paused)) first.
+(define-private (assert-not-paused)
+  (if (contract-call? .access-control is-protocol-paused)
+    err-protocol-paused
+    (ok true)
   )
 )
 
@@ -145,7 +162,12 @@
   )
 )
 
+;; --- public functions ----------------------------------------------------------
+
 ;; Access pattern: permissionless
+;; STX is the primary vault asset. asset-contract is registered in protocol-config.supported-assets
+;; and serves as the asset-type identifier (e.g., a canonical STX sentinel principal).
+;; The actual STX deposit is transferred from tx-sender into the vault contract's own STX balance.
 (define-public (create-vault (asset-contract principal) (initial-deposit uint) (strategy-id uint))
   (let
     (
@@ -153,9 +175,12 @@
       (created-at block-height)
     )
     (begin
+      (try! (assert-not-paused))
       (asserts! (> initial-deposit u0) err-invalid-amount)
       (try! (assert-supported-asset-and-amount asset-contract initial-deposit))
       (try! (assert-strategy-active strategy-id))
+      ;; Transfer STX from user into vault contract escrow (Clarity atomicity reverts this on any later failure)
+      (try! (stx-transfer? initial-deposit tx-sender (as-contract tx-sender)))
       (map-set vaults
         { vault-id: vault-id }
         {
@@ -191,6 +216,7 @@
 ;; Access pattern: vault-owner-only
 (define-public (deposit (vault-id uint) (asset-contract principal) (amount uint))
   (begin
+    (try! (assert-not-paused))
     (asserts! (> amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
@@ -207,6 +233,8 @@
               true
             )
           )
+          ;; Transfer STX from user into vault contract escrow
+          (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
           (let ((updated-assets (+ (get total-assets vault-entry) amount)))
             (begin
               (try! (contract-call? .vault-receipt-token mint vault-id tx-sender amount))
@@ -243,8 +271,11 @@
 )
 
 ;; Access pattern: vault-owner-only
+;; Withdrawals are permitted in active, paused AND emergency status - only closed is blocked.
+;; STX is transferred from vault contract escrow back to vault-owner after accounting is settled.
 (define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
+    (try! (assert-not-paused))
     (asserts! (> share-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
@@ -254,6 +285,7 @@
           (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
           (let
             (
+              (vault-owner-addr (get vault-owner vault-entry))
               (withdrawn-amount (try! (contract-call? .vault-receipt-token burn vault-id tx-sender share-amount)))
             )
             (begin
@@ -276,10 +308,12 @@
                     }
                   )
                   (try! (assert-vault-assets-synced vault-id updated-assets))
+                  ;; Transfer STX from vault contract escrow back to the vault owner
+                  (try! (as-contract (stx-transfer? withdrawn-amount tx-sender vault-owner-addr)))
                   (print {
                     event: "vault-withdrawal",
                     vault-id: vault-id,
-                    withdrawer: tx-sender,
+                    withdrawer: vault-owner-addr,
                     shares-burned: share-amount,
                     amount: withdrawn-amount,
                     total-assets: updated-assets,
@@ -298,137 +332,105 @@
 
 ;; Access pattern: vault-owner-only
 (define-public (pause-vault (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (try! (assert-vault-owner (get vault-owner vault-entry)))
-        (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
-            strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: (get last-execution-block vault-entry),
-            vault-status: vault-status-paused,
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: (get execution-locked vault-entry)
-          }
+  (begin
+    (try! (assert-not-paused))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (try! (assert-vault-owner (get vault-owner vault-entry)))
+          (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: (get last-execution-block vault-entry),
+              vault-status: vault-status-paused,
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: (get execution-locked vault-entry)
+            }
+          )
+          (print {
+            event: "vault-paused",
+            vault-id: vault-id,
+            caller: tx-sender
+          })
+          (ok true)
         )
-        (print {
-          event: "vault-paused",
-          vault-id: vault-id,
-          caller: tx-sender
-        })
-        (ok true)
-      )
-    err-vault-not-found
+      err-vault-not-found
+    )
   )
 )
 
 ;; Access pattern: vault-owner-only
 (define-public (unpause-vault (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (try! (assert-vault-owner (get vault-owner vault-entry)))
-        (asserts! (is-eq (get vault-status vault-entry) vault-status-paused) err-vault-not-paused)
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
-            strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: (get last-execution-block vault-entry),
-            vault-status: vault-status-active,
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: (get execution-locked vault-entry)
-          }
+  (begin
+    (try! (assert-not-paused))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (try! (assert-vault-owner (get vault-owner vault-entry)))
+          (asserts! (is-eq (get vault-status vault-entry) vault-status-paused) err-vault-not-paused)
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: (get last-execution-block vault-entry),
+              vault-status: vault-status-active,
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: (get execution-locked vault-entry)
+            }
+          )
+          (print {
+            event: "vault-unpaused",
+            vault-id: vault-id,
+            caller: tx-sender
+          })
+          (ok true)
         )
-        (print {
-          event: "vault-unpaused",
-          vault-id: vault-id,
-          caller: tx-sender
-        })
-        (ok true)
-      )
-    err-vault-not-found
+      err-vault-not-found
+    )
   )
 )
 
 ;; Access pattern: vault-owner-only
 (define-public (close-vault (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (try! (assert-vault-owner (get vault-owner vault-entry)))
-        (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
-        (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-        (asserts! (is-eq (get total-assets vault-entry) u0) err-vault-not-empty)
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
-            strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: (get last-execution-block vault-entry),
-            vault-status: vault-status-closed,
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: false
-          }
-        )
-        (print {
-          event: "vault-closed",
-          vault-id: vault-id,
-          caller: tx-sender
-        })
-        (ok true)
-      )
-    err-vault-not-found
-  )
-)
-
-;; Access pattern: protocol-owner-only
-(define-public (emergency-withdraw (vault-id uint))
   (begin
-    (try! (assert-protocol-owner))
+    (try! (assert-not-paused))
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
-        (let ((withdrawn-amount (get total-assets vault-entry)))
-          (begin
-            (try! (assert-aum-drop-within-threshold (get total-assets vault-entry) u0 true))
-            (map-set vaults
-              { vault-id: vault-id }
-              {
-                vault-owner: (get vault-owner vault-entry),
-                asset-contract: (get asset-contract vault-entry),
-                total-assets: u0,
-                strategy-id: (get strategy-id vault-entry),
-                created-at-block: (get created-at-block vault-entry),
-                last-execution-block: (get last-execution-block vault-entry),
-                vault-status: (if (is-eq (get vault-status vault-entry) vault-status-closed) vault-status-closed vault-status-paused),
-                cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-                execution-locked: false
-              }
-            )
-            (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id u0))
-            (try! (assert-vault-assets-synced vault-id u0))
-            (print {
-              event: "vault-emergency-withdrawal",
-              vault-id: vault-id,
+        (begin
+          (try! (assert-vault-owner (get vault-owner vault-entry)))
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
+          (asserts! (is-eq (get total-assets vault-entry) u0) err-vault-not-empty)
+          (map-set vaults
+            { vault-id: vault-id }
+            {
               vault-owner: (get vault-owner vault-entry),
               asset-contract: (get asset-contract vault-entry),
-              withdrawn-amount: withdrawn-amount,
-              caller: tx-sender
-            })
-            (ok withdrawn-amount)
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: (get last-execution-block vault-entry),
+              vault-status: vault-status-closed,
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: false
+            }
           )
+          (print {
+            event: "vault-closed",
+            vault-id: vault-id,
+            caller: tx-sender
+          })
+          (ok true)
         )
       err-vault-not-found
     )
@@ -436,119 +438,218 @@
 )
 
 ;; Access pattern: protocol-owner-only
+;; FIX C-3: Sets vault to vault-status-emergency PRESERVING total-assets and all shares.
+;; Shares retain their value. Users can call withdraw() normally to exit.
+;; The protocol owner should then call strategy-execution.emergency-exit-vault to pull funds
+;; from external protocol positions back into the vault's STX escrow balance.
+;; After the emergency is resolved, call clear-emergency-vault-status to restore active status.
+(define-public (emergency-withdraw (vault-id uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
+          (asserts! (not (is-eq (get vault-status vault-entry) vault-status-emergency)) err-vault-not-active)
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: (get last-execution-block vault-entry),
+              vault-status: vault-status-emergency,
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: false
+            }
+          )
+          (print {
+            event: "vault-emergency-status-set",
+            vault-id: vault-id,
+            vault-owner: (get vault-owner vault-entry),
+            total-assets: (get total-assets vault-entry),
+            caller: tx-sender
+          })
+          (ok vault-id)
+        )
+      err-vault-not-found
+    )
+  )
+)
+
+;; Access pattern: protocol-owner-only (alias)
 (define-public (emergency-withdraw-all (vault-id uint))
   (emergency-withdraw vault-id)
 )
 
-;; Access pattern: strategy-executor-or-protocol-owner
-(define-public (lock-vault-for-execution (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
-        (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-        (try! (assert-strategy-active (get strategy-id vault-entry)))
-        (try! (assert-strategy-executor (get strategy-id vault-entry)))
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
-            strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: block-height,
-            vault-status: (get vault-status vault-entry),
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: true
-          }
+;; Access pattern: protocol-owner-only
+;; Restores vault to active status after an emergency has been fully resolved.
+;; Must only be called once all external positions are liquidated and STX is back in escrow.
+(define-public (clear-emergency-vault-status (vault-id uint))
+  (begin
+    (try! (assert-protocol-owner))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (is-eq (get vault-status vault-entry) vault-status-emergency) err-vault-not-emergency)
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: (get last-execution-block vault-entry),
+              vault-status: vault-status-active,
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: false
+            }
+          )
+          (print {
+            event: "vault-emergency-cleared",
+            vault-id: vault-id,
+            caller: tx-sender
+          })
+          (ok true)
         )
-        (print {
-          event: "vault-execution-locked",
-          vault-id: vault-id,
-          strategy-id: (get strategy-id vault-entry),
-          caller: tx-sender,
-          locked-at-block: block-height
-        })
-        (ok true)
-      )
-    err-vault-not-found
+      err-vault-not-found
+    )
   )
 )
 
 ;; Access pattern: strategy-executor-or-protocol-owner
-(define-public (unlock-vault-after-execution (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (asserts! (get execution-locked vault-entry) err-vault-not-active)
-        (try! (assert-strategy-executor (get strategy-id vault-entry)))
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
+;; Allows locking in vault-status-active OR vault-status-emergency so that
+;; strategy-execution.emergency-exit-vault can lock an emergency-status vault to perform exits.
+(define-public (lock-vault-for-execution (vault-id uint))
+  (begin
+    (try! (assert-not-paused))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts!
+            (or
+              (is-eq (get vault-status vault-entry) vault-status-active)
+              (is-eq (get vault-status vault-entry) vault-status-emergency)
+            )
+            err-vault-not-active
+          )
+          (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
+          (try! (assert-strategy-active (get strategy-id vault-entry)))
+          (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: block-height,
+              vault-status: (get vault-status vault-entry),
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: true
+            }
+          )
+          (print {
+            event: "vault-execution-locked",
+            vault-id: vault-id,
             strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: block-height,
-            vault-status: (get vault-status vault-entry),
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: false
-          }
+            caller: tx-sender,
+            locked-at-block: block-height
+          })
+          (ok true)
         )
-        (print {
-          event: "vault-execution-unlocked",
-          vault-id: vault-id,
-          strategy-id: (get strategy-id vault-entry),
-          caller: tx-sender,
-          unlocked-at-block: block-height
-        })
-        (ok true)
-      )
-    err-vault-not-found
+      err-vault-not-found
+    )
+  )
+)
+
+;; Access pattern: strategy-executor-or-protocol-owner
+;; FIX C-2: was returning err-vault-not-active when vault was not locked.
+;;          Now returns err-vault-not-locked (u2421) which is semantically correct.
+(define-public (unlock-vault-after-execution (vault-id uint))
+  (begin
+    (try! (assert-not-paused))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (get execution-locked vault-entry) err-vault-not-locked)
+          (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: block-height,
+              vault-status: (get vault-status vault-entry),
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: false
+            }
+          )
+          (print {
+            event: "vault-execution-unlocked",
+            vault-id: vault-id,
+            strategy-id: (get strategy-id vault-entry),
+            caller: tx-sender,
+            unlocked-at-block: block-height
+          })
+          (ok true)
+        )
+      err-vault-not-found
+    )
   )
 )
 
 ;; Access pattern: strategy-executor-or-protocol-owner
 (define-public (execute-approved-strategy (vault-id uint))
-  (match (map-get? vaults { vault-id: vault-id })
-    vault-entry
-      (begin
-        (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
-        (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-        (try! (assert-strategy-active (get strategy-id vault-entry)))
-        (try! (assert-strategy-executor (get strategy-id vault-entry)))
-        (map-set vaults
-          { vault-id: vault-id }
-          {
-            vault-owner: (get vault-owner vault-entry),
-            asset-contract: (get asset-contract vault-entry),
-            total-assets: (get total-assets vault-entry),
+  (begin
+    (try! (assert-not-paused))
+    (match (map-get? vaults { vault-id: vault-id })
+      vault-entry
+        (begin
+          (asserts! (is-eq (get vault-status vault-entry) vault-status-active) err-vault-not-active)
+          (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
+          (try! (assert-strategy-active (get strategy-id vault-entry)))
+          (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          (map-set vaults
+            { vault-id: vault-id }
+            {
+              vault-owner: (get vault-owner vault-entry),
+              asset-contract: (get asset-contract vault-entry),
+              total-assets: (get total-assets vault-entry),
+              strategy-id: (get strategy-id vault-entry),
+              created-at-block: (get created-at-block vault-entry),
+              last-execution-block: block-height,
+              vault-status: (get vault-status vault-entry),
+              cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
+              execution-locked: false
+            }
+          )
+          (print {
+            event: "vault-strategy-executed",
+            vault-id: vault-id,
             strategy-id: (get strategy-id vault-entry),
-            created-at-block: (get created-at-block vault-entry),
-            last-execution-block: block-height,
-            vault-status: (get vault-status vault-entry),
-            cumulative-fees-paid: (get cumulative-fees-paid vault-entry),
-            execution-locked: false
-          }
+            caller: tx-sender,
+            execution-block: block-height
+          })
+          (ok true)
         )
-        (print {
-          event: "vault-strategy-executed",
-          vault-id: vault-id,
-          strategy-id: (get strategy-id vault-entry),
-          caller: tx-sender,
-          execution-block: block-height
-        })
-        (ok true)
-      )
-    err-vault-not-found
+      err-vault-not-found
+    )
   )
 )
 
 ;; Access pattern: protocol-owner-only
+;; Deducts fee from vault accounting AND transfers STX fee to protocol treasury.
 (define-public (apply-performance-fee (vault-id uint) (fee-amount uint))
   (begin
+    (try! (assert-not-paused))
     (try! (assert-protocol-owner))
     (asserts! (> fee-amount u0) err-invalid-fee-amount)
     (match (map-get? vaults { vault-id: vault-id })
@@ -560,6 +661,7 @@
             (
               (updated-assets (- (get total-assets vault-entry) fee-amount))
               (updated-fees (+ (get cumulative-fees-paid vault-entry) fee-amount))
+              (treasury (contract-call? .protocol-config get-protocol-treasury))
             )
             (begin
               (try! (assert-aum-drop-within-threshold (get total-assets vault-entry) updated-assets false))
@@ -579,12 +681,15 @@
               )
               (try! (contract-call? .vault-receipt-token sync-vault-assets vault-id updated-assets))
               (try! (assert-vault-assets-synced vault-id updated-assets))
+              ;; Transfer collected fee STX from vault escrow to protocol treasury
+              (try! (as-contract (stx-transfer? fee-amount tx-sender treasury)))
               (print {
                 event: "vault-performance-fee-applied",
                 vault-id: vault-id,
                 fee-amount: fee-amount,
                 cumulative-fees-paid: updated-fees,
                 remaining-assets: updated-assets,
+                treasury: treasury,
                 caller: tx-sender
               })
               (ok updated-assets)
@@ -599,6 +704,7 @@
 ;; Access pattern: protocol-owner-only
 (define-public (accrue-yield (vault-id uint) (yield-amount uint))
   (begin
+    (try! (assert-not-paused))
     (try! (assert-protocol-owner))
     (asserts! (> yield-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
@@ -650,6 +756,8 @@
   )
 )
 
+;; --- read-only functions -------------------------------------------------------
+
 (define-read-only (get-next-vault-id)
   (var-get next-vault-id)
 )
@@ -658,8 +766,9 @@
   (map-get? vaults { vault-id: vault-id })
 )
 
-;; Access pattern: permissionless-query
-(define-public (get-vault-for-execution (vault-id uint))
+;; FIX H-1: was define-public despite being a pure read. Now define-read-only.
+;; This also enables get-next-executable-block in strategy-execution to become read-only.
+(define-read-only (get-vault-for-execution (vault-id uint))
   (match (map-get? vaults { vault-id: vault-id })
     vault-entry (ok vault-entry)
     err-vault-not-found

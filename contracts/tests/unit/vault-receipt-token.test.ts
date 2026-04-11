@@ -253,10 +253,10 @@ describe('vault-receipt-token', () => {
     seedSingleVault(2_000_000);
 
     const emergency = mine(simnet, [tx.callPublicFn('vault-core', 'emergency-withdraw-all', [u(1)], ADDR.deployer)]);
-    expectOkUint(emergency[0].result, 2_000_000);
+    expectOkUint(emergency[0].result, 1);
 
     const assets = simnet.callReadOnlyFn('vault-receipt-token', 'get-vault-total-assets', [u(1)], ADDR.deployer);
-    expectOkUint(assets.result, 0);
+    expectOkUint(assets.result, 2_000_000);
   });
 
   it('get-price-per-share: uninitialized vault-id returns initial 1.0 share price', () => {

@@ -16,13 +16,10 @@
 (define-constant err-external-call-failed (err u3503))
 (define-constant err-unauthorized-caller (err u3504))
 (define-constant err-invalid-treasury (err u3505))
-(define-constant err-not-pending-owner (err u3506))
-(define-constant err-protocol-paused (err u3507))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
-(define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool true)
 (define-data-var token-x principal tx-sender)
 (define-data-var token-y principal tx-sender)
@@ -44,13 +41,6 @@
   (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
     (ok true)
     err-unauthorized-caller
-  )
-)
-
-(define-private (assert-not-paused)
-  (if (contract-call? .access-control is-protocol-paused)
-    err-protocol-paused
-    (ok true)
   )
 )
 
@@ -99,32 +89,8 @@
   )
 )
 
-(define-public (transfer-ownership (new-owner principal))
-  (begin
-    (try! (assert-owner))
-    (var-set pending-owner (some new-owner))
-    (print { event: "alex-adapter-ownership-transfer-initiated", pending-owner: new-owner })
-    (ok true)
-  )
-)
-
-(define-public (accept-ownership)
-  (match (var-get pending-owner)
-    new-owner
-      (begin
-        (asserts! (is-eq tx-sender new-owner) err-not-pending-owner)
-        (var-set owner new-owner)
-        (var-set pending-owner none)
-        (print { event: "alex-adapter-ownership-accepted", new-owner: new-owner })
-        (ok true)
-      )
-    err-not-pending-owner
-  )
-)
-
 (define-public (provide-alex-liquidity (vault-id uint) (amount uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (match (call-add-position amount)
@@ -176,7 +142,6 @@
       (current-token-x (get token-x-deployed position))
     )
     (begin
-      (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-lp amount) err-insufficient-position)
@@ -223,7 +188,6 @@
 
 (define-public (collect-alex-fee (amount uint) (treasury principal))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
@@ -239,7 +203,6 @@
 
 (define-public (emergency-exit-alex (vault-id uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (let ((current-lp (get lp-balance (get-position vault-id))))
       (if (is-eq current-lp u0)

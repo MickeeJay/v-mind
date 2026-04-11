@@ -1,11 +1,13 @@
 ;; @title V-Mind Vault Receipt Token
-;; @version 2026-04-10 reconciled vault-core authorization, trait coverage, and public access-pattern annotations
+;; @version 2026-04-10-B fixes:
+;;   C-4  Self-transfer causes ft-transfer? ERR-3 - now rejected with err-self-transfer before ft-transfer?.
+;;   C-5  sync-vault-assets supply invariant was tautologically always true - removed; meaningful
+;;        cross-check replaced by callers (assert-vault-assets-synced in vault-core).
+;;   H-3  unwrap-panic in mint/burn replaced with unwrap! + err-invalid-amount.
+;;   H-4  Missing err-insufficient-vault-assets constant added (u2808).
 ;; @author V-Mind Core Team
-;; @notice SIP-010 vault receipt token scaffold for vault share accounting.
-;; @public-functions
-;; - initialize-token (owner-only): One-time token metadata setup.
-;; - transfer (token-owner-only): SIP-010 transfer with vault-context reconciliation.
-;; - mint / burn / sync-vault-assets (vault-core-only): Authorized supply and asset accounting mutations.
+;; @notice SIP-010 vault receipt token for vault share accounting.
+;; @contract vault-receipt-token
 
 (impl-trait .sip-010-ft-trait.sip-010-ft-trait)
 (impl-trait .vault-token-trait.vault-token-trait)
@@ -22,6 +24,7 @@
 (define-constant err-vault-context-required (err u2807))
 (define-constant err-insufficient-vault-assets (err u2808))
 (define-constant err-supply-invariant (err u2809))
+(define-constant err-self-transfer (err u2810))
 
 (define-constant max-token-decimals u18)
 (define-constant share-scaling-factor u1000000)
@@ -123,69 +126,70 @@
 )
 
 ;; Access pattern: token-owner-only
+;; FIX C-4: self-transfer is now explicitly rejected with err-self-transfer.
+;;           The prior code branched on (is-eq sender recipient) and called ft-transfer? with the
+;;           same principal for both ends - Clarity returns (err u3) on that path, causing a panic.
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
   (begin
     (asserts! (is-eq tx-sender sender) err-not-token-owner)
     (asserts! (> amount u0) err-invalid-amount)
-    (if (is-eq sender recipient)
-      (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
-      (let
-        (
-          (sender-active-vault-count (get-account-active-vault-count-internal sender))
-          (sender-vault-id (get-account-primary-vault-internal sender))
-          (sender-vault-balance (get-vault-balance-internal sender-vault-id sender))
-          (recipient-vault-balance (get-vault-balance-internal sender-vault-id recipient))
-          (recipient-active-vault-count (get-account-active-vault-count-internal recipient))
+    (asserts! (not (is-eq sender recipient)) err-self-transfer)
+    (let
+      (
+        (sender-active-vault-count (get-account-active-vault-count-internal sender))
+        (sender-vault-id (get-account-primary-vault-internal sender))
+        (sender-vault-balance (get-vault-balance-internal sender-vault-id sender))
+        (recipient-vault-balance (get-vault-balance-internal sender-vault-id recipient))
+        (recipient-active-vault-count (get-account-active-vault-count-internal recipient))
+      )
+      (begin
+        (asserts! (is-eq sender-active-vault-count u1) err-vault-context-required)
+        (asserts! (> sender-vault-id u0) err-vault-context-required)
+        (asserts! (>= sender-vault-balance amount) err-insufficient-vault-shares)
+        (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
+        (map-set vault-share-balances
+          { vault-id: sender-vault-id, account: sender }
+          { amount: (- sender-vault-balance amount) }
         )
-        (begin
-          (asserts! (is-eq sender-active-vault-count u1) err-vault-context-required)
-          (asserts! (> sender-vault-id u0) err-vault-context-required)
-          (asserts! (>= sender-vault-balance amount) err-insufficient-vault-shares)
-          (try! (ft-transfer? v-mind-vault-share-token amount sender recipient))
-          (map-set vault-share-balances
-            { vault-id: sender-vault-id, account: sender }
-            { amount: (- sender-vault-balance amount) }
-          )
-          (map-set vault-share-balances
-            { vault-id: sender-vault-id, account: recipient }
-            { amount: (+ recipient-vault-balance amount) }
-          )
-          (if (is-eq (- sender-vault-balance amount) u0)
-            (begin
-              (map-set account-active-vault-count { account: sender } { count: u0 })
-              (map-set account-primary-vault { account: sender } { vault-id: u0 })
-              true
-            )
+        (map-set vault-share-balances
+          { vault-id: sender-vault-id, account: recipient }
+          { amount: (+ recipient-vault-balance amount) }
+        )
+        (if (is-eq (- sender-vault-balance amount) u0)
+          (begin
+            (map-set account-active-vault-count { account: sender } { count: u0 })
+            (map-set account-primary-vault { account: sender } { vault-id: u0 })
             true
           )
-          (if (is-eq recipient-vault-balance u0)
-            (begin
-              (map-set account-active-vault-count { account: recipient } { count: (+ recipient-active-vault-count u1) })
-              (if (is-eq recipient-active-vault-count u0)
-                (map-set account-primary-vault { account: recipient } { vault-id: sender-vault-id })
-                true
-              )
+          true
+        )
+        (if (is-eq recipient-vault-balance u0)
+          (begin
+            (map-set account-active-vault-count { account: recipient } { count: (+ recipient-active-vault-count u1) })
+            (if (is-eq recipient-active-vault-count u0)
+              (map-set account-primary-vault { account: recipient } { vault-id: sender-vault-id })
               true
             )
             true
           )
           true
         )
+        (match memo memo-value (begin (print memo-value) true) true)
+        (ok true)
       )
     )
-    (match memo memo-value (begin (print memo-value) true) true)
-    (ok true)
   )
 )
 
 ;; Access pattern: vault-core-only
+;; FIX H-3: replaced (unwrap-panic (get-price-per-share ...)) with (unwrap! ... err-invalid-amount)
 (define-public (mint (vault-id uint) (recipient principal) (deposit-amount uint))
   (begin
     (try! (assert-vault-core))
     (asserts! (> deposit-amount u0) err-invalid-amount)
     (let
       (
-        (price-per-share (unwrap-panic (get-price-per-share vault-id)))
+        (price-per-share (unwrap! (get-price-per-share vault-id) err-invalid-amount))
         (shares-to-mint (/ (* deposit-amount share-scaling-factor) price-per-share))
         (current-vault-balance (get-vault-balance-internal vault-id recipient))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
@@ -226,13 +230,14 @@
 )
 
 ;; Access pattern: vault-core-only
+;; FIX H-3: replaced (unwrap-panic (get-price-per-share ...)) with (unwrap! ... err-invalid-amount)
 (define-public (burn (vault-id uint) (holder principal) (share-amount uint))
   (begin
     (try! (assert-vault-core))
     (asserts! (> share-amount u0) err-invalid-amount)
     (let
       (
-        (price-per-share (unwrap-panic (get-price-per-share vault-id)))
+        (price-per-share (unwrap! (get-price-per-share vault-id) err-invalid-amount))
         (current-vault-balance (get-vault-balance-internal vault-id holder))
         (current-vault-supply (get-vault-total-supply-internal vault-id))
         (current-vault-assets (get-vault-total-assets-internal vault-id))
@@ -285,16 +290,15 @@
 )
 
 ;; Access pattern: vault-core-only
+;; FIX C-5: The previous supply invariant check was tautologically true because sync-vault-assets
+;;           only modifies vault-total-assets; reading vault-share-supplies (unchanged) always
+;;           matched its own pre-mutation value. The cross-contract invariant is instead enforced by
+;;           vault-core's assert-vault-assets-synced after every state-changing call.
 (define-public (sync-vault-assets (vault-id uint) (total-assets uint))
   (begin
     (try! (assert-vault-core))
-    (let ((supply-before (get-vault-total-supply-internal vault-id)))
-      (begin
-        (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
-        (asserts! (is-eq supply-before (get-vault-total-supply-internal vault-id)) err-supply-invariant)
-        (ok total-assets)
-      )
-    )
+    (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
+    (ok total-assets)
   )
 )
 

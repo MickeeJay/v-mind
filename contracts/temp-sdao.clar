@@ -1,6 +1,10 @@
 ;; @title V-Mind StackingDAO Adapter
 ;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to StackingDAO stSTX contracts.
+;; @public-functions
+;; - set-mock-mode / set-stackingdao-config (owner-only): Adapter configuration.
+;; - mint-ststx / redeem-ststx / emergency-exit-stackingdao (strategy-execution-or-owner): Position management.
+;; - collect-stackingdao-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
@@ -12,13 +16,10 @@
 (define-constant err-external-call-failed (err u3603))
 (define-constant err-unauthorized-caller (err u3604))
 (define-constant err-invalid-treasury (err u3605))
-(define-constant err-not-pending-owner (err u3606))
-(define-constant err-protocol-paused (err u3607))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
-(define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool true)
 
 (define-data-var core-contract principal tx-sender)
@@ -46,13 +47,6 @@
   (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
     (ok true)
     err-unauthorized-caller
-  )
-)
-
-(define-private (assert-not-paused)
-  (if (contract-call? .access-control is-protocol-paused)
-    err-protocol-paused
-    (ok true)
   )
 )
 
@@ -104,32 +98,8 @@
   )
 )
 
-(define-public (transfer-ownership (new-owner principal))
-  (begin
-    (try! (assert-owner))
-    (var-set pending-owner (some new-owner))
-    (print { event: "stackingdao-adapter-ownership-transfer-initiated", pending-owner: new-owner })
-    (ok true)
-  )
-)
-
-(define-public (accept-ownership)
-  (match (var-get pending-owner)
-    new-owner
-      (begin
-        (asserts! (is-eq tx-sender new-owner) err-not-pending-owner)
-        (var-set owner new-owner)
-        (var-set pending-owner none)
-        (print { event: "stackingdao-adapter-ownership-accepted", new-owner: new-owner })
-        (ok true)
-      )
-    err-not-pending-owner
-  )
-)
-
 (define-public (mint-ststx (vault-id uint) (amount uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (match
@@ -185,7 +155,6 @@
       (current-principal (get stx-principal-deployed position))
     )
     (begin
-      (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-shares amount) err-insufficient-position)
@@ -236,7 +205,6 @@
 
 (define-public (collect-stackingdao-fee (amount uint) (treasury principal))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
@@ -252,7 +220,6 @@
 
 (define-public (emergency-exit-stackingdao (vault-id uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (let ((shares (get ststx-shares (get-position vault-id))))
       (if (is-eq shares u0)

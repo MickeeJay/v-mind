@@ -1,9 +1,10 @@
 ;; @title V-Mind Hermetica Adapter
-;; @version 2026-04-10-B fixes:
-;;   C-1  Protocol-pause not enforced - assert-not-paused added to all position-mutating fns.
-;;   C-7  Adapter ignored use-mock flag in external calls - now gates ALL calls via use-mock (already handled implicitly by mocked setup, but added pause).
-;;   M-1  No ownership transfer mechanism - added transfer-ownership / accept-ownership pattern.
+;; @version 2026-04-10 reconciled adapter trait wrappers and principal configuration
 ;; @notice Routes V-Mind vault interactions to Hermetica USDh staking contracts.
+;; @public-functions
+;; - set-mock-mode / set-cached-rate / set-hermetica-config (owner-only): Adapter configuration.
+;; - deposit-usdh / withdraw-usdh / emergency-exit-hermetica (strategy-execution-or-owner): Position management.
+;; - collect-hermetica-fee (strategy-execution-or-owner): Fee accounting hook restricted to protocol treasury.
 
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
@@ -15,13 +16,10 @@
 (define-constant err-external-call-failed (err u3703))
 (define-constant err-unauthorized-caller (err u3704))
 (define-constant err-invalid-treasury (err u3705))
-(define-constant err-not-pending-owner (err u3706))
-(define-constant err-protocol-paused (err u3707))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
-(define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool true)
 (define-data-var cached-usdh-per-susdh uint one-8)
 
@@ -44,13 +42,6 @@
   (if (or (is-eq contract-caller strategy-execution-contract) (is-eq tx-sender (var-get owner)))
     (ok true)
     err-unauthorized-caller
-  )
-)
-
-(define-private (assert-not-paused)
-  (if (contract-call? .access-control is-protocol-paused)
-    err-protocol-paused
-    (ok true)
   )
 )
 
@@ -95,32 +86,8 @@
   )
 )
 
-(define-public (transfer-ownership (new-owner principal))
-  (begin
-    (try! (assert-owner))
-    (var-set pending-owner (some new-owner))
-    (print { event: "hermetica-adapter-ownership-transfer-initiated", pending-owner: new-owner })
-    (ok true)
-  )
-)
-
-(define-public (accept-ownership)
-  (match (var-get pending-owner)
-    new-owner
-      (begin
-        (asserts! (is-eq tx-sender new-owner) err-not-pending-owner)
-        (var-set owner new-owner)
-        (var-set pending-owner none)
-        (print { event: "hermetica-adapter-ownership-accepted", new-owner: new-owner })
-        (ok true)
-      )
-    err-not-pending-owner
-  )
-)
-
 (define-public (deposit-usdh (vault-id uint) (amount uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (let ((before-balance (get-susdh-balance)))
@@ -181,7 +148,6 @@
       (current-principal (get usdh-principal-deployed position))
     )
     (begin
-      (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-shares amount) err-insufficient-position)
@@ -222,7 +188,6 @@
 
 (define-public (collect-hermetica-fee (amount uint) (treasury principal))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
@@ -238,7 +203,6 @@
 
 (define-public (emergency-exit-hermetica (vault-id uint))
   (begin
-    (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (let ((shares (get susdh-shares (get-position vault-id))))
       (if (is-eq shares u0)
