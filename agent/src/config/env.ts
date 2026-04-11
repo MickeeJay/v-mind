@@ -6,6 +6,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   STACKS_NETWORK: z.enum(['mainnet', 'testnet', 'devnet']),
   STACKS_API_BASE_URL: z.string().url(),
+  STACKS_NODE_RPC_URL: z.string().url().optional(),
+  STACKS_READONLY_CALLER: z.string().default('ST000000000000000000002AMW42H'),
   STACKS_PRIVATE_KEY: z.string().min(64),
   HIRO_API_KEY: z.string().optional(),
   AGENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(10000),
@@ -26,6 +28,8 @@ export interface AgentConfig {
   readonly stacks: Readonly<{
     network: RawEnv['STACKS_NETWORK'];
     apiBaseUrl: string;
+    nodeRpcUrl: string;
+    readOnlyCaller: string;
     privateKey: string;
     hiroApiKey?: string;
   }>;
@@ -56,6 +60,8 @@ export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
     stacks: Object.freeze({
       network: parsed.STACKS_NETWORK,
       apiBaseUrl: parsed.STACKS_API_BASE_URL,
+      nodeRpcUrl: parsed.STACKS_NODE_RPC_URL ?? parsed.STACKS_API_BASE_URL,
+      readOnlyCaller: parsed.STACKS_READONLY_CALLER,
       privateKey: parsed.STACKS_PRIVATE_KEY,
       hiroApiKey: parsed.HIRO_API_KEY,
     }),
