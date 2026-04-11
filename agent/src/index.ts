@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { StacksApiBlockchainClient } from './blockchain';
+import { PollingBlockSubscription, StacksApiBlockchainClient } from './blockchain';
 import { config } from './config';
 import { InFlightSubmissionTracker } from './execution';
 import { InMemoryMetricsRecorder, PollingAgentLoop } from './monitoring';
@@ -16,6 +16,22 @@ async function main(): Promise<void> {
   const submissionTracker = new InFlightSubmissionTracker();
   const metrics = new InMemoryMetricsRecorder();
   const blockchainClient = new StacksApiBlockchainClient(config, startupLogger);
+  const blockSubscription = new PollingBlockSubscription(
+    blockchainClient,
+    { pollIntervalMs: config.loop.pollIntervalMs },
+    logger
+  );
+
+  const disposeBlockListener = blockSubscription.onBlock((event) => {
+    logger.info(
+      {
+        previousHeight: event.previousHeight,
+        currentHeight: event.currentHeight,
+        blockHash: event.blockHash,
+      },
+      'Observed new Stacks block'
+    );
+  });
 
   const agentLoop = new PollingAgentLoop({
     blockchainClient,
@@ -29,6 +45,9 @@ async function main(): Promise<void> {
     logger,
     timeoutMs: config.shutdown.timeoutMs,
     onShutdown: async () => {
+      blockSubscription.stop();
+      disposeBlockListener();
+
       logger.info('Stopping agent loop before shutdown');
       await agentLoop.stop();
 
@@ -47,6 +66,7 @@ async function main(): Promise<void> {
     'Starting V-Mind autonomous agent service'
   );
 
+  blockSubscription.start();
   await agentLoop.start();
 }
 
