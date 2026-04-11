@@ -32,7 +32,7 @@ export class StrategyReader {
 
   constructor(
     private readonly client: StacksClient,
-    private readonly options: StrategyReaderOptions,
+    options: StrategyReaderOptions,
     private readonly logger: AppLogger
   ) {
     this.contractRef = resolveContractReference(options);

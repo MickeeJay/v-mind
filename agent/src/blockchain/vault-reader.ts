@@ -31,7 +31,7 @@ export class VaultReader {
 
   constructor(
     private readonly client: StacksClient,
-    private readonly options: VaultReaderOptions,
+    options: VaultReaderOptions,
     private readonly logger: AppLogger
   ) {
     this.contractRef = resolveContractReference(options);
