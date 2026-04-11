@@ -21,9 +21,22 @@ describe('buildConfig', () => {
 
     expect(config.nodeEnv).toBe('test');
     expect(config.stacks.network).toBe('testnet');
+    expect(config.stacks.nodeRpcUrl).toBe('https://api.testnet.hiro.so');
+    expect(config.stacks.readOnlyCaller).toBe('ST000000000000000000002AMW42H');
     expect(config.loop.pollIntervalMs).toBe(5000);
     expect(Object.isFrozen(config)).toBe(true);
     expect(Object.isFrozen(config.stacks)).toBe(true);
+  });
+
+  it('uses explicit node RPC and read-only caller when provided', () => {
+    const config = buildConfig({
+      ...baseEnv,
+      STACKS_NODE_RPC_URL: 'https://stacks-node.example.com',
+      STACKS_READONLY_CALLER: 'ST2J8EVYHP2NQX38NSYWW0YPPH2Q1D5NVTQJ9MS8X',
+    });
+
+    expect(config.stacks.nodeRpcUrl).toBe('https://stacks-node.example.com');
+    expect(config.stacks.readOnlyCaller).toBe('ST2J8EVYHP2NQX38NSYWW0YPPH2Q1D5NVTQJ9MS8X');
   });
 
   it('throws when required variables are missing', () => {
