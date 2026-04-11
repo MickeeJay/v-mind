@@ -9,10 +9,12 @@ import {
   type StrategyConfiguration,
 } from './schemas';
 import type { StacksClient } from './stacks-client';
+import { parseContractIdentifier, type ContractReference } from './contracts';
 
 export interface StrategyReaderOptions {
-  contractAddress: string;
+  contractAddress?: string;
   contractName?: string;
+  contractIdentifier?: string;
 }
 
 const optionalStrategySchema = z.union([strategyEntrySchema, z.null()]);
@@ -26,17 +28,21 @@ export class StrategyReaderError extends Error {
 }
 
 export class StrategyReader {
+  private readonly contractRef: ContractReference;
+
   constructor(
     private readonly client: StacksClient,
     private readonly options: StrategyReaderOptions,
     private readonly logger: AppLogger
-  ) {}
+  ) {
+    this.contractRef = resolveContractReference(options);
+  }
 
   async getStrategyConfiguration(strategyId: bigint): Promise<StrategyConfiguration> {
     try {
       const strategyEntry = await this.client.callReadOnlyFunction({
-        contractAddress: this.options.contractAddress,
-        contractName: this.options.contractName,
+        contractAddress: this.contractRef.address,
+        contractName: this.contractRef.name,
         functionName: 'get-strategy-by-id',
         functionArgs: [uintCV(strategyId)],
         responseSchema: optionalStrategySchema,
@@ -71,8 +77,8 @@ export class StrategyReader {
 
   async listStrategiesByType(strategyType: bigint): Promise<StrategyConfiguration[]> {
     const strategyIds = await this.client.callReadOnlyFunction({
-      contractAddress: this.options.contractAddress,
-      contractName: this.options.contractName,
+      contractAddress: this.contractRef.address,
+      contractName: this.contractRef.name,
       functionName: 'list-strategies-by-type',
       functionArgs: [uintCV(strategyType)],
       responseSchema: strategyIdListSchema,
@@ -84,8 +90,8 @@ export class StrategyReader {
 
   async listActiveStrategies(): Promise<StrategyConfiguration[]> {
     const total = await this.client.callReadOnlyFunction({
-      contractAddress: this.options.contractAddress,
-      contractName: this.options.contractName,
+      contractAddress: this.contractRef.address,
+      contractName: this.contractRef.name,
       functionName: 'get-total-strategies',
       functionArgs: [],
       responseSchema: clarityUintSchema,
@@ -105,4 +111,19 @@ export class StrategyReader {
 
     return active;
   }
+}
+
+function resolveContractReference(options: StrategyReaderOptions): ContractReference {
+  if (options.contractIdentifier) {
+    return parseContractIdentifier(options.contractIdentifier);
+  }
+
+  if (!options.contractAddress || !options.contractName) {
+    throw new Error('StrategyReader requires either contractIdentifier or both contractAddress and contractName');
+  }
+
+  return {
+    address: options.contractAddress,
+    name: options.contractName,
+  };
 }
