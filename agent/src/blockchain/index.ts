@@ -1,4 +1,5 @@
 export * from './block-subscription';
+export * from './contracts';
 export * from './retry';
 export * from './schemas';
 export * from './stacks-client';
