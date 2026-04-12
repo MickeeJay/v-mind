@@ -16,6 +16,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   poweredByHeader: false,
+  compress: true,
+  productionBrowserSourceMaps: false,
 
   // Temporary deploy guard: repository ESLint resolver config currently fails in CI build.
   eslint: {
@@ -24,6 +26,10 @@ const nextConfig = {
 
   experimental: {
     typedRoutes: true,
+  },
+
+  images: {
+    formats: ['image/avif', 'image/webp'],
   },
 
   // Environment variables that should be available in the browser
