@@ -15,6 +15,12 @@ const envSchema = z.object({
   RPC_RETRY_ATTEMPTS: z.coerce.number().int().positive().default(4),
   RPC_RETRY_MIN_TIMEOUT_MS: z.coerce.number().int().positive().default(250),
   RPC_RETRY_MAX_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  TX_FEE_MULTIPLIER: z.coerce.number().positive().default(1.2),
+  TX_MIN_FEE_MICROSTX: z.coerce.number().int().nonnegative().default(200),
+  TX_CONFIRMATION_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(10000),
+  TX_REQUIRED_CONFIRMATIONS: z.coerce.number().int().positive().default(1),
+  TX_MAX_CONFIRMATION_POLLS: z.coerce.number().int().positive().default(60),
+  TX_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_SHUTDOWN_TIMEOUT_MS),
   HEALTHCHECK_PORT: z.coerce.number().int().positive().optional(),
 });
@@ -41,6 +47,14 @@ export interface AgentConfig {
     attempts: number;
     minTimeoutMs: number;
     maxTimeoutMs: number;
+  }>;
+  readonly execution: Readonly<{
+    feeMultiplier: number;
+    minFeeMicroStx: bigint;
+    confirmationPollIntervalMs: number;
+    requiredConfirmations: number;
+    maxConfirmationPolls: number;
+    maxRetries: number;
   }>;
   readonly shutdown: Readonly<{
     timeoutMs: number;
@@ -73,6 +87,14 @@ export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
       attempts: parsed.RPC_RETRY_ATTEMPTS,
       minTimeoutMs: parsed.RPC_RETRY_MIN_TIMEOUT_MS,
       maxTimeoutMs: parsed.RPC_RETRY_MAX_TIMEOUT_MS,
+    }),
+    execution: Object.freeze({
+      feeMultiplier: parsed.TX_FEE_MULTIPLIER,
+      minFeeMicroStx: BigInt(parsed.TX_MIN_FEE_MICROSTX),
+      confirmationPollIntervalMs: parsed.TX_CONFIRMATION_POLL_INTERVAL_MS,
+      requiredConfirmations: parsed.TX_REQUIRED_CONFIRMATIONS,
+      maxConfirmationPolls: parsed.TX_MAX_CONFIRMATION_POLLS,
+      maxRetries: parsed.TX_MAX_RETRIES,
     }),
     shutdown: Object.freeze({
       timeoutMs: parsed.SHUTDOWN_TIMEOUT_MS,
