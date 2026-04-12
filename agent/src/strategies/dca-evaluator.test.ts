@@ -79,6 +79,19 @@ describe('DCAEvaluator', () => {
     expect(result.reason).toContain('Insufficient uninvested balance');
   });
 
+  it('returns execute when uninvested balance equals tranche amount', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        vault: {
+          ...createInput().vault,
+          uninvestedBalance: strategy.trancheAmount,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('execute');
+  });
+
   it('returns execute when there is no prior execution history', () => {
     const result = evaluator.evaluate(
       createInput({
