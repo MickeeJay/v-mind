@@ -218,4 +218,55 @@ describe('ExecutionPipeline integration', () => {
     expect(result.attempts).toBe(2);
     expect(nodeClient.broadcastSignedTransaction).toHaveBeenCalledTimes(2);
   });
+
+  it('rejects invalid retry configuration before transaction submission', async () => {
+    const nodeClient: TransactionNodeClient = {
+      getAddressNonces: vi.fn(),
+      estimateContractCallFee: vi.fn(),
+      broadcastSignedTransaction: vi.fn(),
+      getTransactionStatus: vi.fn(),
+      getCurrentBlockHeight: vi.fn(),
+    };
+
+    const logger = new TestLogger();
+    const store = new InMemoryPendingTransactionStore();
+    const pipeline = new ExecutionPipeline({
+      transactionBuilder: new TransactionBuilder(new StacksTestnet(), logger, senderKey),
+      feeEstimator: new FeeEstimator({
+        nodeClient,
+        feeMultiplier: 1.1,
+        logger,
+      }),
+      nonceManager: new NonceManager(nodeClient, logger),
+      transactionSigner: new TransactionSigner(new StacksTestnet(), logger, senderKey),
+      transactionBroadcaster: new TransactionBroadcaster(nodeClient, store, logger),
+      confirmationPoller: new ConfirmationPoller(
+        nodeClient,
+        store,
+        {
+          requiredConfirmations: 1,
+          pollIntervalMs: 0,
+          maxPollAttempts: 1,
+        },
+        logger
+      ),
+      logger,
+    });
+
+    await expect(
+      pipeline.execute(
+        {
+          vaultId: '9',
+          strategyId: '10',
+          senderAddress,
+          contractPrincipal: 'ST000000000000000000002AMW42H.vault-core',
+          functionName: 'execute-strategy',
+          functionArgs: [uintCV(4n)],
+          evaluationReason: 'invalid retries',
+          maxRetries: -1,
+        },
+        { decision: 'execute' }
+      )
+    ).rejects.toThrow('maxRetries must be a non-negative integer');
+  });
 });

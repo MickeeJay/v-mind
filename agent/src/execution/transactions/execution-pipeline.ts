@@ -30,6 +30,9 @@ export class ExecutionPipeline {
     }
 
     const maxRetries = request.maxRetries ?? 2;
+    if (!Number.isInteger(maxRetries) || maxRetries < 0) {
+      throw new Error('maxRetries must be a non-negative integer');
+    }
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt += 1) {
       try {
