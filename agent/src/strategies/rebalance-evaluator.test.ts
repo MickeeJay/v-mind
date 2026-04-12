@@ -66,6 +66,19 @@ describe('RebalanceEvaluator', () => {
     expect(result.reason).toContain('within tolerance');
   });
 
+  it('returns wait when allocation drift is exactly at tolerance boundary', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        strategy: {
+          ...strategy,
+          driftToleranceBps: 2_000,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('wait');
+  });
+
   it('returns wait when minimum rebalance interval has not elapsed', () => {
     const result = evaluator.evaluate(
       createInput({
