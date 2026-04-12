@@ -109,6 +109,20 @@ describe('RebalanceEvaluator', () => {
     expect(result.reason).toContain('gas-to-benefit ratio');
   });
 
+  it('returns execute when gas-to-benefit ratio is exactly at the max limit', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        market: {
+          ...createInput().market,
+          estimatedGasCost: 25,
+          estimatedRebalanceBenefit: 100,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('execute');
+  });
+
   it('returns error when current weights are missing', () => {
     const result = evaluator.evaluate(
       createInput({
