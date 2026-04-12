@@ -248,6 +248,11 @@ npm run test:contracts
 
 ## 🔧 Configuration
 
+### Additional Documentation
+
+- `docs/environment-setup.md` - Local environment and developer setup
+- `docs/strategy-evaluator-extension-patterns.md` - Agent strategy evaluator architecture and extension guidance
+
 ### ESLint
 
 Shared ESLint configuration enforces:
