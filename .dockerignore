@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+.git
+.gitignore
+.vscode
+coverage
+**/.turbo
+**/.next
+web/.next
+contracts/.clarinet
+npm-debug.log*
+*.tsbuildinfo
