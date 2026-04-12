@@ -1,7 +1,7 @@
 "use client";
 
-import Link from 'next/link';
 import { Menu, Plug, Shield, Wallet } from 'lucide-react';
+import Link from 'next/link';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -63,11 +63,9 @@ export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
             <>
               <NetworkBadge network={wallet.network} />
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="border-border/70 bg-card/70">
-                    <Wallet className="mr-2 h-4 w-4 text-bitcoin-400" />
-                    <span className="font-mono text-xs sm:text-sm">{shortAddress}</span>
-                  </Button>
+                <DropdownMenuTrigger render={<Button variant="outline" className="border-border/70 bg-card/70" />}>
+                  <Wallet className="mr-2 h-4 w-4 text-bitcoin-400" />
+                  <span className="font-mono text-xs sm:text-sm">{shortAddress}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="text-xs text-muted-foreground">{wallet.provider.toUpperCase()} Wallet</DropdownMenuLabel>
@@ -83,8 +81,8 @@ export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
             </>
           ) : (
             <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400">Connect Wallet</Button>
+              <DialogTrigger render={<Button className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400" />}>
+                Connect Wallet
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -95,11 +93,25 @@ export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
                 </DialogHeader>
 
                 <div className="grid gap-3 pt-2">
-                  <Button disabled={isConnecting} onClick={() => connect('leather')} className="justify-start gap-2" variant="secondary">
+                  <Button
+                    disabled={isConnecting}
+                    onClick={() => {
+                      void connect('leather');
+                    }}
+                    className="justify-start gap-2"
+                    variant="secondary"
+                  >
                     <Shield className="h-4 w-4 text-bitcoin-400" />
                     Connect Leather
                   </Button>
-                  <Button disabled={isConnecting} onClick={() => connect('xverse')} className="justify-start gap-2" variant="secondary">
+                  <Button
+                    disabled={isConnecting}
+                    onClick={() => {
+                      void connect('xverse');
+                    }}
+                    className="justify-start gap-2"
+                    variant="secondary"
+                  >
                     <Shield className="h-4 w-4 text-bitcoin-400" />
                     Connect Xverse
                   </Button>
