@@ -84,6 +84,19 @@ describe('YieldOptimiserEvaluator', () => {
     expect(result.reason).toContain('at or above target');
   });
 
+  it('returns wait when current APY is exactly at target', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        vault: {
+          ...createInput().vault,
+          currentApyBps: strategy.targetApyBps,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('wait');
+  });
+
   it('returns wait when any required protocol is unhealthy', () => {
     const result = evaluator.evaluate(
       createInput({
