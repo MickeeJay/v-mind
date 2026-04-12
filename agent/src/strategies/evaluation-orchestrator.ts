@@ -31,6 +31,14 @@ export interface ReadyVaultExecution {
   evaluation: StrategyEvaluationResult;
 }
 
+export interface VaultEvaluationOutcome {
+  vaultId: bigint;
+  strategyId: bigint;
+  strategyType: StrategyType;
+  evaluation: StrategyEvaluationResult;
+  readyForExecution: boolean;
+}
+
 export interface StrategyEvaluatorFactory {
   getEvaluator(strategyType: StrategyType): StrategyEvaluator;
 }
@@ -67,12 +75,34 @@ export class EvaluationOrchestrator {
   }
 
   async evaluateActiveVaults(): Promise<ReadyVaultExecution[]> {
+    const outcomes = await this.evaluateVaultOutcomes();
+    return outcomes
+      .filter((outcome) => outcome.readyForExecution)
+      .map((outcome) => ({
+        vaultId: outcome.vaultId,
+        strategyId: outcome.strategyId,
+        strategyType: outcome.strategyType,
+        evaluation: outcome.evaluation,
+      }));
+  }
+
+  async evaluateVaultOutcomes(): Promise<VaultEvaluationOutcome[]> {
     const activeVaults = await this.options.vaultRegistry.listActiveVaults();
-    const readyVaults: ReadyVaultExecution[] = [];
+    const outcomes: VaultEvaluationOutcome[] = [];
 
     for (const vault of activeVaults) {
       const strategy = await this.options.strategyRepository.getStrategyConfiguration(vault.strategyId);
       if (!strategy.enabled) {
+        outcomes.push({
+          vaultId: vault.vaultId,
+          strategyId: strategy.strategyId,
+          strategyType: strategy.strategyType,
+          evaluation: {
+            decision: 'wait',
+            reason: 'Strategy is disabled',
+          },
+          readyForExecution: false,
+        });
         continue;
       }
 
@@ -91,16 +121,15 @@ export class EvaluationOrchestrator {
         evaluation = toError('Strategy evaluator threw an exception', [reason]);
       }
 
-      if (evaluation.decision === 'execute') {
-        readyVaults.push({
-          vaultId: vault.vaultId,
-          strategyId: strategy.strategyId,
-          strategyType: strategy.strategyType,
-          evaluation,
-        });
-      }
+      outcomes.push({
+        vaultId: vault.vaultId,
+        strategyId: strategy.strategyId,
+        strategyType: strategy.strategyType,
+        evaluation,
+        readyForExecution: evaluation.decision === 'execute',
+      });
     }
 
-    return readyVaults;
+    return outcomes;
   }
 }
