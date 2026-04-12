@@ -21,8 +21,27 @@ const envSchema = z.object({
   TX_REQUIRED_CONFIRMATIONS: z.coerce.number().int().positive().default(1),
   TX_MAX_CONFIRMATION_POLLS: z.coerce.number().int().positive().default(60),
   TX_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
+  EXECUTION_SENDER_ADDRESS: z.string().min(1).default('ST000000000000000000002AMW42H'),
+  EXECUTION_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.strategy-execution'),
+  EXECUTION_FUNCTION_NAME: z.string().min(1).default('execute-strategy'),
+  EXECUTION_DEFAULT_PROTOCOL_ID: z.coerce.number().int().positive().default(1),
+  EXECUTION_DEFAULT_ASSET_AMOUNT: z.coerce.number().int().positive().default(1),
+  VAULT_CORE_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.vault-core'),
+  STRATEGY_REGISTRY_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.strategy-registry'),
+  TRAIT_ZEST_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.zest-protocol-adapter'),
+  TRAIT_ALEX_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.alex-liquidity-adapter'),
+  TRAIT_STACKINGDAO_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.stackingdao-adapter'),
+  TRAIT_HERMETICA_CONTRACT_PRINCIPAL: z.string().min(3).default('ST000000000000000000002AMW42H.hermetica-adapter'),
+  AGENT_MAX_EXECUTIONS_PER_BLOCK: z.coerce.number().int().positive().default(3),
+  AGENT_MAX_CONCURRENT_EXECUTIONS: z.coerce.number().int().positive().default(2),
+  ALERT_STALE_BLOCK_MS: z.coerce.number().int().positive().default(300000),
+  ALERT_PENDING_TX_BLOCK_THRESHOLD: z.coerce.number().int().positive().default(20),
+  ALERT_CONSECUTIVE_FAILURE_THRESHOLD: z.coerce.number().int().positive().default(3),
+  HEALTHCHECK_HOST: z.string().min(1).default('0.0.0.0'),
+  HEALTHCHECK_PORT: z.coerce.number().int().positive().default(8080),
+  METRICS_HOST: z.string().min(1).default('0.0.0.0'),
+  METRICS_PORT: z.coerce.number().int().positive().default(9090),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_SHUTDOWN_TIMEOUT_MS),
-  HEALTHCHECK_PORT: z.coerce.number().int().positive().optional(),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -55,12 +74,35 @@ export interface AgentConfig {
     requiredConfirmations: number;
     maxConfirmationPolls: number;
     maxRetries: number;
+    senderAddress: string;
+    contractPrincipal: string;
+    functionName: string;
+    defaultProtocolId: number;
+    defaultAssetAmount: bigint;
+  }>;
+  readonly contracts: Readonly<{
+    vaultCoreContractPrincipal: string;
+    strategyRegistryContractPrincipal: string;
+    traitZestContractPrincipal: string;
+    traitAlexContractPrincipal: string;
+    traitStackingDaoContractPrincipal: string;
+    traitHermeticaContractPrincipal: string;
+  }>;
+  readonly scheduling: Readonly<{
+    maxExecutionsPerBlock: number;
+    maxConcurrentExecutions: number;
   }>;
   readonly shutdown: Readonly<{
     timeoutMs: number;
   }>;
   readonly monitoring: Readonly<{
-    healthcheckPort?: number;
+    healthcheckHost: string;
+    healthcheckPort: number;
+    metricsHost: string;
+    metricsPort: number;
+    staleBlockThresholdMs: number;
+    pendingTxBlockThreshold: number;
+    consecutiveFailureThreshold: number;
   }>;
 }
 
@@ -95,12 +137,35 @@ export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
       requiredConfirmations: parsed.TX_REQUIRED_CONFIRMATIONS,
       maxConfirmationPolls: parsed.TX_MAX_CONFIRMATION_POLLS,
       maxRetries: parsed.TX_MAX_RETRIES,
+      senderAddress: parsed.EXECUTION_SENDER_ADDRESS,
+      contractPrincipal: parsed.EXECUTION_CONTRACT_PRINCIPAL,
+      functionName: parsed.EXECUTION_FUNCTION_NAME,
+      defaultProtocolId: parsed.EXECUTION_DEFAULT_PROTOCOL_ID,
+      defaultAssetAmount: BigInt(parsed.EXECUTION_DEFAULT_ASSET_AMOUNT),
+    }),
+    contracts: Object.freeze({
+      vaultCoreContractPrincipal: parsed.VAULT_CORE_CONTRACT_PRINCIPAL,
+      strategyRegistryContractPrincipal: parsed.STRATEGY_REGISTRY_CONTRACT_PRINCIPAL,
+      traitZestContractPrincipal: parsed.TRAIT_ZEST_CONTRACT_PRINCIPAL,
+      traitAlexContractPrincipal: parsed.TRAIT_ALEX_CONTRACT_PRINCIPAL,
+      traitStackingDaoContractPrincipal: parsed.TRAIT_STACKINGDAO_CONTRACT_PRINCIPAL,
+      traitHermeticaContractPrincipal: parsed.TRAIT_HERMETICA_CONTRACT_PRINCIPAL,
+    }),
+    scheduling: Object.freeze({
+      maxExecutionsPerBlock: parsed.AGENT_MAX_EXECUTIONS_PER_BLOCK,
+      maxConcurrentExecutions: parsed.AGENT_MAX_CONCURRENT_EXECUTIONS,
     }),
     shutdown: Object.freeze({
       timeoutMs: parsed.SHUTDOWN_TIMEOUT_MS,
     }),
     monitoring: Object.freeze({
+      healthcheckHost: parsed.HEALTHCHECK_HOST,
       healthcheckPort: parsed.HEALTHCHECK_PORT,
+      metricsHost: parsed.METRICS_HOST,
+      metricsPort: parsed.METRICS_PORT,
+      staleBlockThresholdMs: parsed.ALERT_STALE_BLOCK_MS,
+      pendingTxBlockThreshold: parsed.ALERT_PENDING_TX_BLOCK_THRESHOLD,
+      consecutiveFailureThreshold: parsed.ALERT_CONSECUTIVE_FAILURE_THRESHOLD,
     }),
   });
 }
