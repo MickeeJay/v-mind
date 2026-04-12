@@ -1,97 +1,195 @@
-export default function Home() {
-  const year = new Date().getFullYear();
+import { ArrowUpRight, BadgeCheck, ShieldCheck, TrendingUp, TriangleAlert } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const positions = [
+  {
+    vault: 'VM-ALEX-01',
+    strategy: 'Yield Rotation',
+    tvl: '$124,220',
+    apy: '16.4%',
+    risk: 'Moderate',
+  },
+  {
+    vault: 'VM-HERM-02',
+    strategy: 'Delta Neutral',
+    tvl: '$89,410',
+    apy: '11.2%',
+    risk: 'Low',
+  },
+  {
+    vault: 'VM-SDAO-03',
+    strategy: 'BTC Yield Stack',
+    tvl: '$208,005',
+    apy: '19.8%',
+    risk: 'Elevated',
+  },
+];
+
+export default function Home(): JSX.Element {
   return (
-    <>
-      <div className="vm-grid-overlay" aria-hidden="true" />
+    <div className="space-y-6">
+      <section className="grid gap-4 rounded-2xl border border-border/70 bg-gradient-to-br from-card/80 via-card/60 to-bitcoin-500/10 p-5 sm:p-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-bitcoin-300">Built on Stacks</p>
+        <h1 className="max-w-3xl font-[var(--font-display)] text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          Automated Vault Strategies with On-Chain Precision
+        </h1>
+        <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
+          V-Mind delivers trust-first strategy automation for Bitcoin-native DeFi participants. Monitor vault health,
+          manage risk boundaries, and execute actions with transparent protocol controls.
+        </p>
 
-      <main className="vm-wrap">
-        <header className="vm-header">
-          <div className="vm-nav vm-fade vm-d1">
-            <div className="vm-brand" aria-label="V-Mind brand">
-              <span className="vm-brand-mark" aria-hidden="true" />
-              <span>V-Mind</span>
-            </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400">
+            Open Vault Console
+            <ArrowUpRight className="ml-2 h-4 w-4" />
+          </Button>
+          <Button variant="outline">Review Risk Controls</Button>
+        </div>
+      </section>
 
-            <nav className="vm-nav-links" aria-label="Primary">
-              <a href="#modules">Modules</a>
-              <a href="#roadmap">Roadmap</a>
-              <a href="https://github.com/MickeeJay/v-mind" target="_blank" rel="noreferrer">
-                GitHub
-              </a>
-            </nav>
-          </div>
-        </header>
+      <section className="grid gap-4 md:grid-cols-3">
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader className="pb-3">
+            <CardDescription>Total Value Managed</CardDescription>
+            <CardTitle className="text-2xl">$421,635</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-2 text-xs text-success">
+            <TrendingUp className="h-4 w-4" />
+            +8.4% from last epoch
+          </CardContent>
+        </Card>
 
-        <section className="vm-hero">
-          <p className="vm-eyebrow vm-fade vm-d1">Frontend Skeleton Ready</p>
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader className="pb-3">
+            <CardDescription>Active Guardrails</CardDescription>
+            <CardTitle className="text-2xl">12</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-2 text-xs text-bitcoin-300">
+            <ShieldCheck className="h-4 w-4" />
+            Circuit breakers online
+          </CardContent>
+        </Card>
 
-          <h1 className="vm-title vm-fade vm-d2">Build DeFi Strategy UX on a Solid App Shell</h1>
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader className="pb-3">
+            <CardDescription>Execution Alerts</CardDescription>
+            <CardTitle className="text-2xl">2</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-2 text-xs text-warning">
+            <TriangleAlert className="h-4 w-4" />
+            Rebalance required
+          </CardContent>
+        </Card>
+      </section>
 
-          <p className="vm-lead vm-fade vm-d3">
-            This is the starting frontend skeleton for V-Mind. It is intentionally structured for staged feature
-            growth: wallet onboarding, vault lifecycle flows, strategy browsing, and protocol analytics.
-          </p>
+      <Tabs defaultValue="positions" className="space-y-4">
+        <TabsList className="bg-muted/70">
+          <TabsTrigger value="positions">Positions</TabsTrigger>
+          <TabsTrigger value="allocator">Allocator</TabsTrigger>
+          <TabsTrigger value="health">Health</TabsTrigger>
+        </TabsList>
 
-          <div className="vm-cta-row vm-fade vm-d4">
-            <a className="vm-btn vm-btn-primary" href="#modules">
-              Continue Development
-            </a>
-            <a className="vm-btn vm-btn-secondary" href="#roadmap">
-              View Build Stages
-            </a>
-          </div>
+        <TabsContent value="positions">
+          <Card className="border-border/70 bg-card/70">
+            <CardHeader>
+              <CardTitle className="text-lg">Vault Positions</CardTitle>
+              <CardDescription>Current strategy allocations and projected performance.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vault</TableHead>
+                    <TableHead>Strategy</TableHead>
+                    <TableHead>TVL</TableHead>
+                    <TableHead>Projected APY</TableHead>
+                    <TableHead>Risk Band</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {positions.map((position) => (
+                    <TableRow key={position.vault}>
+                      <TableCell className="font-medium">{position.vault}</TableCell>
+                      <TableCell>{position.strategy}</TableCell>
+                      <TableCell>{position.tvl}</TableCell>
+                      <TableCell>{position.apy}</TableCell>
+                      <TableCell>{position.risk}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <div className="vm-stats vm-fade vm-d4" aria-label="Frontend focus pillars">
-            <article className="vm-stat-card">
-              <strong>App Shell</strong>
-              <span>Navigation and layout scaffolded for future route expansion.</span>
-            </article>
-            <article className="vm-stat-card">
-              <strong>Composable UI</strong>
-              <span>Sectioned structure ready for feature modules and shared components.</span>
-            </article>
-            <article className="vm-stat-card">
-              <strong>Deployment Ready</strong>
-              <span>Runs from the web app root and deploys cleanly on Vercel.</span>
-            </article>
-          </div>
-        </section>
+        <TabsContent value="allocator">
+          <Card className="border-border/70 bg-card/70">
+            <CardHeader>
+              <CardTitle className="text-lg">Capital Allocator</CardTitle>
+              <CardDescription>Set target capital and strategy profile for the next epoch.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="capital">Target Capital (USD)</Label>
+                <Input id="capital" defaultValue="50000" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile">Risk Profile</Label>
+                <Select defaultValue="moderate">
+                  <SelectTrigger id="profile">
+                    <SelectValue placeholder="Choose profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="conservative">Conservative</SelectItem>
+                    <SelectItem value="moderate">Moderate</SelectItem>
+                    <SelectItem value="aggressive">Aggressive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <section id="modules" className="vm-section">
-          <h2 className="vm-section-title">Frontend Modules to Implement</h2>
-          <div className="vm-card-grid">
-            <article className="vm-card vm-fade vm-d1">
-              <h3>Wallet and Session</h3>
-              <p>Connect wallet, resolve account context, and provide guarded entry points for actions.</p>
-            </article>
+              <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-success">
+                <BadgeCheck className="h-4 w-4" />
+                Parameters validated. Strategy constraints remain within protocol policy.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <article className="vm-card vm-fade vm-d2">
-              <h3>Vault Dashboard</h3>
-              <p>List vaults, show state, balances, and execution status with owner-scoped interactions.</p>
-            </article>
-
-            <article className="vm-card vm-fade vm-d3">
-              <h3>Strategy Explorer</h3>
-              <p>Browse strategy registry metadata by type, risk tier, and protocol target.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="roadmap" className="vm-section">
-          <h2 className="vm-section-title">Suggested Build Stages</h2>
-          <ol className="vm-roadmap">
-            <li>Wire wallet provider and account-aware app state.</li>
-            <li>Add read-only protocol and strategy registry views.</li>
-            <li>Implement vault create/deposit/withdraw UI flows.</li>
-            <li>Add admin and emergency controls with role-aware UX.</li>
-          </ol>
-        </section>
-
-        <footer className="vm-footer">
-          <span>{year}</span> V-Mind frontend skeleton. Continue from here as the main web app.
-        </footer>
-      </main>
-    </>
+        <TabsContent value="health">
+          <Card className="border-border/70 bg-card/70">
+            <CardHeader>
+              <CardTitle className="text-lg">Execution Health Feed</CardTitle>
+              <CardDescription>Recent telemetry from strategy execution workers.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

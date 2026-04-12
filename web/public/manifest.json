@@ -1,0 +1,20 @@
+{
+  "name": "V-Mind DeFi",
+  "short_name": "V-Mind",
+  "description": "Bitcoin-native DeFi strategy vault interface on Stacks.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#f7931a",
+  "orientation": "portrait",
+  "lang": "en-US",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
