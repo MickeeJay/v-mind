@@ -148,6 +148,15 @@ function createOrchestratorSetup(options?: {
 }
 
 describe('EvaluationOrchestrator', () => {
+  it('returns an empty list when no active vaults are returned by registry', async () => {
+    const setup = createOrchestratorSetup();
+    vi.mocked(setup.vaultRegistry.listActiveVaults).mockResolvedValueOnce([]);
+
+    const ready = await setup.orchestrator.evaluateActiveVaults();
+
+    expect(ready).toEqual([]);
+  });
+
   it('returns only vaults with execute decisions', async () => {
     const setup = createOrchestratorSetup({
       perTypeResult: {
