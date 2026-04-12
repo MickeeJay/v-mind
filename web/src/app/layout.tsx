@@ -1,10 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Archivo_Black, Space_Grotesk } from 'next/font/google';
 import { siteMetadata } from '@/config/site-metadata';
-
-const space = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' });
-const archivoBlack = Archivo_Black({ subsets: ['latin'], weight: '400', variable: '--font-archivo-black' });
+import { fontDisplay, fontMono, fontSans } from '@/config/fonts';
 
 export const metadata: Metadata = siteMetadata;
 
@@ -15,7 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${space.variable} ${archivoBlack.variable}`}>{children}</body>
+      <body className={`${fontSans.variable} ${fontMono.variable} ${fontDisplay.variable} font-sans`}>{children}</body>
     </html>
   );
 }
