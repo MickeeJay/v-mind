@@ -57,6 +57,19 @@ describe('YieldOptimiserEvaluator', () => {
     expect(result.reason).toContain('Cooldown active');
   });
 
+  it('returns execute when cooldown has exactly elapsed', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        vault: {
+          ...createInput().vault,
+          lastExecutionBlock: 180,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('execute');
+  });
+
   it('returns wait when current APY is not below target', () => {
     const result = evaluator.evaluate(
       createInput({
