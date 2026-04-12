@@ -52,6 +52,19 @@ describe('DCAEvaluator', () => {
     expect(result.reason).toContain('DCA interval active');
   });
 
+  it('returns execute when interval has exactly elapsed', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        vault: {
+          ...createInput().vault,
+          lastExecutionBlock: 88,
+        },
+      })
+    );
+
+    expect(result.decision).toBe('execute');
+  });
+
   it('returns wait when uninvested balance is below tranche amount', () => {
     const result = evaluator.evaluate(
       createInput({
