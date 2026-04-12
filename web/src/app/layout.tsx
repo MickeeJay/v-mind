@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { siteMetadata } from '@/config/site-metadata';
 import { fontDisplay, fontMono, fontSans } from '@/config/fonts';
+import { AppShell } from '@/components/layout/app-shell';
 import { AppProviders } from '@/components/providers/app-providers';
 
 export const metadata: Metadata = siteMetadata;
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fontSans.variable} ${fontMono.variable} ${fontDisplay.variable} font-sans`}>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <AppShell>{children}</AppShell>
+        </AppProviders>
       </body>
     </html>
   );
