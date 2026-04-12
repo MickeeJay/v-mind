@@ -60,6 +60,7 @@ export class ExecutionPipeline {
           nonce,
           feeMicroStx: feeEstimate.feeMicroStx,
           retryAttempt: attempt,
+          submittedAtBlockHeight: request.observedBlockHeight,
         });
 
         this.dependencies.nonceManager.markPending(pendingRecord.txId, nonce);

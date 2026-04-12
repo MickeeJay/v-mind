@@ -52,6 +52,7 @@ export class TransactionBroadcaster {
       nonce: request.nonce,
       feeMicroStx: request.feeMicroStx,
       retryAttempt: request.retryAttempt,
+      submittedAtBlockHeight: request.submittedAtBlockHeight,
       submittedAt: now,
       updatedAt: now,
       state: 'pending',
