@@ -185,6 +185,7 @@ describe('EvaluationOrchestrator', () => {
 
     expect(setup.getEvaluator).toHaveBeenCalledTimes(3);
     expect(setup.getEvaluator).not.toHaveBeenCalledWith('dca');
+    expect(setup.marketContextProvider.getMarketContext).toHaveBeenCalledTimes(3);
   });
 
   it('continues processing when an evaluator throws and excludes that vault', async () => {
