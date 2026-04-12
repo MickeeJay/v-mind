@@ -170,6 +170,8 @@ describe('EvaluationOrchestrator', () => {
 
     expect(ready).toHaveLength(2);
     expect(ready.map((entry) => entry.vaultId)).toEqual([21n, 24n]);
+    expect(ready.map((entry) => entry.strategyType)).toEqual(['yield-optimiser', 'exit']);
+    expect(ready.map((entry) => entry.strategyId)).toEqual([1n, 4n]);
   });
 
   it('skips disabled strategies before evaluator invocation', async () => {
