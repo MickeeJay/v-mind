@@ -33,6 +33,10 @@ describe('buildConfig', () => {
     expect(config.execution.feeMultiplier).toBe(1.5);
     expect(config.execution.minFeeMicroStx).toBe(450n);
     expect(config.execution.requiredConfirmations).toBe(2);
+    expect(config.execution.contractPrincipal).toBe('ST000000000000000000002AMW42H.strategy-execution');
+    expect(config.scheduling.maxExecutionsPerBlock).toBe(3);
+    expect(config.monitoring.healthcheckPort).toBe(8080);
+    expect(config.monitoring.metricsPort).toBe(9090);
     expect(Object.isFrozen(config)).toBe(true);
     expect(Object.isFrozen(config.stacks)).toBe(true);
   });
@@ -62,5 +66,32 @@ describe('buildConfig', () => {
     };
 
     expect(() => buildConfig(invalidEnv)).toThrow();
+  });
+
+  it('supports overriding scheduling and monitoring runtime values', () => {
+    const config = buildConfig({
+      ...baseEnv,
+      AGENT_MAX_EXECUTIONS_PER_BLOCK: '5',
+      AGENT_MAX_CONCURRENT_EXECUTIONS: '4',
+      ALERT_STALE_BLOCK_MS: '600000',
+      ALERT_PENDING_TX_BLOCK_THRESHOLD: '25',
+      ALERT_CONSECUTIVE_FAILURE_THRESHOLD: '4',
+      HEALTHCHECK_PORT: '18080',
+      METRICS_PORT: '19090',
+      EXECUTION_FUNCTION_NAME: 'execute',
+      EXECUTION_DEFAULT_PROTOCOL_ID: '2',
+      EXECUTION_DEFAULT_ASSET_AMOUNT: '500',
+    });
+
+    expect(config.scheduling.maxExecutionsPerBlock).toBe(5);
+    expect(config.scheduling.maxConcurrentExecutions).toBe(4);
+    expect(config.monitoring.staleBlockThresholdMs).toBe(600000);
+    expect(config.monitoring.pendingTxBlockThreshold).toBe(25);
+    expect(config.monitoring.consecutiveFailureThreshold).toBe(4);
+    expect(config.monitoring.healthcheckPort).toBe(18080);
+    expect(config.monitoring.metricsPort).toBe(19090);
+    expect(config.execution.functionName).toBe('execute');
+    expect(config.execution.defaultProtocolId).toBe(2);
+    expect(config.execution.defaultAssetAmount).toBe(500n);
   });
 });
