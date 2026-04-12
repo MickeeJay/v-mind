@@ -39,7 +39,7 @@ export const siteMetadata: Metadata = {
   },
   icons: {
     icon: '/favicon.svg',
-    apple: '/apple-touch-icon.png',
+    apple: '/favicon.svg',
   },
   manifest: '/manifest.json',
   other: {
