@@ -68,6 +68,27 @@ describe('ExitEvaluator', () => {
     expect(result.reason).toContain('Exit signal triggered');
   });
 
+  it('returns execute on manual signal even when last execution is current block', () => {
+    const result = evaluator.evaluate(
+      createInput({
+        vault: {
+          ...createInput().vault,
+          currentBlock: 1_000,
+          lastExecutionBlock: 1_000,
+        },
+        market: {
+          protocolHealth: {},
+          assetPrices: {
+            stx: 1.5,
+          },
+          triggeredExitSignals: ['kill-switch'],
+        },
+      })
+    );
+
+    expect(result.decision).toBe('execute');
+  });
+
   it('returns wait when no exit trigger is active', () => {
     const result = evaluator.evaluate(
       createInput({
