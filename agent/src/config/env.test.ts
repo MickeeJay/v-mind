@@ -12,6 +12,12 @@ const baseEnv: NodeJS.ProcessEnv = {
   RPC_RETRY_ATTEMPTS: '4',
   RPC_RETRY_MIN_TIMEOUT_MS: '300',
   RPC_RETRY_MAX_TIMEOUT_MS: '6000',
+  TX_FEE_MULTIPLIER: '1.5',
+  TX_MIN_FEE_MICROSTX: '450',
+  TX_CONFIRMATION_POLL_INTERVAL_MS: '4000',
+  TX_REQUIRED_CONFIRMATIONS: '2',
+  TX_MAX_CONFIRMATION_POLLS: '50',
+  TX_MAX_RETRIES: '3',
   SHUTDOWN_TIMEOUT_MS: '10000',
 };
 
@@ -24,6 +30,9 @@ describe('buildConfig', () => {
     expect(config.stacks.nodeRpcUrl).toBe('https://api.testnet.hiro.so');
     expect(config.stacks.readOnlyCaller).toBe('ST000000000000000000002AMW42H');
     expect(config.loop.pollIntervalMs).toBe(5000);
+    expect(config.execution.feeMultiplier).toBe(1.5);
+    expect(config.execution.minFeeMicroStx).toBe(450n);
+    expect(config.execution.requiredConfirmations).toBe(2);
     expect(Object.isFrozen(config)).toBe(true);
     expect(Object.isFrozen(config.stacks)).toBe(true);
   });
