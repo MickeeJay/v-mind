@@ -109,4 +109,47 @@ describe('ConfirmationPoller', () => {
     expect(outcome.state).toBe('retry-triggered');
     expect(onRetryableFailure).toHaveBeenCalledTimes(1);
   });
+
+  it('includes last status when confirmation polling times out', async () => {
+    const nodeClient: TransactionNodeClient = {
+      getAddressNonces: vi.fn(),
+      estimateContractCallFee: vi.fn(),
+      broadcastSignedTransaction: vi.fn(),
+      getTransactionStatus: vi.fn().mockResolvedValue({
+        txId: '0xtimeout',
+        status: 'pending',
+        retryable: false,
+      }),
+      getCurrentBlockHeight: vi.fn(),
+    };
+
+    const store = new InMemoryPendingTransactionStore();
+    store.upsert({
+      txId: '0xtimeout',
+      vaultId: '6',
+      strategyId: '7',
+      contractPrincipal: 'ST000000000000000000002AMW42H.vault-core',
+      functionName: 'execute-strategy',
+      nonce: 9n,
+      feeMicroStx: 270n,
+      retryAttempt: 1,
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      state: 'pending',
+      confirmations: 0,
+    });
+
+    const poller = new ConfirmationPoller(
+      nodeClient,
+      store,
+      {
+        requiredConfirmations: 2,
+        pollIntervalMs: 0,
+        maxPollAttempts: 1,
+      },
+      new TestLogger()
+    );
+
+    await expect(poller.waitForConfirmation('0xtimeout')).rejects.toThrow('last status: pending');
+  });
 });
