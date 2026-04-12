@@ -27,13 +27,18 @@ export class ConfirmationPoller {
   ) {}
 
   async waitForConfirmation(txId: string, options: WaitForConfirmationOptions = {}): Promise<ConfirmationOutcome> {
+    let lastObservedStatus: string | undefined;
+
     for (let attempt = 1; attempt <= this.options.maxPollAttempts; attempt += 1) {
       const record = this.pendingStore.get(txId);
       if (!record) {
         throw new Error(`Missing pending record for tx ${txId}`);
       }
 
-      const outcome = await this.pollRecord(record, options.onRetryableFailure);
+      const status = await this.nodeClient.getTransactionStatus(record.txId);
+      lastObservedStatus = status.status;
+
+      const outcome = await this.pollRecord(record, options.onRetryableFailure, status);
       if (outcome) {
         return outcome;
       }
@@ -41,7 +46,9 @@ export class ConfirmationPoller {
       await sleep(this.options.pollIntervalMs);
     }
 
-    throw new Error(`Transaction ${txId} was not confirmed within ${this.options.maxPollAttempts} polling attempts`);
+    throw new Error(
+      `Transaction ${txId} was not confirmed within ${this.options.maxPollAttempts} polling attempts (last status: ${lastObservedStatus ?? 'unknown'})`
+    );
   }
 
   async pollPendingTransactions(options: WaitForConfirmationOptions = {}): Promise<ConfirmationOutcome[]> {
@@ -60,9 +67,10 @@ export class ConfirmationPoller {
 
   private async pollRecord(
     record: PendingTransactionRecord,
-    onRetryableFailure?: (context: RetryableFailureContext) => Promise<void>
+    onRetryableFailure?: (context: RetryableFailureContext) => Promise<void>,
+    prefetchedStatus?: TransactionStatus
   ): Promise<ConfirmationOutcome | null> {
-    const txStatus = await this.nodeClient.getTransactionStatus(record.txId);
+    const txStatus = prefetchedStatus ?? (await this.nodeClient.getTransactionStatus(record.txId));
 
     if (txStatus.status === 'pending') {
       return null;
