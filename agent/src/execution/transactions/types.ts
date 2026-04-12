@@ -34,6 +34,7 @@ export interface BroadcastRequest {
   nonce: bigint;
   feeMicroStx: bigint;
   retryAttempt: number;
+  submittedAtBlockHeight?: number;
 }
 
 export type PendingTransactionState = 'pending' | 'confirmed' | 'failed';
@@ -47,6 +48,7 @@ export interface PendingTransactionRecord {
   nonce: bigint;
   feeMicroStx: bigint;
   retryAttempt: number;
+  submittedAtBlockHeight?: number;
   submittedAt: string;
   updatedAt: string;
   state: PendingTransactionState;
@@ -113,6 +115,7 @@ export interface ExecutionPipelineRequest {
   functionName: string;
   functionArgs: ClarityValue[];
   evaluationReason: string;
+  observedBlockHeight?: number;
   maxRetries?: number;
   senderKey?: string;
 }
