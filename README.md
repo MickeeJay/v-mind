@@ -192,6 +192,19 @@ npm start
 
 ## 🛠️ Development Commands
 
+### Run Agent In Docker
+
+Use the root compose file to run only the backend agent with health and metrics endpoints:
+
+```bash
+docker compose up --build agent
+```
+
+The agent exposes:
+
+- Health endpoint: `http://localhost:8080/health`
+- Metrics endpoint: `http://localhost:9090/metrics`
+
 ### Root-Level Commands
 
 ```bash
