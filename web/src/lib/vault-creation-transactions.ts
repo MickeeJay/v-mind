@@ -197,12 +197,13 @@ export async function pollVaultCreationConfirmation(
       cache: 'no-store',
       signal: options?.signal,
     }).catch((error: unknown) => {
-      throw createNetworkError(error instanceof Error ? error.message : 'Network error while polling transaction status.');
+      const reason = error instanceof Error ? error.message : 'Network error while polling transaction status.';
+      throw createNetworkError(`Attempt ${attempt + 1}/${maxAttempts}: ${reason}`);
     });
 
     if (!response.ok) {
       if (response.status >= 500) {
-        throw createNetworkError(`Stacks API unavailable (status ${response.status}).`);
+        throw createNetworkError(`Attempt ${attempt + 1}/${maxAttempts}: Stacks API unavailable (status ${response.status}).`);
       }
 
       await sleep(pollIntervalMs, options?.signal);
@@ -227,7 +228,7 @@ export async function pollVaultCreationConfirmation(
     await sleep(pollIntervalMs, options?.signal);
   }
 
-  throw createNetworkError('Timed out while waiting for transaction confirmation.');
+  throw createNetworkError(`Timed out while waiting for transaction confirmation after ${maxAttempts} polling attempts.`);
 }
 
 export function classifyVaultTransactionError(error: unknown): VaultTransactionError {
