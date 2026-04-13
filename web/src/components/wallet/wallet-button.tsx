@@ -71,7 +71,22 @@ export function WalletButton(): JSX.Element {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                void navigator.clipboard.writeText(address).then(() => {
+                const fallbackCopy = (): void => {
+                  const textArea = document.createElement('textarea');
+                  textArea.value = address;
+                  textArea.style.position = 'fixed';
+                  textArea.style.opacity = '0';
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                };
+
+                const copy = navigator.clipboard?.writeText
+                  ? navigator.clipboard.writeText(address)
+                  : Promise.resolve().then(fallbackCopy);
+
+                void copy.then(() => {
                   toast({
                     title: 'Address copied',
                     description: 'Wallet address copied to clipboard.',
