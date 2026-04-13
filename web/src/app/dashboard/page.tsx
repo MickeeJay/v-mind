@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from 'react';
-import { Wallet } from 'lucide-react';
 
+import { DashboardDisconnectedState } from '@/components/dashboard/dashboard-disconnected-state';
 import { DashboardEmptyState } from '@/components/dashboard/dashboard-empty-state';
 import { DashboardErrorState } from '@/components/dashboard/dashboard-error-state';
 import { DashboardSkeletonState } from '@/components/dashboard/dashboard-skeleton-state';
@@ -55,19 +55,7 @@ export default function DashboardPage(): JSX.Element {
   }, [address, retryKey]);
 
   if (!address) {
-    return (
-      <section className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8">
-        <div className="mx-auto max-w-xl text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-border/70 bg-muted/60">
-            <Wallet className="h-6 w-6 text-bitcoin-300" />
-          </div>
-          <h1 className="font-[var(--font-display)] text-2xl font-semibold tracking-tight">Connect your wallet to view your dashboard</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Your portfolio and vault analytics appear here after you connect a Stacks wallet from the top navigation.
-          </p>
-        </div>
-      </section>
-    );
+    return <DashboardDisconnectedState />;
   }
 
   if (pageState === 'loading') {
