@@ -70,52 +70,58 @@ export function ChooseStrategyStep(props: ChooseStrategyStepProps): JSX.Element 
               : 'No strategy selected yet.'}
           </p>
 
-          <div role="radiogroup" aria-label="Available vault strategies" aria-describedby="strategy-selection-help" className="grid gap-3">
-          {strategies.map((strategy) => {
-            const selected = selectedStrategyId === strategy.id;
+          {strategies.length === 0 ? (
+            <div className="rounded-xl border border-border/70 bg-card/50 p-4 text-sm text-muted-foreground" role="status">
+              No active strategies are currently available from the on-chain registry.
+            </div>
+          ) : (
+            <div role="radiogroup" aria-label="Available vault strategies" aria-describedby="strategy-selection-help" className="grid gap-3">
+              {strategies.map((strategy) => {
+                const selected = selectedStrategyId === strategy.id;
 
-            return (
-              <button
-                key={strategy.id.toString()}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => onSelect(strategy.id)}
-                className={[
-                  'w-full rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  selected
-                    ? 'border-bitcoin-500/70 bg-bitcoin-500/10 shadow-[0_0_0_1px_rgba(247,147,26,0.4)]'
-                    : 'border-border/70 bg-card/50 hover:border-bitcoin-500/40 hover:bg-card/80',
-                ].join(' ')}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold text-foreground">{strategy.name}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.15em] text-muted-foreground">
-                      Target asset: {strategy.targetAssetSymbol}
-                    </p>
-                  </div>
-                  <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${riskBadgeClass(strategy.riskLabel)}`}>
-                    {strategy.riskLabel}
-                  </span>
-                </div>
+                return (
+                  <button
+                    key={strategy.id.toString()}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => onSelect(strategy.id)}
+                    className={[
+                      'w-full rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      selected
+                        ? 'border-bitcoin-500/70 bg-bitcoin-500/10 shadow-[0_0_0_1px_rgba(247,147,26,0.4)]'
+                        : 'border-border/70 bg-card/50 hover:border-bitcoin-500/40 hover:bg-card/80',
+                    ].join(' ')}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-base font-semibold text-foreground">{strategy.name}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                          Target asset: {strategy.targetAssetSymbol}
+                        </p>
+                      </div>
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${riskBadgeClass(strategy.riskLabel)}`}>
+                        {strategy.riskLabel}
+                      </span>
+                    </div>
 
-                <p className="mt-3 text-sm text-muted-foreground">{strategy.description}</p>
+                    <p className="mt-3 text-sm text-muted-foreground">{strategy.description}</p>
 
-                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Estimated APY range</dt>
-                    <dd className="mt-1 font-medium text-foreground">{strategy.estimatedApyRange}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Strategy ID</dt>
-                    <dd className="mt-1 font-medium text-foreground">{strategy.id.toString()}</dd>
-                  </div>
-                </dl>
-              </button>
-            );
-          })}
-          </div>
+                    <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Estimated APY range</dt>
+                        <dd className="mt-1 font-medium text-foreground">{strategy.estimatedApyRange}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Strategy ID</dt>
+                        <dd className="mt-1 font-medium text-foreground">{strategy.id.toString()}</dd>
+                      </div>
+                    </dl>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </>
       ) : null}
 
