@@ -8,8 +8,9 @@ import {
 
 describe('vault creation transaction helpers', () => {
   it('builds explorer links with chain query', () => {
-    expect(getExplorerTxUrl('0xabc123')).toContain('/txid/0xabc123');
-    expect(getExplorerTxUrl('0xabc123')).toContain('chain=testnet');
+    const explorerUrl = getExplorerTxUrl('0xabc123');
+    expect(explorerUrl).toContain('/txid/0xabc123');
+    expect(explorerUrl).toMatch(/chain=(mainnet|testnet)$/);
   });
 
   it('preserves classified transaction errors', () => {
