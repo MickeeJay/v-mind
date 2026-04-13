@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Copy, LogOut } from 'lucide-react';
+import { ChevronDown, Copy, LogOut } from 'lucide-react';
 
 import { ConnectWalletModal } from '@/components/wallet/connect-wallet-modal';
 import { Button } from '@/components/ui/button';
@@ -59,9 +59,10 @@ export function WalletButton(): JSX.Element {
         </Button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" className="border-border/70 bg-card/70" />}>
+          <DropdownMenuTrigger render={<Button variant="outline" className="border-border/70 bg-card/70 pr-1.5" />}>
             <AddressIdenticon address={address} />
             <span className="font-mono text-xs sm:text-sm">{shortAddress}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-64">
