@@ -38,6 +38,7 @@ export function ConfigureDepositStep(props: ConfigureDepositStepProps): JSX.Elem
   } = props;
 
   const validationId = 'deposit-validation-message';
+  const helperId = 'deposit-input-helper';
   const hasValidationError = Boolean(validationMessage);
 
   return (
@@ -64,9 +65,12 @@ export function ConfigureDepositStep(props: ConfigureDepositStepProps): JSX.Elem
                 onAmountInputChange(event.currentTarget.value);
               }}
               aria-invalid={hasValidationError}
-              aria-describedby={validationMessage ? validationId : undefined}
+              aria-describedby={validationMessage ? `${validationId} ${helperId}` : helperId}
               placeholder="0.00"
             />
+            <p id={helperId} className="text-xs text-muted-foreground">
+              Amount accepts up to 6 decimals and must satisfy protocol minimums.
+            </p>
             {validationMessage ? (
               <p id={validationId} role="alert" className="text-xs text-destructive">
                 {validationMessage}
@@ -94,7 +98,9 @@ export function ConfigureDepositStep(props: ConfigureDepositStepProps): JSX.Elem
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Estimated shares minted</dt>
-            <dd className="mt-1 font-medium text-foreground">{formatMicrostx(estimatedShares, 6)} shares</dd>
+            <dd className="mt-1 font-medium text-foreground" role="status" aria-live="polite">
+              {formatMicrostx(estimatedShares, 6)} shares
+            </dd>
           </div>
         </dl>
       </div>
