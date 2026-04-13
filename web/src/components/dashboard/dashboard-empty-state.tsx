@@ -27,6 +27,15 @@ export function DashboardEmptyState(): JSX.Element {
           capital, earning yield, and monitoring on-chain performance in one place.
         </p>
 
+        <div className="w-full max-w-lg rounded-xl border border-border/70 bg-card/60 p-3 text-left text-xs text-muted-foreground">
+          <p className="font-semibold text-foreground">How it works</p>
+          <ol className="mt-2 space-y-1.5">
+            <li>1. Create a vault and choose a strategy profile.</li>
+            <li>2. Deposit BTC-backed capital into the vault.</li>
+            <li>3. Track yield, APY, and execution health from this dashboard.</li>
+          </ol>
+        </div>
+
         <Button render={<Link href="/vaults" />} className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400">
           <PlusCircle className="mr-2 h-4 w-4" />
           Create your first vault
