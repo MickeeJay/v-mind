@@ -83,6 +83,11 @@ export function ConnectWalletModal({ open, onOpenChange }: ConnectWalletModalPro
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span>Detected Wallets</span>
+          <span>{installedProviders.length}/2 available</span>
+        </div>
+
         <div className="grid gap-3 pt-2">
           {WALLET_OPTION_DETAILS.map((wallet) => {
             const isInstalled = isWalletProviderInstalled(wallet.type);
