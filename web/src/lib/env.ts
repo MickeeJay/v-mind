@@ -22,6 +22,10 @@ export const env = cleanEnv(process.env, {
     default: 'https://api.testnet.hiro.so',
     desc: 'Stacks API URL for wallet connections (exposed to browser)',
   }),
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: str({
+    default: '',
+    desc: 'WalletConnect project ID (optional, exposed to browser)',
+  }),
   NEXT_PUBLIC_DEPLOYER_ADDRESS: str({
     desc: 'Contract deployer address (exposed to browser)',
     example: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
