@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatBtc, formatLastExecution, formatPercent, formatUsd } from '@/lib/dashboard-formatters';
 import type { DashboardVault, VaultStatus } from '@/types/dashboard';
 
 interface VaultSummaryCardProps {
@@ -24,32 +25,6 @@ const STATUS_STYLES: Record<VaultStatus, string> = {
   cooldown: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
   archived: 'border-muted bg-muted/40 text-muted-foreground',
 };
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: value > 1000 ? 0 : 2,
-  }).format(value);
-}
-
-function formatLastExecution(value: string | null): string {
-  if (!value) {
-    return 'Not executed yet';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'Unavailable';
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 export function VaultSummaryCard({ vault }: VaultSummaryCardProps): JSX.Element {
   return (
@@ -95,18 +70,18 @@ export function VaultSummaryCard({ vault }: VaultSummaryCardProps): JSX.Element 
       <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Current balance</p>
-          <p className="mt-1 font-semibold">{vault.balanceBtc.toFixed(6)} BTC</p>
-          <p className="text-xs text-muted-foreground">{formatCurrency(vault.balanceUsd)}</p>
+          <p className="mt-1 font-semibold">{formatBtc(vault.balanceBtc)}</p>
+          <p className="text-xs text-muted-foreground">{formatUsd(vault.balanceUsd)}</p>
         </div>
 
         <div>
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Estimated APY</p>
-          <p className="mt-1 font-semibold text-bitcoin-300">{vault.estimatedApy.toFixed(2)}%</p>
+          <p className="mt-1 font-semibold text-bitcoin-300">{formatPercent(vault.estimatedApy)}</p>
         </div>
 
         <div>
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Yield earned</p>
-          <p className="mt-1 font-semibold">{vault.yieldEarnedBtc.toFixed(6)} BTC</p>
+          <p className="mt-1 font-semibold">{formatBtc(vault.yieldEarnedBtc)}</p>
         </div>
 
         <div>
