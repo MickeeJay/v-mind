@@ -18,7 +18,7 @@ export function TransactionPendingStep(props: TransactionPendingStepProps): JSX.
   const { txId, explorerTxUrl, polling, error, onRetryPolling, onBackToReview } = props;
 
   return (
-    <section className="space-y-4" aria-labelledby="pending-title">
+    <section className="space-y-4" aria-labelledby="pending-title" aria-busy={polling}>
       <div className="space-y-1">
         <h2 id="pending-title" className="font-[var(--font-display)] text-2xl font-semibold tracking-tight">
           Transaction pending
@@ -30,7 +30,7 @@ export function TransactionPendingStep(props: TransactionPendingStepProps): JSX.
 
       <div className="rounded-xl border border-border/70 bg-card/50 p-4">
         <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Transaction status</p>
-        <p className="mt-1 text-sm text-foreground">
+        <p className="mt-1 text-sm text-foreground" role="status" aria-live="polite">
           {polling ? 'Waiting for confirmation on Stacks network.' : 'Waiting for wallet signature or polling update.'}
         </p>
 
