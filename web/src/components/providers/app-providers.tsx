@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 
+import { WalletProvider } from '@/components/providers/wallet-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -19,7 +20,9 @@ export function AppProviders({ children }: AppProvidersProps): JSX.Element {
       storageKey="vmind-theme"
       disableTransitionOnChange
     >
-      <TooltipProvider delay={120}>{children}</TooltipProvider>
+      <WalletProvider>
+        <TooltipProvider delay={120}>{children}</TooltipProvider>
+      </WalletProvider>
       <Toaster />
     </ThemeProvider>
   );

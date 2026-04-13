@@ -1,0 +1,5 @@
+import '@testing-library/jest-dom/vitest';
+
+process.env.NEXT_PUBLIC_STACKS_NETWORK = process.env.NEXT_PUBLIC_STACKS_NETWORK ?? 'mainnet';
+process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS =
+	process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS ?? 'SP2C2R4AJ9Q8MFS3M6N2N4JNVQW6WQTHCD3M5N6A2';

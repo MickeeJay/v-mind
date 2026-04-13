@@ -1,26 +1,11 @@
 "use client";
 
-import { Menu, Plug, Shield, Wallet } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import Link from 'next/link';
 
 import { ThemeToggle } from '@/components/theme-toggle';
+import { WalletButton } from '@/components/wallet/wallet-button';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useWallet } from '@/hooks/use-wallet';
 
 interface TopNavProps {
@@ -36,7 +21,7 @@ function NetworkBadge({ network }: { network: string }): JSX.Element {
 }
 
 export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
-  const { wallet, shortAddress, connect, disconnect, isConnecting } = useWallet();
+  const { network } = useWallet();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-xl">
@@ -58,67 +43,8 @@ export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-
-          {wallet ? (
-            <>
-              <NetworkBadge network={wallet.network} />
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="outline" className="border-border/70 bg-card/70" />}>
-                  <Wallet className="mr-2 h-4 w-4 text-bitcoin-400" />
-                  <span className="font-mono text-xs sm:text-sm">{shortAddress}</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">{wallet.provider.toUpperCase()} Wallet</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="font-mono text-xs">{wallet.address}</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={disconnect}>
-                    <Plug className="mr-2 h-4 w-4" />
-                    Disconnect
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <Dialog>
-              <DialogTrigger render={<Button className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400" />}>
-                Connect Wallet
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Connect a Stacks Wallet</DialogTitle>
-                  <DialogDescription>
-                    Choose your wallet provider. V-Mind supports Leather and Xverse for vault operations.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="grid gap-3 pt-2">
-                  <Button
-                    disabled={isConnecting}
-                    onClick={() => {
-                      void connect('leather');
-                    }}
-                    className="justify-start gap-2"
-                    variant="secondary"
-                  >
-                    <Shield className="h-4 w-4 text-bitcoin-400" />
-                    Connect Leather
-                  </Button>
-                  <Button
-                    disabled={isConnecting}
-                    onClick={() => {
-                      void connect('xverse');
-                    }}
-                    className="justify-start gap-2"
-                    variant="secondary"
-                  >
-                    <Shield className="h-4 w-4 text-bitcoin-400" />
-                    Connect Xverse
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+          {network ? <NetworkBadge network={network} /> : null}
+          <WalletButton />
         </div>
       </div>
     </header>
