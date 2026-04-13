@@ -97,11 +97,12 @@ export default function DashboardPage(): JSX.Element {
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-bitcoin-300">Wallet Dashboard</p>
           <h1 className="mt-1 font-[var(--font-display)] text-2xl font-semibold tracking-tight sm:text-3xl">Portfolio performance and active vaults</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Connected owner: {address}</p>
+          <p className="mt-1 break-all text-xs text-muted-foreground sm:text-sm">Connected owner: {address}</p>
         </div>
 
         <Button
           variant="outline"
+          className="sm:self-auto"
           onClick={() => {
             setRetryKey((value) => value + 1);
           }}

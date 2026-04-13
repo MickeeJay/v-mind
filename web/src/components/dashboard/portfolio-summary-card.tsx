@@ -61,7 +61,7 @@ export function PortfolioSummaryCard({ summary }: PortfolioSummaryCardProps): JS
         <CardTitle className="font-[var(--font-display)] text-2xl sm:text-3xl">{formatUsd(summary.totalAumUsd)}</CardTitle>
       </CardHeader>
 
-      <CardContent className="grid gap-4">
+      <CardContent className="grid gap-3 sm:gap-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
             <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">AUM (USD)</p>
@@ -77,7 +77,7 @@ export function PortfolioSummaryCard({ summary }: PortfolioSummaryCardProps): JS
           </div>
         </div>
 
-        <div className="rounded-lg border border-border/70 bg-gradient-to-b from-bitcoin-500/10 to-card p-3">
+        <div className="rounded-lg border border-border/70 bg-gradient-to-b from-bitcoin-500/10 to-card p-2.5 sm:p-3">
           <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <TrendingUp className="h-3.5 w-3.5 text-bitcoin-400" />

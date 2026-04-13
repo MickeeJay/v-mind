@@ -61,7 +61,7 @@ export function VaultList({ vaults }: VaultListProps): JSX.Element {
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select value={filterBy} onValueChange={(value) => setFilterBy(value as FilterKey)}>
-            <SelectTrigger className="min-w-40" aria-label="Filter vaults by status">
+            <SelectTrigger className="w-full min-w-40 sm:w-auto" aria-label="Filter vaults by status">
               <SelectValue placeholder="Filter status" />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +74,7 @@ export function VaultList({ vaults }: VaultListProps): JSX.Element {
           </Select>
 
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortKey)}>
-            <SelectTrigger className="min-w-44" aria-label="Sort vaults">
+            <SelectTrigger className="w-full min-w-44 sm:w-auto" aria-label="Sort vaults">
               <SelectValue placeholder="Sort vaults" />
             </SelectTrigger>
             <SelectContent>
