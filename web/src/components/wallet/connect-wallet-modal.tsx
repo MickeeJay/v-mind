@@ -152,8 +152,20 @@ export function ConnectWalletModal({ open, onOpenChange }: ConnectWalletModalPro
         </div>
 
         {noExtensionsInstalled ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-            No supported extension was detected in this browser. Install Leather or Xverse, then retry connection.
+          <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+            <p>No supported extension was detected in this browser. Install Leather or Xverse, then retry connection.</p>
+            <div className="flex flex-wrap gap-2">
+              {WALLET_OPTION_DETAILS.map((wallet) => (
+                <Button
+                  key={`download-${wallet.type}`}
+                  size="sm"
+                  variant="outline"
+                  render={<a href={wallet.installUrl} target="_blank" rel="noreferrer" />}
+                >
+                  Download {wallet.title}
+                </Button>
+              ))}
+            </div>
           </div>
         ) : null}
 
