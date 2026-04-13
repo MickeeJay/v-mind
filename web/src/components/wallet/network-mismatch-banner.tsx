@@ -17,7 +17,7 @@ export function NetworkMismatchBanner(): JSX.Element | null {
 
   return (
     <div
-      className="border-b border-rose-700/40 bg-rose-950/55"
+      className="sticky top-16 z-20 border-b border-rose-700/40 bg-rose-950/70 backdrop-blur"
       role="alert"
       aria-live="polite"
       aria-atomic="true"
