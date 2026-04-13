@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DEFAULT_PROVIDERS } from '@stacks/connect';
-import { Download, PlugZap, ShieldCheck } from 'lucide-react';
+import { Download, Loader2, PlugZap, ShieldCheck } from 'lucide-react';
 
 import {
   Dialog,
@@ -132,11 +132,12 @@ export function ConnectWalletModal({ open, onOpenChange }: ConnectWalletModalPro
                       }}
                       className="bg-bitcoin-500 text-bitcoin-950 hover:bg-bitcoin-400"
                     >
-                      <PlugZap className="mr-2 h-4 w-4" />
+                      {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
                       {isConnecting ? 'Connecting...' : `Connect ${wallet.title}`}
                     </Button>
                   ) : (
                     <Button
+                      disabled={isConnecting}
                       variant="outline"
                       render={<a href={wallet.installUrl} target="_blank" rel="noreferrer" />}
                     >
