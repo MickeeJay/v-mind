@@ -16,6 +16,7 @@ import { ReviewConfirmStep } from '@/components/vault-creation/review-confirm-st
 import { TransactionPendingStep } from '@/components/vault-creation/transaction-pending-step';
 import { VaultCreationStepper } from '@/components/vault-creation/vault-creation-stepper';
 import { VaultCreationSuccessStep } from '@/components/vault-creation/vault-creation-success-step';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/use-wallet';
 import {
@@ -373,11 +374,25 @@ export function VaultCreationFlow(): JSX.Element {
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-border/70 bg-card/60 p-4">
-        <h1 className="font-[var(--font-display)] text-2xl font-semibold tracking-tight">Create vault</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Follow each step carefully. A vault creation transaction commits {MICROSTX_PRECISION.toString()}-precision
-          asset units on-chain.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h1 className="font-[var(--font-display)] text-2xl font-semibold tracking-tight">Create vault</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Follow each step carefully. A vault creation transaction commits {MICROSTX_PRECISION.toString()}-precision
+              asset units on-chain.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              void loadBaseData();
+            }}
+            disabled={loadingBaseData}
+          >
+            Refresh balances
+          </Button>
+        </div>
       </section>
 
       <VaultCreationStepper currentStep={currentStep} />
