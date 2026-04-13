@@ -32,7 +32,7 @@ export function TopNav({ onMenuClick }: TopNavProps): JSX.Element {
             <span className="sr-only">Toggle sidebar</span>
           </Button>
 
-          <Link href="/" className="group inline-flex items-center gap-2">
+          <Link href="/dashboard" className="group inline-flex items-center gap-2">
             <span className="inline-block h-8 w-8 rounded-lg bg-gradient-to-br from-bitcoin-400 to-bitcoin-600 shadow-[0_0_22px_rgba(247,147,26,0.45)]" />
             <div>
               <p className="font-semibold leading-none tracking-tight">V-Mind</p>

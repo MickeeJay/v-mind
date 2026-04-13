@@ -14,7 +14,7 @@ interface AppSidebarProps {
 const navItems = [
   {
     label: 'Dashboard',
-    href: '/',
+    href: '/dashboard',
     icon: BarChart3,
   },
   {
