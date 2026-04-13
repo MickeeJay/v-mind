@@ -3,22 +3,11 @@
 import { Bitcoin, Layers3, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatBtc, formatUsd } from '@/lib/dashboard-formatters';
 import type { DashboardPortfolioSummary } from '@/types/dashboard';
 
 interface PortfolioSummaryCardProps {
   summary: DashboardPortfolioSummary;
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatBtc(value: number): string {
-  return `${value.toFixed(6)} BTC`;
 }
 
 function Sparkline({ points }: { points: DashboardPortfolioSummary['performance30d'] }): JSX.Element {
