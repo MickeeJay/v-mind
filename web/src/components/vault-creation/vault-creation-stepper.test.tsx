@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -9,6 +10,6 @@ describe('VaultCreationStepper', () => {
 
     const currentStep = screen.getByText('Review and confirm').closest('li');
     expect(currentStep).not.toBeNull();
-    expect(currentStep).toHaveAttribute('aria-current', 'step');
+    expect(currentStep?.getAttribute('aria-current')).toBe('step');
   });
 });
