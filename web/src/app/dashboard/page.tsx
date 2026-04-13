@@ -5,6 +5,7 @@ import * as React from 'react';
 import { DashboardDisconnectedState } from '@/components/dashboard/dashboard-disconnected-state';
 import { DashboardEmptyState } from '@/components/dashboard/dashboard-empty-state';
 import { DashboardErrorState } from '@/components/dashboard/dashboard-error-state';
+import { DashboardSectionHeader } from '@/components/dashboard/dashboard-section-header';
 import { DashboardSkeletonState } from '@/components/dashboard/dashboard-skeleton-state';
 import { PortfolioSummaryCard } from '@/components/dashboard/portfolio-summary-card';
 import { VaultList } from '@/components/dashboard/vault-list';
@@ -82,11 +83,11 @@ export default function DashboardPage(): JSX.Element {
   return (
     <div className="space-y-4">
       <section className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/50 p-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-bitcoin-300">Wallet Dashboard</p>
-          <h1 className="mt-1 font-[var(--font-display)] text-2xl font-semibold tracking-tight sm:text-3xl">Portfolio performance and active vaults</h1>
-          <p className="mt-1 break-all text-xs text-muted-foreground sm:text-sm">Connected owner: {address}</p>
-        </div>
+        <DashboardSectionHeader
+          eyebrow="Wallet Dashboard"
+          title="Portfolio performance and active vaults"
+          subtitle={`Connected owner: ${address}`}
+        />
 
         <Button
           variant="outline"
