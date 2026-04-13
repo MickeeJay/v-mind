@@ -31,6 +31,8 @@ export function ReviewConfirmStep(props: ReviewConfirmStepProps): JSX.Element {
     submitting,
   } = props;
 
+  const riskHelpId = 'risk-acknowledgement-help';
+
   return (
     <section className="space-y-4" aria-labelledby="review-confirm-title">
       <div className="space-y-1">
@@ -88,9 +90,14 @@ export function ReviewConfirmStep(props: ReviewConfirmStepProps): JSX.Element {
             onChange={(event) => onRiskAcknowledgedChange(event.currentTarget.checked)}
             className="mt-0.5 h-4 w-4 rounded border-border bg-background"
             aria-required="true"
+            aria-describedby={riskHelpId}
+            required
           />
           <span>I understand the risks and want to proceed with this on-chain vault creation transaction.</span>
         </label>
+        <p id={riskHelpId} className="mt-2 text-xs text-amber-100/90">
+          This acknowledgement is mandatory before opening your wallet for signing.
+        </p>
       </div>
 
       <div className="flex items-center justify-between border-t border-border/70 pt-3">
