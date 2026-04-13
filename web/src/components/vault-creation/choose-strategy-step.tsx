@@ -29,6 +29,7 @@ function riskBadgeClass(risk: VaultStrategy['riskLabel']): string {
 
 export function ChooseStrategyStep(props: ChooseStrategyStepProps): JSX.Element {
   const { strategies, selectedStrategyId, loading, errorMessage, onRetry, onSelect, onNext } = props;
+  const selectedStrategy = strategies.find((strategy) => strategy.id === selectedStrategyId) ?? null;
 
   return (
     <section className="space-y-4" aria-labelledby="choose-strategy-title">
@@ -58,7 +59,18 @@ export function ChooseStrategyStep(props: ChooseStrategyStepProps): JSX.Element 
       ) : null}
 
       {!loading && !errorMessage ? (
-        <div role="radiogroup" aria-label="Available vault strategies" className="grid gap-3">
+        <>
+          <p id="strategy-selection-help" className="text-xs text-muted-foreground">
+            Use arrow keys or tab to move focus, then press enter to select a strategy card.
+          </p>
+
+          <p className="text-xs text-bitcoin-300" role="status" aria-live="polite">
+            {selectedStrategy
+              ? `Selected strategy: ${selectedStrategy.name} (${selectedStrategy.riskLabel} risk).`
+              : 'No strategy selected yet.'}
+          </p>
+
+          <div role="radiogroup" aria-label="Available vault strategies" aria-describedby="strategy-selection-help" className="grid gap-3">
           {strategies.map((strategy) => {
             const selected = selectedStrategyId === strategy.id;
 
@@ -103,7 +115,8 @@ export function ChooseStrategyStep(props: ChooseStrategyStepProps): JSX.Element 
               </button>
             );
           })}
-        </div>
+          </div>
+        </>
       ) : null}
 
       <div className="flex justify-end border-t border-border/70 pt-3">
