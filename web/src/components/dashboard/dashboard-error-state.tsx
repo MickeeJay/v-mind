@@ -21,6 +21,9 @@ export function DashboardErrorState({ message, onRetry }: DashboardErrorStatePro
         <p className="mt-2 text-sm text-rose-100/85 sm:text-base">
           {message ?? 'We could not fetch your on-chain vault data right now. Please retry in a few seconds.'}
         </p>
+        <p className="mt-2 text-xs text-rose-100/75">
+          If this continues, confirm your wallet network and try refreshing the page.
+        </p>
 
         <div className="mt-5 flex justify-center">
           <Button onClick={onRetry} variant="outline" className="border-rose-300/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20">
