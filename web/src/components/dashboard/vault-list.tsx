@@ -46,6 +46,15 @@ export function VaultList({ vaults }: VaultListProps): JSX.Element {
   const [sortBy, setSortBy] = React.useState<SortKey>('balance-desc');
   const [filterBy, setFilterBy] = React.useState<FilterKey>('all');
 
+  const statusCounts = React.useMemo(() => {
+    return {
+      active: vaults.filter((vault) => vault.status === 'active').length,
+      paused: vaults.filter((vault) => vault.status === 'paused').length,
+      cooldown: vaults.filter((vault) => vault.status === 'cooldown').length,
+      archived: vaults.filter((vault) => vault.status === 'archived').length,
+    };
+  }, [vaults]);
+
   const viewVaults = React.useMemo(() => {
     const filtered = filterVaults(vaults, filterBy);
     return sortVaults(filtered, sortBy);
@@ -88,6 +97,13 @@ export function VaultList({ vaults }: VaultListProps): JSX.Element {
       </div>
 
       <div className="grid gap-3">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300">Active: {statusCounts.active}</span>
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Paused: {statusCounts.paused}</span>
+          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">Cooldown: {statusCounts.cooldown}</span>
+          <span className="rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-muted-foreground">Archived: {statusCounts.archived}</span>
+        </div>
+
         {viewVaults.map((vault) => (
           <VaultSummaryCard key={vault.id} vault={vault} />
         ))}
