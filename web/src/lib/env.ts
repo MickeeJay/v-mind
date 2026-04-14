@@ -1,5 +1,26 @@
 import { cleanEnv, str, url, bool } from 'envalid';
 
+export type Env = {
+  NODE_ENV: 'development' | 'production' | 'test';
+  NEXT_PUBLIC_STACKS_NETWORK: 'mainnet' | 'testnet' | 'devnet';
+  NEXT_PUBLIC_STACKS_API_URL: string;
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: string;
+  NEXT_PUBLIC_DEPLOYER_ADDRESS: string;
+  NEXT_PUBLIC_CONTRACT_NAME: string;
+  NEXT_PUBLIC_API_BASE_URL: string;
+  NEXT_PUBLIC_API_VERSION: string;
+  NEXT_PUBLIC_API_TIMEOUT: string;
+  NEXT_PUBLIC_ENABLE_BETA_FEATURES: boolean;
+  NEXT_PUBLIC_ENABLE_ADVANCED_STRATEGIES: boolean;
+  NEXT_PUBLIC_ENABLE_ANALYTICS: boolean;
+  NEXT_PUBLIC_ENABLE_MAINNET: boolean;
+  NEXT_PUBLIC_GA_ID: string;
+  NEXT_PUBLIC_POSTHOG_KEY: string;
+  NEXT_PUBLIC_POSTHOG_HOST: string;
+  NEXT_PUBLIC_BUILD_ID: string;
+  NEXT_PUBLIC_GIT_SHA: string;
+};
+
 const envSchema = {
   // Next.js configuration
   NODE_ENV: str({
@@ -22,6 +43,7 @@ const envSchema = {
     desc: 'WalletConnect project ID (optional, exposed to browser)',
   }),
   NEXT_PUBLIC_DEPLOYER_ADDRESS: str({
+    default: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
     desc: 'Contract deployer address (exposed to browser)',
     example: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
   }),
@@ -116,8 +138,3 @@ function createBrowserEnv(): Env {
  * Throws descriptive errors if required variables are missing or invalid on the server.
  */
 export const env: Env = typeof window === 'undefined' ? cleanEnv(process.env, envSchema) : createBrowserEnv();
-
-/**
- * Type-safe environment variables
- */
-export type Env = typeof env;
