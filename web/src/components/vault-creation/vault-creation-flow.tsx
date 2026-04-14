@@ -37,6 +37,10 @@ import {
   submitVaultCreationTransaction,
 } from '@/lib/vault-creation-transactions';
 
+interface VaultCreationFlowProps {
+  initialStrategyId?: bigint | null;
+}
+
 function maxBigInt(left: bigint, right: bigint): bigint {
   return left > right ? left : right;
 }
@@ -70,7 +74,7 @@ function mapTransactionError(error: unknown): VaultCreationError {
   };
 }
 
-export function VaultCreationFlow(): JSX.Element {
+export function VaultCreationFlow({ initialStrategyId = null }: VaultCreationFlowProps): JSX.Element {
   const { address } = useWallet();
   const { toast } = useToast();
 
@@ -102,6 +106,12 @@ export function VaultCreationFlow(): JSX.Element {
 
     return strategies.find((strategy) => strategy.id === selectedStrategyId) ?? null;
   }, [selectedStrategyId, strategies]);
+
+  React.useEffect(() => {
+    if (initialStrategyId) {
+      setSelectedStrategyId(initialStrategyId);
+    }
+  }, [initialStrategyId]);
 
   const parsedDeposit = React.useMemo(() => parseMicrostxInput(amountInput), [amountInput]);
 
@@ -170,8 +180,12 @@ export function VaultCreationFlow(): JSX.Element {
       setPricing(pricingSnapshot);
       setWalletBalanceMicrostx(walletBalance.stxBalanceMicrostx);
 
+      const preselectedStrategy = initialStrategyId ? availableStrategies.find((strategy) => strategy.id === initialStrategyId) ?? null : null;
       const firstStrategy = availableStrategies[0];
-      if (firstStrategy && !selectedStrategyId) {
+
+      if (preselectedStrategy) {
+        setSelectedStrategyId(preselectedStrategy.id);
+      } else if (firstStrategy && !selectedStrategyId) {
         setSelectedStrategyId(firstStrategy.id);
       }
     } catch (error) {
