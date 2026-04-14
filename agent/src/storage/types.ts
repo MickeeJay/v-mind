@@ -19,6 +19,27 @@ export interface ExecutionHistoryInsert {
   completedAt: string;
 }
 
+export interface ExecutionHistoryRecord extends ExecutionHistoryInsert {
+  id: number;
+}
+
+export interface ExecutionHistoryQuery extends PaginationQuery {
+  vaultId: string;
+  from?: string;
+  to?: string;
+}
+
+export interface ExecutionSummary {
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  averageAttempts: number;
+  averageConfirmations: number;
+  averageFeeMicrostx: number;
+  lastExecutionAt: string | null;
+  recentExecutions: ExecutionHistoryRecord[];
+}
+
 export interface PortfolioSnapshotInsert {
   ownerAddress: string;
   blockHeight: number;
