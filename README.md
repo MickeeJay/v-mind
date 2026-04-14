@@ -50,8 +50,6 @@ Ensure you have the following installed:
 
 Install all workspace dependencies:
 
-Install all workspace dependencies:
-
 ```powershell
 npm install
 ```
@@ -64,13 +62,15 @@ make install
 
 ### 2. Configure Environment
 
-Copy the environment template and configure your local environment:
+Each workspace has its own environment template. Copy the templates you need and configure your local environment:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item web\.env.example web\.env.local
+Copy-Item agent\.env.example agent\.env
+Copy-Item contracts\.env.example contracts\.env
 ```
 
-Edit `.env` with your configuration:
+Edit the copied files with your configuration:
 
 ```bash
 # Stacks Configuration
@@ -82,11 +82,11 @@ NODE_ENV=development
 PORT=3000
 ```
 
-**⚠️ Never commit the `.env` file - it's automatically ignored.**
+**⚠️ Never commit the copied env files - they are automatically ignored.**
 
 ### 3. Start Development
 
-Start all development servers:
+Start the default development stack:
 
 ```bash
 npm run dev
