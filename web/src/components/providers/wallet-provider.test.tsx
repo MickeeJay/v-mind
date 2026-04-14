@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import * as React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WalletProvider, useWallet } from '@/components/providers/wallet-provider';

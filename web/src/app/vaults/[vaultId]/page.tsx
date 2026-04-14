@@ -1,18 +1,19 @@
 'use client';
 
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AllocationBreakdown } from '@/components/vault-detail/allocation-breakdown';
 import { ExecutionHistory } from '@/components/vault-detail/execution-history';
 import { PerformanceChart } from '@/components/vault-detail/performance-chart';
 import { VaultActions } from '@/components/vault-detail/vault-actions';
 import { VaultMetadata } from '@/components/vault-detail/vault-metadata';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchVaultOverview } from '@/lib/vault-detail-api';
 import { formatMicrostx } from '@/lib/vault-detail-formatters';
+
 import type { VaultDetailSnapshot } from '@/types/vault-detail';
 
 interface VaultDetailsPageProps {

@@ -1,14 +1,15 @@
 'use client';
 
+import { Copy, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
-import { Copy, ExternalLink } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { getExplorerContractUrl } from '@/lib/vault-detail-transactions';
 import { formatBlockHeight, formatVaultDate } from '@/lib/vault-detail-formatters';
+import { getExplorerContractUrl } from '@/lib/vault-detail-transactions';
+
 import type { VaultDetailSnapshot } from '@/types/vault-detail';
 
 interface VaultMetadataProps {

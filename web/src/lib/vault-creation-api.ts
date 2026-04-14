@@ -9,15 +9,16 @@ import {
   type TupleCV,
 } from '@stacks/transactions';
 
+
+import { getExpectedNetwork } from '@/config/wallet';
+import { env } from '@/lib/env';
+
 import type {
   VaultCreationPricing,
   VaultCreationProtocolConfig,
   VaultStrategy,
   WalletBalanceSnapshot,
 } from '@/types/vault-creation';
-
-import { getExpectedNetwork } from '@/config/wallet';
-import { env } from '@/lib/env';
 
 const STRATEGY_REGISTRY_CONTRACT = 'strategy-registry';
 const PROTOCOL_CONFIG_CONTRACT = 'protocol-config';

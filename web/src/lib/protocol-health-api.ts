@@ -3,6 +3,7 @@ import { ClarityType, callReadOnlyFunction, uintCV, type ClarityValue, type Tupl
 
 import { getExpectedNetwork } from '@/config/wallet';
 import { env } from '@/lib/env';
+
 import type { ProtocolHealthPageData, ProtocolHealthSnapshot, ProtocolHealthStatus } from '@/types/protocol-health';
 
 const VAULT_CORE_CONTRACT = 'vault-core';

@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { ArrowDownUp, ChevronDown, RefreshCw } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { useVaultAllocationQuery } from '@/hooks/use-vault-allocation-query';
 import { formatBasisPoints, formatMicrostx } from '@/lib/vault-detail-formatters';
+
 import type { VaultAllocationEntry } from '@/types/vault-detail';
 
 type SortKey = 'allocationBps' | 'amountMicrostx' | 'protocolLabel';

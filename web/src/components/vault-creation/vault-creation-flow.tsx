@@ -2,21 +2,14 @@
 
 import * as React from 'react';
 
-import type {
-  VaultCreationError,
-  VaultCreationPricing,
-  VaultCreationProtocolConfig,
-  VaultCreationStep,
-  VaultStrategy,
-} from '@/types/vault-creation';
 
+import { Button } from '@/components/ui/button';
 import { ChooseStrategyStep } from '@/components/vault-creation/choose-strategy-step';
 import { ConfigureDepositStep } from '@/components/vault-creation/configure-deposit-step';
 import { ReviewConfirmStep } from '@/components/vault-creation/review-confirm-step';
 import { TransactionPendingStep } from '@/components/vault-creation/transaction-pending-step';
 import { VaultCreationStepper } from '@/components/vault-creation/vault-creation-stepper';
 import { VaultCreationSuccessStep } from '@/components/vault-creation/vault-creation-success-step';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/use-wallet';
 import {
@@ -36,6 +29,14 @@ import {
   pollVaultCreationConfirmation,
   submitVaultCreationTransaction,
 } from '@/lib/vault-creation-transactions';
+
+import type {
+  VaultCreationError,
+  VaultCreationPricing,
+  VaultCreationProtocolConfig,
+  VaultCreationStep,
+  VaultStrategy,
+} from '@/types/vault-creation';
 
 interface VaultCreationFlowProps {
   initialStrategyId?: bigint | null;

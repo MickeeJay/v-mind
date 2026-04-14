@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { Filter, RefreshCw, Search } from 'lucide-react';
+import * as React from 'react';
 
 import { StrategyBrowserControls } from '@/components/strategies/strategy-browser-controls';
 import { StrategyCard } from '@/components/strategies/strategy-card';
@@ -9,6 +9,7 @@ import { StrategyDetailDialog } from '@/components/strategies/strategy-detail-di
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useStrategyBrowserQuery } from '@/hooks/use-strategy-browser-query';
+
 import type {
   StrategyBrowserStrategy,
   StrategyFilterRisk,

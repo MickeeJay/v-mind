@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from 'react';
 import { DEFAULT_PROVIDERS } from '@stacks/connect';
 import { Download, Loader2, PlugZap, ShieldCheck } from 'lucide-react';
+import * as React from 'react';
 
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { useWallet } from '@/hooks/use-wallet';
 import {
   type WalletProviderType,

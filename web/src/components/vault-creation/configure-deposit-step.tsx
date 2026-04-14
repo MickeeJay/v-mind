@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatMicrostx } from '@/lib/vault-creation-formatters';
+
 import type { VaultStrategy } from '@/types/vault-creation';
 
 interface ConfigureDepositStepProps {

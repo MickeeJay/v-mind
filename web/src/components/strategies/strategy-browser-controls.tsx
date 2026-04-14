@@ -4,6 +4,7 @@ import { ArrowDownUp, FilterX } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import type { StrategyFilterRisk, StrategyFilterType, StrategySortKey } from '@/types/strategy-browser';
 
 interface StrategyBrowserControlsProps {

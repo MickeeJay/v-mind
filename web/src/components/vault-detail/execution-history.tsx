@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { ArrowDownUp, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { fetchVaultExecutionRecords } from '@/lib/vault-detail-api';
 import { formatBlockHeight, formatMicrostx } from '@/lib/vault-detail-formatters';
+
 import type { VaultExecutionRecord } from '@/types/vault-detail';
 
 type SortKey = 'executionBlock' | 'executionType' | 'assetsRoutedMicrostx' | 'yieldGeneratedMicrostx' | 'feesPaidMicrostx';

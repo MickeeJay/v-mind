@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { formatBpsToPercent, formatMicrostx } from '@/lib/vault-creation-formatters';
+
 import type { VaultStrategy } from '@/types/vault-creation';
 
 interface ReviewConfirmStepProps {

@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from 'react';
 import { ChevronDown, Copy, LogOut } from 'lucide-react';
+import * as React from 'react';
 
-import { ConnectWalletModal } from '@/components/wallet/connect-wallet-modal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,8 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useWallet } from '@/hooks/use-wallet';
+import { ConnectWalletModal } from '@/components/wallet/connect-wallet-modal';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@/hooks/use-wallet';
 
 function truncateAddress(address: string): string {
   if (address.length <= 14) {

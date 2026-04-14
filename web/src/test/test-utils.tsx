@@ -1,10 +1,9 @@
-import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
-import type { RenderOptions } from '@testing-library/react';
+import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import * as React from 'react';
 
-import { ThemeProvider } from '@/components/theme-provider';
 import { WalletProvider } from '@/components/providers/wallet-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export function createTestQueryClient(): QueryClient {
   return new QueryClient({
@@ -36,6 +35,6 @@ function TestProviders({ children }: TestProvidersProps): JSX.Element {
   );
 }
 
-export function renderWithProviders(ui: React.ReactElement, options?: RenderOptions) {
+export function renderWithProviders(ui: React.ReactElement, options?: RenderOptions): RenderResult {
   return render(ui, { wrapper: TestProviders, ...options });
 }

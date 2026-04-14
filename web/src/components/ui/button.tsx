@@ -1,6 +1,6 @@
-import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -60,11 +60,13 @@ const Button = React.forwardRef<
   const buttonClassName = cn(buttonVariants({ variant, size, className }))
 
   if (React.isValidElement(render)) {
-    return React.cloneElement(render, {
+    const clonedProps = {
       ...props,
       "data-slot": "button",
       className: cn((render.props as { className?: string }).className, buttonClassName),
-    } as any)
+    } satisfies React.ComponentPropsWithoutRef<'button'> & { 'data-slot': string }
+
+    return React.cloneElement(render, clonedProps)
   }
 
   return (

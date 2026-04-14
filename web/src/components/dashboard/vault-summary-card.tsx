@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatBtc, formatLastExecution, formatPercent, formatUsd } from '@/lib/dashboard-formatters';
+
 import type { DashboardVault, VaultStatus } from '@/types/dashboard';
 
 interface VaultSummaryCardProps {

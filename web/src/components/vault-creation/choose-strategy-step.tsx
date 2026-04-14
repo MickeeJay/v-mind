@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+
 import type { VaultStrategy } from '@/types/vault-creation';
 
 interface ChooseStrategyStepProps {

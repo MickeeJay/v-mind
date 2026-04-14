@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from 'react';
 import {
   JsonRpcErrorCode,
   connect as stacksConnect,
@@ -10,6 +9,7 @@ import {
   isConnected,
   setSelectedProviderId,
 } from '@stacks/connect';
+import * as React from 'react';
 
 import { getConnectNetwork, getExpectedNetwork, getWalletConnectConfig, type VMindNetwork } from '@/config/wallet';
 import { WALLET_PROVIDER_IDS, type WalletProviderType, resolveWalletProvider } from '@/lib/wallet-providers';
@@ -82,7 +82,7 @@ function isNetworkCompatible(expected: VMindNetwork, actual: VMindNetwork | null
 
 function getErrorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code = Number(error.code);
+    const code = Number(error.code) as JsonRpcErrorCode;
 
     if (code === JsonRpcErrorCode.UserCanceled || code === JsonRpcErrorCode.UserRejection) {
       return 'Wallet connection was canceled.';

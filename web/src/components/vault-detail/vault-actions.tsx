@@ -1,8 +1,8 @@
 'use client';
 
+import { Lock, PauseCircle, ShieldAlert, SquareDashedBottom, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
-import { Lock, PauseCircle, ShieldAlert, SquareDashedBottom, Wallet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import {
   submitVaultActionTransaction,
   VaultActionTransactionError,
 } from '@/lib/vault-detail-transactions';
+
 import type { VaultDetailSnapshot } from '@/types/vault-detail';
 
 interface VaultActionsProps {

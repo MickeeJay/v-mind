@@ -1,9 +1,10 @@
 import './globals.css';
-import type { Metadata } from 'next';
 import { AppShell } from '@/components/layout/app-shell';
 import { AppProviders } from '@/components/providers/app-providers';
 import { fontDisplay, fontMono, fontSans } from '@/config/fonts';
 import { siteMetadata } from '@/config/site-metadata';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = siteMetadata;
 

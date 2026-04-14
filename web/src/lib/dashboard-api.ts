@@ -1,4 +1,5 @@
 import { env } from '@/lib/env';
+
 import type {
   DashboardPortfolioSummary,
   DashboardVault,
@@ -200,7 +201,7 @@ async function fetchJson(url: string, options?: FetchOptions): Promise<ApiResult
     });
 
     const isJson = response.headers.get('content-type')?.toLowerCase().includes('application/json');
-    const payload = isJson ? await response.json() : null;
+    const payload: unknown = isJson ? await response.json() : null;
 
     return {
       payload,

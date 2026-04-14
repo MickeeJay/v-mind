@@ -1,4 +1,5 @@
 import { fetchAvailableStrategies, fetchVaultCreationProtocolConfig } from '@/lib/vault-creation-api';
+
 import type { StrategyBrowserStrategy, StrategyDetailSeriesPoint } from '@/types/strategy-browser';
 import type { VaultStrategy } from '@/types/vault-creation';
 

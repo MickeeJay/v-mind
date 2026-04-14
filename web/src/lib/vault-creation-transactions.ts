@@ -1,10 +1,11 @@
 import { openContractCall } from '@stacks/connect';
 import { ClarityType, hexToCV, principalCV, uintCV } from '@stacks/transactions';
 
-import type { ConfirmedVaultResult, VaultCreationSubmissionResult } from '@/types/vault-creation';
 
 import { getConnectNetwork, getExpectedNetwork } from '@/config/wallet';
 import { env } from '@/lib/env';
+
+import type { ConfirmedVaultResult, VaultCreationSubmissionResult } from '@/types/vault-creation';
 
 const VAULT_CORE_CONTRACT = 'vault-core';
 

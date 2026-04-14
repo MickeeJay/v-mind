@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
+
 import type { VaultCreationError } from '@/types/vault-creation';
 
 interface TransactionPendingStepProps {

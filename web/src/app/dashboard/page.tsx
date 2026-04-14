@@ -10,9 +10,9 @@ import { DashboardSkeletonState } from '@/components/dashboard/dashboard-skeleto
 import { PortfolioSummaryCard } from '@/components/dashboard/portfolio-summary-card';
 import { VaultList } from '@/components/dashboard/vault-list';
 import { Button } from '@/components/ui/button';
+import { useDashboardVaultsQuery } from '@/hooks/use-dashboard-vaults-query';
 import { useWallet } from '@/hooks/use-wallet';
 import { buildPortfolioSummary } from '@/lib/dashboard-api';
-import { useDashboardVaultsQuery } from '@/hooks/use-dashboard-vaults-query';
 
 export default function DashboardPage(): JSX.Element {
   const { address } = useWallet();

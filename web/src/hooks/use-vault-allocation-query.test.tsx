@@ -1,10 +1,10 @@
-import * as React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import * as React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createTestQueryClient } from '@/test/test-utils';
 import { useVaultAllocationQuery } from '@/hooks/use-vault-allocation-query';
+import { createTestQueryClient } from '@/test/test-utils';
 
 const fetchVaultAllocationMock = vi.fn();
 

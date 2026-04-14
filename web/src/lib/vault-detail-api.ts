@@ -12,6 +12,7 @@ import {
 import { getExpectedNetwork } from '@/config/wallet';
 import { env } from '@/lib/env';
 import { getVaultContractPrincipal, getVaultReceiptTokenPrincipal } from '@/lib/vault-detail-transactions';
+
 import type {
   VaultAllocationEntry,
   VaultDetailPageData,
@@ -228,7 +229,7 @@ async function fetchBlockDate(blockHeight: bigint | null): Promise<string | null
     return null;
   }
 
-  const payload = (await response.json()) as BlockResponse;
+  const payload: BlockResponse = (await response.json()) as BlockResponse;
   const candidate = payload.burn_block_time_iso ?? payload.timestamp;
 
   if (candidate) {
@@ -346,6 +347,10 @@ function extractTextFromUnknown(value: unknown): string | null {
   return null;
 }
 
+function extractUnknownArray(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
 function collectExecutionMetrics(tx: unknown): { yieldGenerated: bigint; feesPaid: bigint } {
   const collected = { yieldGenerated: 0n, feesPaid: 0n };
 
@@ -418,7 +423,8 @@ async function fetchContractTransactions(contractPrincipal: string): Promise<unk
     return [];
   }
 
-  return extractTransactionArray(await response.json());
+  const payload: unknown = await response.json();
+  return extractTransactionArray(payload);
 }
 
 async function fetchStrategyDetail(strategyId: bigint): Promise<VaultStrategyDetail> {
@@ -524,14 +530,15 @@ async function fetchVaultExecutions(vaultId: bigint): Promise<VaultExecutionReco
         return null;
       }
 
-      const firstArg = Array.isArray(contractCall.function_args) ? contractCall.function_args[0] : null;
+      const functionArgs = extractUnknownArray(contractCall.function_args);
+      const firstArg = functionArgs ? functionArgs[0] : null;
       const vaultArg = extractUIntFromUnknown(firstArg);
       if (vaultArg !== vaultId) {
         return null;
       }
 
       const amountArgIndex = functionName === 'rebalance-vault' || functionName === 'rebalance' ? 4 : 3;
-      const amountArg = Array.isArray(contractCall.function_args) ? contractCall.function_args[amountArgIndex] : null;
+      const amountArg = functionArgs ? functionArgs[amountArgIndex] : null;
       const assetsRoutedMicrostx = extractUIntFromUnknown(amountArg) ?? 0n;
       const metrics = collectExecutionMetrics(transaction);
       const strategyLabel = inferExecutionType(functionName);

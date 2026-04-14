@@ -1,12 +1,13 @@
 'use client';
 
+import { Activity, Clock3, ExternalLink, RefreshCw, ShieldAlert, ShieldCheck, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
-import { Activity, Clock3, ExternalLink, RefreshCw, ShieldAlert, ShieldCheck, Wallet } from 'lucide-react';
 
 import { ProtocolStatusBadge } from '@/components/protocols/protocol-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import type { ProtocolHealthPageData, ProtocolHealthSnapshot } from '@/types/protocol-health';
 
 interface SerializedProtocolHealthSnapshot extends Omit<ProtocolHealthSnapshot, 'tvlMicrostx'> {

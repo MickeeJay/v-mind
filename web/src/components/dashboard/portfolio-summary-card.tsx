@@ -4,6 +4,7 @@ import { Bitcoin, Layers3, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatBtc, formatUsd } from '@/lib/dashboard-formatters';
+
 import type { DashboardPortfolioSummary } from '@/types/dashboard';
 
 interface PortfolioSummaryCardProps {

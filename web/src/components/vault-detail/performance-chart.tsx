@@ -1,12 +1,13 @@
 'use client';
 
-import * as React from 'react';
 import { RefreshCw } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchVaultPerformanceSeries } from '@/lib/vault-detail-api';
 import { formatMicrostx, formatPercent, formatVaultDate } from '@/lib/vault-detail-formatters';
+
 import type { VaultPerformancePoint } from '@/types/vault-detail';
 
 interface PerformanceChartProps {

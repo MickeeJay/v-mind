@@ -4,8 +4,8 @@ import { Menu } from 'lucide-react';
 import Link from 'next/link';
 
 import { ThemeToggle } from '@/components/theme-toggle';
-import { WalletButton } from '@/components/wallet/wallet-button';
 import { Button } from '@/components/ui/button';
+import { WalletButton } from '@/components/wallet/wallet-button';
 import { useWallet } from '@/hooks/use-wallet';
 
 interface TopNavProps {

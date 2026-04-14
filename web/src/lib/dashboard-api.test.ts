@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildPortfolioSummary } from '@/lib/dashboard-api';
+
 import type { DashboardVault } from '@/types/dashboard';
 
 function makeVault(id: string, status: DashboardVault['status'], balanceUsd: number, yieldBtc: number): DashboardVault {

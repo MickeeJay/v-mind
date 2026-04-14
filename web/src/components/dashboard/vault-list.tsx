@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VaultSummaryCard } from '@/components/dashboard/vault-summary-card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import type { DashboardVault, VaultStatus } from '@/types/dashboard';
 
 interface VaultListProps {
