@@ -10,6 +10,10 @@ const envSchema = z.object({
   STACKS_READONLY_CALLER: z.string().default('ST000000000000000000002AMW42H'),
   STACKS_PRIVATE_KEY: z.string().min(64),
   HIRO_API_KEY: z.string().optional(),
+  API_HOST: z.string().min(1).default('0.0.0.0'),
+  API_PORT: z.coerce.number().int().positive().default(3001),
+  FRONTEND_ORIGIN: z.string().url().default('http://localhost:3000'),
+  DATABASE_PATH: z.string().min(1).default('./data/vmind-agent.sqlite'),
   AGENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(10000),
   AGENT_LOG_EVERY_N_BLOCKS: z.coerce.number().int().positive().default(5),
   RPC_RETRY_ATTEMPTS: z.coerce.number().int().positive().default(4),
@@ -57,6 +61,14 @@ export interface AgentConfig {
     readOnlyCaller: string;
     privateKey: string;
     hiroApiKey?: string;
+  }>;
+  readonly api: Readonly<{
+    host: string;
+    port: number;
+    frontendOrigin: string;
+  }>;
+  readonly storage: Readonly<{
+    databasePath: string;
   }>;
   readonly loop: Readonly<{
     pollIntervalMs: number;
@@ -120,6 +132,14 @@ export function buildConfig(source: NodeJS.ProcessEnv): AgentConfig {
       readOnlyCaller: parsed.STACKS_READONLY_CALLER,
       privateKey: parsed.STACKS_PRIVATE_KEY,
       hiroApiKey: parsed.HIRO_API_KEY,
+    }),
+    api: Object.freeze({
+      host: parsed.API_HOST,
+      port: parsed.API_PORT,
+      frontendOrigin: parsed.FRONTEND_ORIGIN,
+    }),
+    storage: Object.freeze({
+      databasePath: parsed.DATABASE_PATH,
     }),
     loop: Object.freeze({
       pollIntervalMs: parsed.AGENT_POLL_INTERVAL_MS,

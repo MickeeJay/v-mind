@@ -83,6 +83,10 @@ env.development
 !.env.example
 !**/.env.example
 
+# Agent runtime database files
+agent/data/
+agent/*.sqlite
+
 # Environment backup files
 .env.backup
 .env.bak
