@@ -61,7 +61,7 @@ Clarinet.test({
     const nextExecutionBlock = chain.callReadOnlyFn('strategy-execution', 'get-next-executable-block', [types.uint(1)], deployer.address);
     nextExecutionBlock.result.expectOk();
 
-    const position = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
-    position.result.expectSome();
+    const position = chain.callReadOnlyFn('strategy-execution', 'get-protocol-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
+    position.result.expectOk();
   },
 });

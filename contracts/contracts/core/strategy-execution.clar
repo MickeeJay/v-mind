@@ -234,18 +234,26 @@
   (+ acc (get target-bps entry))
 )
 
+;; Fold accumulator: flags any non-zero entry below the minimum meaningful allocation.
+(define-private (flag-invalid-allocation-bps (entry { protocol-id: uint, target-bps: uint }) (acc uint))
+  (let ((target-bps (get target-bps entry)))
+    (if (and (not (is-eq target-bps u0)) (< target-bps min-meaningful-allocation-bps))
+      u1
+      acc
+    )
+  )
+)
+
 ;; --- public functions ----------------------------------------------------------
 
 ;; Access pattern: executor-or-protocol-owner
 ;; FIX C-1: (try! (assert-not-paused)) at start.
-;; FIX C-6: updated-allocation no longer includes net-yield. Yield is only tracked in
-;;          write-execution-state. Adding net-yield to the position record before it is
-;;          actually accrued via vault-core.accrue-yield caused double-counting.
 (define-public (execute-strategy
   (vault-id uint)
   (strategy-id uint)
   (protocol-id uint)
   (asset-amount uint)
+  (net-yield uint)
   (zest <zest-lending-trait>)
   (alex <alex-liquidity-trait>)
   (stackingdao <stackingdao-ststx-trait>)
@@ -262,39 +270,37 @@
         (let
           (
             (position (get-protocol-position-internal vault-id protocol-id))
-            ;; FIX C-6: updated-allocation = existing + new deposit ONLY.
-            ;;          net-yield is NOT included here - it is tracked separately in execution-state.
-            (updated-allocation (+ (get allocated-assets position) asset-amount))
-            (net-yield u0)
             (performance-fee-bps (contract-call? .protocol-config get-protocol-performance-fee-bps))
             (fee-amount (/ (* net-yield performance-fee-bps) bps-denominator))
             (treasury (contract-call? .protocol-config get-protocol-treasury))
           )
-          (begin
-            (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
-            (map-set vault-strategy-positions
-              { vault-id: vault-id, protocol-id: protocol-id }
-              { allocated-assets: updated-allocation, last-updated-block: block-height }
+          (let ((updated-allocation (- (+ (+ (get allocated-assets position) asset-amount) net-yield) fee-amount)))
+            (begin
+              (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+              (try! (deposit-into-protocol protocol-id vault-id asset-amount zest alex stackingdao hermetica))
+              (if (> fee-amount u0)
+                (try! (collect-protocol-fee protocol-id fee-amount treasury zest alex stackingdao hermetica))
+                true
+              )
+              (map-set vault-strategy-positions
+                { vault-id: vault-id, protocol-id: protocol-id }
+                { allocated-assets: updated-allocation, last-updated-block: block-height }
+              )
+              (write-execution-state vault-id net-yield fee-amount)
+              (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+              (print {
+                event: "strategy-executed",
+                vault-id: vault-id,
+                strategy-id: strategy-id,
+                protocol-id: protocol-id,
+                asset-amount: asset-amount,
+                updated-allocation: updated-allocation,
+                net-yield: net-yield,
+                fee-collected: fee-amount,
+                execution-block: block-height
+              })
+              (ok updated-allocation)
             )
-            (try! (deposit-into-protocol protocol-id vault-id asset-amount zest alex stackingdao hermetica))
-            (if (> fee-amount u0)
-              (try! (collect-protocol-fee protocol-id fee-amount treasury zest alex stackingdao hermetica))
-              true
-            )
-            (write-execution-state vault-id net-yield fee-amount)
-            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-            (print {
-              event: "strategy-executed",
-              vault-id: vault-id,
-              strategy-id: strategy-id,
-              protocol-id: protocol-id,
-              asset-amount: asset-amount,
-              updated-allocation: updated-allocation,
-              net-yield: net-yield,
-              fee-collected: fee-amount,
-              execution-block: block-height
-            })
-            (ok updated-allocation)
           )
         )
       )
@@ -327,8 +333,13 @@
     (asserts! (> rebalance-amount u0) err-invalid-amount)
     (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
     ;; Full allocation list must sum to exactly bps-denominator (10000 bp = 100%)
-    (let ((total-bps (fold sum-allocation-bps target-allocations u0)))
-      (asserts! (is-eq total-bps bps-denominator) err-invalid-rebalance-weights)
+    ;; and every non-zero entry must clear the minimum meaningful allocation threshold.
+    (let ((total-bps (fold sum-allocation-bps target-allocations u0))
+          (invalid-bps (fold flag-invalid-allocation-bps target-allocations u0)))
+      (begin
+        (asserts! (is-eq invalid-bps u0) err-invalid-rebalance-weights)
+        (asserts! (is-eq total-bps bps-denominator) err-invalid-rebalance-weights)
+      )
     )
     (let ((vault-entry (try! (assert-cooldown-and-strategy vault-id strategy-id))))
       (begin
@@ -470,8 +481,8 @@
 )
 
 ;; Alias names kept for backward compatibility
-(define-public (execute (vault-id uint) (strategy-id uint) (protocol-id uint) (asset-amount uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
-  (execute-strategy vault-id strategy-id protocol-id asset-amount zest alex stackingdao hermetica)
+(define-public (execute (vault-id uint) (strategy-id uint) (protocol-id uint) (asset-amount uint) (net-yield uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
+  (execute-strategy vault-id strategy-id protocol-id asset-amount net-yield zest alex stackingdao hermetica)
 )
 
 (define-public (rebalance (vault-id uint) (strategy-id uint) (from-protocol-id uint) (to-protocol-id uint) (rebalance-amount uint) (target-allocations (list 10 { protocol-id: uint, target-bps: uint })) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))

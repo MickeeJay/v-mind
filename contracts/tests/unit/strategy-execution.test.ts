@@ -1,3 +1,4 @@
+import { Cl } from '@stacks/transactions';
 import { tx } from '@hirosystems/clarinet-sdk';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -50,8 +51,8 @@ describe('strategy-execution', () => {
   }
 
   function getPositionAllocated(vaultId: number, protocolId: number): number {
-    const position = simnet.callReadOnlyFn('strategy-execution', 'get-vault-position', [u(vaultId), u(protocolId)], ADDR.deployer);
-    expect(position.result.type).toBe('some');
+    const position = simnet.callReadOnlyFn('strategy-execution', 'get-protocol-position', [u(vaultId), u(protocolId)], ADDR.deployer);
+    expect(position.result.type).toBe('ok');
     expect(position.result.value.type).toBe('tuple');
     return Number(position.result.value.value['allocated-assets'].value);
   }
@@ -71,8 +72,10 @@ describe('strategy-execution', () => {
 
     expect(getPositionAllocated(1, 1)).toBe(1_180_000);
 
-    const fees = simnet.callReadOnlyFn('strategy-execution', 'get-vault-fees-collected', [u(1)], ADDR.deployer);
-    expectOkUint(fees.result, 20_000);
+    const fees = simnet.callReadOnlyFn('strategy-execution', 'get-execution-state', [u(1)], ADDR.deployer);
+    expectOk(fees.result);
+    expect(fees.result.value.type).toBe('tuple');
+    expect(Number(fees.result.value.value['cumulative-fees-collected'].value)).toBe(20_000);
 
     const mockFees = simnet.callReadOnlyFn('mock-defi-integrations', 'get-total-fees-collected', [], ADDR.deployer);
     expectOkUint(mockFees.result, 20_000);
@@ -200,16 +203,27 @@ describe('strategy-execution', () => {
       tx.callPublicFn(
         'strategy-execution',
         'rebalance-vault',
-        [u(1), u(1), u(1), u(2), u(1_250_000), u(4000), u(6000), ...adapterTraits()],
+        [
+          u(1),
+          u(1),
+          u(1),
+          u(2),
+          u(1_250_000),
+          Cl.list([
+            Cl.tuple({ 'protocol-id': u(1), 'target-bps': u(4000) }),
+            Cl.tuple({ 'protocol-id': u(2), 'target-bps': u(6000) }),
+          ]),
+          ...adapterTraits(),
+        ],
         ADDR.deployer,
       ),
     ]);
-    expectOkBool(rebalance[0].result, true);
+    expectOkUint(rebalance[0].result, 1_250_000);
 
     expect(getPositionAllocated(1, 1)).toBe(750_000);
     expect(getPositionAllocated(1, 2)).toBe(1_250_000);
 
-    const total = simnet.callReadOnlyFn('strategy-execution', 'get-total-allocated-assets', [u(1)], ADDR.deployer);
+    const total = simnet.callReadOnlyFn('strategy-execution', 'get-vault-total-allocated', [u(1)], ADDR.deployer);
     expectOkUint(total.result, 2_000_000);
   });
 
@@ -229,7 +243,18 @@ describe('strategy-execution', () => {
       tx.callPublicFn(
         'strategy-execution',
         'rebalance-vault',
-        [u(1), u(1), u(1), u(2), u(2_000_000), u(5000), u(5000), ...adapterTraits()],
+        [
+          u(1),
+          u(1),
+          u(1),
+          u(2),
+          u(2_000_000),
+          Cl.list([
+            Cl.tuple({ 'protocol-id': u(1), 'target-bps': u(5000) }),
+            Cl.tuple({ 'protocol-id': u(2), 'target-bps': u(5000) }),
+          ]),
+          ...adapterTraits(),
+        ],
         ADDR.deployer,
       ),
     ]);

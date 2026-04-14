@@ -53,8 +53,10 @@ Clarinet.test({
           types.uint(PROTOCOL_ZEST),
           types.uint(PROTOCOL_ALEX),
           types.uint(1_250_000),
-          types.uint(4000),
-          types.uint(6000),
+          types.list([
+            types.tuple({ 'protocol-id': types.uint(PROTOCOL_ZEST), 'target-bps': types.uint(4000) }),
+            types.tuple({ 'protocol-id': types.uint(PROTOCOL_ALEX), 'target-bps': types.uint(6000) }),
+          ]),
           mockAdapter(deployer),
           mockAdapter(deployer),
           mockAdapter(deployer),
@@ -64,14 +66,14 @@ Clarinet.test({
       ),
     ]);
 
-    rebalance.receipts[0].result.expectOk().expectBool(true);
+    rebalance.receipts[0].result.expectOk().expectUint(1_250_000);
 
-    const zestPosition = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
-    const alexPosition = chain.callReadOnlyFn('strategy-execution', 'get-vault-position', [types.uint(1), types.uint(PROTOCOL_ALEX)], deployer.address);
-    const totalAllocated = chain.callReadOnlyFn('strategy-execution', 'get-total-allocated-assets', [types.uint(1)], deployer.address);
+    const zestPosition = chain.callReadOnlyFn('strategy-execution', 'get-protocol-position', [types.uint(1), types.uint(PROTOCOL_ZEST)], deployer.address);
+    const alexPosition = chain.callReadOnlyFn('strategy-execution', 'get-protocol-position', [types.uint(1), types.uint(PROTOCOL_ALEX)], deployer.address);
+    const totalAllocated = chain.callReadOnlyFn('strategy-execution', 'get-vault-total-allocated', [types.uint(1)], deployer.address);
 
-    zestPosition.result.expectSome();
-    alexPosition.result.expectSome();
+    zestPosition.result.expectOk();
+    alexPosition.result.expectOk();
     totalAllocated.result.expectOk().expectUint(2_000_000);
   },
 });
@@ -119,8 +121,10 @@ Clarinet.test({
           types.uint(PROTOCOL_ZEST),
           types.uint(PROTOCOL_ALEX),
           types.uint(500_000),
-          types.uint(5000),
-          types.uint(5000),
+          types.list([
+            types.tuple({ 'protocol-id': types.uint(PROTOCOL_ZEST), 'target-bps': types.uint(5000) }),
+            types.tuple({ 'protocol-id': types.uint(PROTOCOL_ALEX), 'target-bps': types.uint(5000) }),
+          ]),
           mockAdapter(deployer),
           mockAdapter(deployer),
           mockAdapter(deployer),
