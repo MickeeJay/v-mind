@@ -7,6 +7,10 @@ const baseEnv: NodeJS.ProcessEnv = {
   STACKS_NETWORK: 'testnet',
   STACKS_API_BASE_URL: 'https://api.testnet.hiro.so',
   STACKS_PRIVATE_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  API_HOST: '0.0.0.0',
+  API_PORT: '3001',
+  FRONTEND_ORIGIN: 'http://localhost:3000',
+  DATABASE_PATH: './data/vmind-agent.sqlite',
   AGENT_POLL_INTERVAL_MS: '5000',
   AGENT_LOG_EVERY_N_BLOCKS: '7',
   RPC_RETRY_ATTEMPTS: '4',
@@ -29,6 +33,10 @@ describe('buildConfig', () => {
     expect(config.stacks.network).toBe('testnet');
     expect(config.stacks.nodeRpcUrl).toBe('https://api.testnet.hiro.so');
     expect(config.stacks.readOnlyCaller).toBe('ST000000000000000000002AMW42H');
+    expect(config.api.host).toBe('0.0.0.0');
+    expect(config.api.port).toBe(3001);
+    expect(config.api.frontendOrigin).toBe('http://localhost:3000');
+    expect(config.storage.databasePath).toBe('./data/vmind-agent.sqlite');
     expect(config.loop.pollIntervalMs).toBe(5000);
     expect(config.execution.feeMultiplier).toBe(1.5);
     expect(config.execution.minFeeMicroStx).toBe(450n);
@@ -71,6 +79,10 @@ describe('buildConfig', () => {
   it('supports overriding scheduling and monitoring runtime values', () => {
     const config = buildConfig({
       ...baseEnv,
+      API_HOST: '127.0.0.1',
+      API_PORT: '4001',
+      FRONTEND_ORIGIN: 'https://v-mind.app',
+      DATABASE_PATH: 'C:/temp/vmind.sqlite',
       AGENT_MAX_EXECUTIONS_PER_BLOCK: '5',
       AGENT_MAX_CONCURRENT_EXECUTIONS: '4',
       ALERT_STALE_BLOCK_MS: '600000',
@@ -93,5 +105,9 @@ describe('buildConfig', () => {
     expect(config.execution.functionName).toBe('execute');
     expect(config.execution.defaultProtocolId).toBe(2);
     expect(config.execution.defaultAssetAmount).toBe(500n);
+    expect(config.api.host).toBe('127.0.0.1');
+    expect(config.api.port).toBe(4001);
+    expect(config.api.frontendOrigin).toBe('https://v-mind.app');
+    expect(config.storage.databasePath).toBe('C:/temp/vmind.sqlite');
   });
 });
