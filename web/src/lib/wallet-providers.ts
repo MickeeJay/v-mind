@@ -15,8 +15,20 @@ interface WalletWindow extends Window {
   BitcoinProvider?: StacksProvider;
 }
 
+function getWalletWindow(): WalletWindow | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window as WalletWindow;
+}
+
 export function resolveWalletProvider(provider: WalletProviderType): StacksProvider | null {
-  const walletWindow = window as WalletWindow;
+  const walletWindow = getWalletWindow();
+
+  if (!walletWindow) {
+    return null;
+  }
 
   if (provider === 'leather') {
     return walletWindow.LeatherProvider ?? null;

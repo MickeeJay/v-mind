@@ -11,6 +11,8 @@ interface FetchOptions {
   signal?: AbortSignal;
 }
 
+const E2E_DASHBOARD_FIXTURE_KEY = 'vmind-e2e-dashboard-vaults';
+
 interface ApiResult {
   payload: unknown;
   status: number;
@@ -132,6 +134,42 @@ function extractVaultArray(payload: unknown): unknown[] {
   return [];
 }
 
+function readE2eDashboardFixture(ownerAddress: string): DashboardVaultResponse | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(E2E_DASHBOARD_FIXTURE_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { owner?: string; vaults?: unknown[] } | unknown[];
+
+    if (Array.isArray(parsed)) {
+      return {
+        owner: ownerAddress,
+        vaults: parsed.map((entry, index) => normalizeVault(entry, index)),
+      };
+    }
+
+    const fixtureOwner = parsed.owner?.trim();
+
+    if (fixtureOwner && fixtureOwner !== ownerAddress) {
+      return null;
+    }
+
+    return {
+      owner: fixtureOwner ?? ownerAddress,
+      vaults: (parsed.vaults ?? []).map((entry, index) => normalizeVault(entry, index)),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson(url: string, options?: FetchOptions): Promise<ApiResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs());
@@ -230,6 +268,12 @@ export async function fetchDashboardVaults(ownerAddress: string, options?: Fetch
 
   if (!normalizedOwner) {
     throw new Error('Wallet address is required to fetch dashboard vaults.');
+  }
+
+  const fixture = readE2eDashboardFixture(normalizedOwner);
+
+  if (fixture) {
+    return fixture;
   }
 
   const agentVaults = await tryAgentVaultFetch(normalizedOwner, options);

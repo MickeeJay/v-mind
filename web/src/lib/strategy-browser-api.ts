@@ -2,6 +2,8 @@ import { fetchAvailableStrategies, fetchVaultCreationProtocolConfig } from '@/li
 import type { StrategyBrowserStrategy, StrategyDetailSeriesPoint } from '@/types/strategy-browser';
 import type { VaultStrategy } from '@/types/vault-creation';
 
+const E2E_STRATEGY_BROWSER_FIXTURE_KEY = 'vmind-e2e-strategies';
+
 function strategyTypeLabel(strategyType: bigint): string {
   if (strategyType === 1n) {
     return 'Yield';
@@ -111,7 +113,42 @@ function feeStructure(protocolFeeBps: bigint): string {
   return `${(Number(protocolFeeBps) / 100).toFixed(2)}% performance fee on realized gains, plus protocol-level execution safeguards.`;
 }
 
+function readE2eStrategyFixture(): StrategyBrowserStrategy[] | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(E2E_STRATEGY_BROWSER_FIXTURE_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+
+    return parsed.map((strategy) => ({
+      ...strategy,
+      id: BigInt(String(strategy.id)),
+      strategyType: BigInt(String(strategy.strategyType)),
+      riskTier: BigInt(String(strategy.riskTier)),
+    })) as StrategyBrowserStrategy[];
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchStrategyBrowserStrategies(senderAddress?: string): Promise<StrategyBrowserStrategy[]> {
+  const fixture = readE2eStrategyFixture();
+
+  if (fixture) {
+    return fixture;
+  }
+
   const [strategies, protocolConfig] = await Promise.all([fetchAvailableStrategies(senderAddress), fetchVaultCreationProtocolConfig(senderAddress)]);
 
   return strategies.map((strategy) => ({

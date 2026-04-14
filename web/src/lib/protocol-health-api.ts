@@ -1,5 +1,5 @@
 import { StacksMainnet, StacksMocknet, StacksTestnet, type StacksNetwork } from '@stacks/network';
-import { ClarityType, callReadOnlyFunction, principalToString, uintCV, type ClarityValue, type TupleCV } from '@stacks/transactions';
+import { ClarityType, callReadOnlyFunction, uintCV, type ClarityValue, type TupleCV } from '@stacks/transactions';
 
 import { getExpectedNetwork } from '@/config/wallet';
 import { env } from '@/lib/env';
@@ -98,14 +98,6 @@ function assertResponseOkUInt(value: ClarityValue, errorMessage: string): bigint
   }
 
   return assertUInt(value.value, errorMessage);
-}
-
-function assertPrincipal(value: ClarityValue, errorMessage: string): string {
-  if (value.type !== ClarityType.PrincipalContract && value.type !== ClarityType.PrincipalStandard) {
-    throw new Error(errorMessage);
-  }
-
-  return principalToString(value);
 }
 
 function assertOptionalTuple(value: ClarityValue, errorMessage: string): TupleCV['data'] | null {

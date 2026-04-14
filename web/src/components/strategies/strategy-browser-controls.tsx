@@ -40,7 +40,7 @@ export function StrategyBrowserControls(props: StrategyBrowserControlsProps): JS
   return (
     <div className="grid gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
       <Select value={typeFilter} onValueChange={(value) => onTypeFilterChange(value as StrategyFilterType)}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full" aria-label="Strategy type">
           <SelectValue placeholder="Strategy type" />
         </SelectTrigger>
         <SelectContent>
@@ -53,7 +53,7 @@ export function StrategyBrowserControls(props: StrategyBrowserControlsProps): JS
       </Select>
 
       <Select value={riskFilter} onValueChange={(value) => onRiskFilterChange(value as StrategyFilterRisk)}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full" aria-label="Risk tier">
           <SelectValue placeholder="Risk tier" />
         </SelectTrigger>
         <SelectContent>
@@ -64,8 +64,8 @@ export function StrategyBrowserControls(props: StrategyBrowserControlsProps): JS
         </SelectContent>
       </Select>
 
-      <Select value={assetFilter} onValueChange={onAssetFilterChange}>
-        <SelectTrigger className="w-full">
+      <Select value={assetFilter} onValueChange={(value) => onAssetFilterChange(value ?? 'all')}>
+        <SelectTrigger className="w-full" aria-label="Target asset">
           <SelectValue placeholder="Target asset" />
         </SelectTrigger>
         <SelectContent>
@@ -79,7 +79,7 @@ export function StrategyBrowserControls(props: StrategyBrowserControlsProps): JS
       </Select>
 
       <Select value={sortKey} onValueChange={(value) => onSortKeyChange(value as StrategySortKey)}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full" aria-label="Sort strategies">
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>

@@ -1,0 +1,51 @@
+name: Frontend Tests
+
+on:
+  push:
+    branches:
+      - main
+      - feat/frontend-tests
+  pull_request:
+
+jobs:
+  web-vitest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check web workspace
+        run: npm run type-check --workspace=web
+
+      - name: Run Vitest suite
+        run: npm run test --workspace=web
+
+  web-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: npm run test:e2e --workspace=web

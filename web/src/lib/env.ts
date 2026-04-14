@@ -1,11 +1,6 @@
 import { cleanEnv, str, url, bool } from 'envalid';
 
-/**
- * Validates and provides typed public environment variables for Next.js
- * All variables here must be prefixed with NEXT_PUBLIC_ to be exposed to the browser
- * Throws descriptive errors if required variables are missing or invalid
- */
-export const env = cleanEnv(process.env, {
+const envSchema = {
   // Next.js configuration
   NODE_ENV: str({
     choices: ['development', 'production', 'test'],
@@ -90,7 +85,37 @@ export const env = cleanEnv(process.env, {
     default: 'development',
     desc: 'Git commit SHA (exposed to browser)',
   }),
-});
+} as const;
+
+function createBrowserEnv(): Env {
+  return {
+    NODE_ENV: process.env.NODE_ENV ?? 'development',
+    NEXT_PUBLIC_STACKS_NETWORK: (process.env.NEXT_PUBLIC_STACKS_NETWORK ?? 'testnet') as Env['NEXT_PUBLIC_STACKS_NETWORK'],
+    NEXT_PUBLIC_STACKS_API_URL: process.env.NEXT_PUBLIC_STACKS_API_URL ?? 'https://api.testnet.hiro.so',
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? '',
+    NEXT_PUBLIC_DEPLOYER_ADDRESS: process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS ?? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+    NEXT_PUBLIC_CONTRACT_NAME: process.env.NEXT_PUBLIC_CONTRACT_NAME ?? 'v-mind-core',
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001',
+    NEXT_PUBLIC_API_VERSION: process.env.NEXT_PUBLIC_API_VERSION ?? 'v1',
+    NEXT_PUBLIC_API_TIMEOUT: process.env.NEXT_PUBLIC_API_TIMEOUT ?? '30000',
+    NEXT_PUBLIC_ENABLE_BETA_FEATURES: process.env.NEXT_PUBLIC_ENABLE_BETA_FEATURES === 'true',
+    NEXT_PUBLIC_ENABLE_ADVANCED_STRATEGIES: process.env.NEXT_PUBLIC_ENABLE_ADVANCED_STRATEGIES === 'true',
+    NEXT_PUBLIC_ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
+    NEXT_PUBLIC_ENABLE_MAINNET: process.env.NEXT_PUBLIC_ENABLE_MAINNET === 'true',
+    NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID ?? '',
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY ?? '',
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://app.posthog.com',
+    NEXT_PUBLIC_BUILD_ID: process.env.NEXT_PUBLIC_BUILD_ID ?? 'local-dev',
+    NEXT_PUBLIC_GIT_SHA: process.env.NEXT_PUBLIC_GIT_SHA ?? 'development',
+  };
+}
+
+/**
+ * Validates and provides typed public environment variables for Next.js
+ * All variables here must be prefixed with NEXT_PUBLIC_ to be exposed to the browser
+ * Throws descriptive errors if required variables are missing or invalid on the server.
+ */
+export const env: Env = typeof window === 'undefined' ? cleanEnv(process.env, envSchema) : createBrowserEnv();
 
 /**
  * Type-safe environment variables

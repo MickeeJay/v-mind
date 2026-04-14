@@ -11,70 +11,36 @@ import { PortfolioSummaryCard } from '@/components/dashboard/portfolio-summary-c
 import { VaultList } from '@/components/dashboard/vault-list';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/hooks/use-wallet';
-import { buildPortfolioSummary, fetchDashboardVaults } from '@/lib/dashboard-api';
-import type { DashboardVault } from '@/types/dashboard';
-
-type PageState = 'idle' | 'loading' | 'ready' | 'error';
+import { buildPortfolioSummary } from '@/lib/dashboard-api';
+import { useDashboardVaultsQuery } from '@/hooks/use-dashboard-vaults-query';
 
 export default function DashboardPage(): JSX.Element {
   const { address } = useWallet();
 
-  const [pageState, setPageState] = React.useState<PageState>('idle');
-  const [vaults, setVaults] = React.useState<DashboardVault[]>([]);
-  const [errorMessage, setErrorMessage] = React.useState<string>('');
-  const [retryKey, setRetryKey] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!address) {
-      setPageState('idle');
-      setVaults([]);
-      setErrorMessage('');
-      return;
-    }
-
-    const controller = new AbortController();
-    setPageState('loading');
-    setErrorMessage('');
-
-    void fetchDashboardVaults(address, { signal: controller.signal })
-      .then((response) => {
-        setVaults(response.vaults);
-        setPageState('ready');
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setPageState('error');
-        setErrorMessage(error instanceof Error ? error.message : 'Unable to load dashboard data.');
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [address, retryKey]);
+  const dashboardQuery = useDashboardVaultsQuery(address);
 
   if (!address) {
     return <DashboardDisconnectedState />;
   }
 
-  if (pageState === 'loading') {
+  if (dashboardQuery.isPending) {
     return <DashboardSkeletonState />;
   }
 
-  if (pageState === 'error') {
+  if (dashboardQuery.isError) {
     return (
       <DashboardErrorState
-        message={errorMessage}
+        message={dashboardQuery.error instanceof Error ? dashboardQuery.error.message : 'Unable to load dashboard data.'}
         onRetry={() => {
-          setRetryKey((value) => value + 1);
+          void dashboardQuery.refetch();
         }}
       />
     );
   }
 
-  if (pageState === 'ready' && vaults.length === 0) {
+  const vaults = dashboardQuery.data?.vaults ?? [];
+
+  if (vaults.length === 0) {
     return <DashboardEmptyState />;
   }
 
@@ -93,7 +59,7 @@ export default function DashboardPage(): JSX.Element {
           variant="outline"
           className="sm:self-auto"
           onClick={() => {
-            setRetryKey((value) => value + 1);
+            void dashboardQuery.refetch();
           }}
         >
           Refresh data

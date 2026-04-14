@@ -183,17 +183,23 @@ export function VaultCreationFlow({ initialStrategyId = null }: VaultCreationFlo
       const preselectedStrategy = initialStrategyId ? availableStrategies.find((strategy) => strategy.id === initialStrategyId) ?? null : null;
       const firstStrategy = availableStrategies[0];
 
-      if (preselectedStrategy) {
-        setSelectedStrategyId(preselectedStrategy.id);
-      } else if (firstStrategy && !selectedStrategyId) {
-        setSelectedStrategyId(firstStrategy.id);
-      }
+      setSelectedStrategyId((currentSelection) => {
+        if (preselectedStrategy) {
+          return preselectedStrategy.id;
+        }
+
+        if (currentSelection) {
+          return currentSelection;
+        }
+
+        return firstStrategy?.id ?? currentSelection;
+      });
     } catch (error) {
       setBaseDataError(error instanceof Error ? error.message : 'Unable to load required vault creation data.');
     } finally {
       setLoadingBaseData(false);
     }
-  }, [address, selectedStrategyId]);
+  }, [address, initialStrategyId]);
 
   React.useEffect(() => {
     void loadBaseData();

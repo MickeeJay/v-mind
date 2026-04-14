@@ -8,7 +8,7 @@ import { StrategyCard } from '@/components/strategies/strategy-card';
 import { StrategyDetailDialog } from '@/components/strategies/strategy-detail-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchStrategyBrowserStrategies } from '@/lib/strategy-browser-api';
+import { useStrategyBrowserQuery } from '@/hooks/use-strategy-browser-query';
 import type {
   StrategyBrowserStrategy,
   StrategyFilterRisk,
@@ -60,44 +60,14 @@ function compareStrategies(left: StrategyBrowserStrategy, right: StrategyBrowser
 }
 
 export default function StrategiesPage(): JSX.Element {
-  const [strategies, setStrategies] = React.useState<StrategyBrowserStrategy[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
   const [typeFilter, setTypeFilter] = React.useState<StrategyFilterType>('all');
   const [riskFilter, setRiskFilter] = React.useState<StrategyFilterRisk>('all');
   const [assetFilter, setAssetFilter] = React.useState('all');
   const [sortKey, setSortKey] = React.useState<StrategySortKey>('apy');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
   const [activeStrategy, setActiveStrategy] = React.useState<StrategyBrowserStrategy | null>(null);
-  const [retryKey, setRetryKey] = React.useState(0);
-
-  React.useEffect(() => {
-    let alive = true;
-
-    setLoading(true);
-    setError(null);
-
-    void fetchStrategyBrowserStrategies()
-      .then((items) => {
-        if (alive) {
-          setStrategies(items);
-        }
-      })
-      .catch((fetchError) => {
-        if (alive) {
-          setError(fetchError instanceof Error ? fetchError.message : 'Unable to load strategies.');
-        }
-      })
-      .finally(() => {
-        if (alive) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [retryKey]);
+  const strategiesQuery = useStrategyBrowserQuery();
+  const strategies = strategiesQuery.data ?? [];
 
   const assetOptions = React.useMemo(() => {
     return Array.from(new Set(strategies.map((strategy) => strategy.targetAssetSymbol))).sort((left, right) => left.localeCompare(right));
@@ -125,7 +95,7 @@ export default function StrategiesPage(): JSX.Element {
           </p>
         </div>
 
-        <Button variant="outline" onClick={() => setRetryKey((current) => current + 1)}>
+        <Button variant="outline" onClick={() => void strategiesQuery.refetch()}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
@@ -152,21 +122,23 @@ export default function StrategiesPage(): JSX.Element {
         }}
       />
 
-      {loading ? (
+      {strategiesQuery.isPending ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="h-72 animate-pulse rounded-2xl border border-border/70 bg-card/50" />
           ))}
         </div>
-      ) : error ? (
+      ) : strategiesQuery.isError ? (
         <Card className="border-border/70 bg-card/70">
           <CardHeader>
             <CardDescription>Strategy registry</CardDescription>
             <CardTitle className="font-[var(--font-display)] text-2xl">Unable to load strategies</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button className="mt-4" onClick={() => setRetryKey((current) => current + 1)}>
+            <p className="text-sm text-muted-foreground">
+              {strategiesQuery.error instanceof Error ? strategiesQuery.error.message : 'Unable to load strategies.'}
+            </p>
+            <Button className="mt-4" onClick={() => void strategiesQuery.refetch()}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Retry
             </Button>

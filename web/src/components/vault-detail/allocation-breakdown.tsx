@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { fetchVaultAllocation } from '@/lib/vault-detail-api';
+import { useVaultAllocationQuery } from '@/hooks/use-vault-allocation-query';
 import { formatBasisPoints, formatMicrostx } from '@/lib/vault-detail-formatters';
 import type { VaultAllocationEntry } from '@/types/vault-detail';
 
@@ -40,43 +40,11 @@ function sortDirectionSymbol(direction: 'asc' | 'desc'): JSX.Element {
 }
 
 export function AllocationBreakdown({ vaultId }: AllocationBreakdownProps): JSX.Element {
-  const [allocation, setAllocation] = React.useState<VaultAllocationEntry[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
   const [sortKey, setSortKey] = React.useState<SortKey>('allocationBps');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
 
-  React.useEffect(() => {
-    let alive = true;
-
-    setLoading(true);
-    setError(null);
-
-    void fetchVaultAllocation(vaultId)
-      .then((entries) => {
-        if (!alive) {
-          return;
-        }
-
-        setAllocation(entries);
-      })
-      .catch((fetchError) => {
-        if (!alive) {
-          return;
-        }
-
-        setError(fetchError instanceof Error ? fetchError.message : 'Unable to load vault allocation.');
-      })
-      .finally(() => {
-        if (alive) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [vaultId]);
+  const allocationQuery = useVaultAllocationQuery(vaultId);
+  const allocation = allocationQuery.data ?? [];
 
   const sortedAllocation = React.useMemo(() => {
     return [...allocation].sort((left, right) => {
@@ -95,7 +63,7 @@ export function AllocationBreakdown({ vaultId }: AllocationBreakdownProps): JSX.
     })
     .join(', ');
 
-  if (loading) {
+  if (allocationQuery.isPending) {
     return (
       <Card className="border-border/70 bg-card/70">
         <CardHeader>
@@ -109,7 +77,7 @@ export function AllocationBreakdown({ vaultId }: AllocationBreakdownProps): JSX.
     );
   }
 
-  if (error) {
+  if (allocationQuery.isError) {
     return (
       <Card className="border-border/70 bg-card/70">
         <CardHeader>
@@ -119,19 +87,14 @@ export function AllocationBreakdown({ vaultId }: AllocationBreakdownProps): JSX.
         <CardContent>
           <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
             <p className="font-medium text-foreground">Unable to load allocation data</p>
-            <p className="mt-1 text-muted-foreground">{error}</p>
+            <p className="mt-1 text-muted-foreground">
+              {allocationQuery.error instanceof Error ? allocationQuery.error.message : 'Unable to load vault allocation.'}
+            </p>
             <Button
               variant="outline"
               className="mt-3"
               onClick={() => {
-                setError(null);
-                setLoading(true);
-                void fetchVaultAllocation(vaultId)
-                  .then(setAllocation)
-                  .catch((fetchError) => {
-                    setError(fetchError instanceof Error ? fetchError.message : 'Unable to load vault allocation.');
-                  })
-                  .finally(() => setLoading(false));
+                void allocationQuery.refetch();
               }}
             >
               <RefreshCw className="mr-2 h-4 w-4" />

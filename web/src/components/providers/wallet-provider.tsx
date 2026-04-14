@@ -14,6 +14,8 @@ import {
 import { getConnectNetwork, getExpectedNetwork, getWalletConnectConfig, type VMindNetwork } from '@/config/wallet';
 import { WALLET_PROVIDER_IDS, type WalletProviderType, resolveWalletProvider } from '@/lib/wallet-providers';
 
+const E2E_WALLET_ADDRESS_KEY = 'vmind-e2e-wallet-address';
+
 interface WalletContextValue {
   address: string | null;
   network: VMindNetwork | null;
@@ -103,14 +105,23 @@ function getAddressFromConnectResult(addresses: { address: string }[]): string |
   return stxAddress ?? null;
 }
 
+function readE2eWalletAddress(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const stored = window.localStorage.getItem(E2E_WALLET_ADDRESS_KEY)?.trim();
+  return stored ? stored : null;
+}
+
 interface WalletProviderProps {
   children: React.ReactNode;
 }
 
 export function WalletProvider({ children }: WalletProviderProps): JSX.Element {
   const expectedNetwork = getExpectedNetwork();
-  const [address, setAddress] = React.useState<string | null>(null);
-  const [network, setNetwork] = React.useState<VMindNetwork | null>(null);
+  const [address, setAddress] = React.useState<string | null>(() => readE2eWalletAddress());
+  const [network, setNetwork] = React.useState<VMindNetwork | null>(() => inferNetworkFromAddress(readE2eWalletAddress()));
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -161,6 +172,10 @@ export function WalletProvider({ children }: WalletProviderProps): JSX.Element {
   }, []);
 
   React.useEffect(() => {
+    if (address) {
+      return;
+    }
+
     if (!isConnected()) {
       return;
     }
