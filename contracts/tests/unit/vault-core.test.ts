@@ -194,16 +194,16 @@ describe('vault-core', () => {
       expectErr(close[0].result, 2415);
     });
 
-    it('emergency-withdraw-all: protocol owner calls — targeted vault funds are zeroed and vault paused', () => {
+    it('emergency-withdraw-all: protocol owner calls — vault enters emergency state and preserves assets', () => {
       seedVault();
       const ew = mine(simnet, [tx.callPublicFn('vault-core', 'emergency-withdraw-all', [u(1)], ADDR.deployer)]);
-      expectOkUint(ew[0].result, 5_000_000);
+      expectOkUint(ew[0].result, 1);
 
       const assets = simnet.callReadOnlyFn('vault-core', 'get-vault-total-assets', [u(1)], ADDR.deployer);
-      expectOkUint(assets.result, 0);
+      expectOkUint(assets.result, 5_000_000);
 
       const status = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
-      expectOkUint(status.result, 2);
+      expectOkUint(status.result, 4);
     });
   });
 });
