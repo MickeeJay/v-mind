@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -40,19 +41,44 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>
+
+const Button = React.forwardRef<
+  React.ElementRef<typeof ButtonPrimitive>,
+  ButtonProps
+>(function Button(
+  {
+    className,
+    variant = "default",
+    size = "default",
+    nativeButton,
+    render,
+    ...props
+  },
+  ref
+) {
+  const buttonClassName = cn(buttonVariants({ variant, size, className }))
+
+  if (React.isValidElement(render)) {
+    return React.cloneElement(render, {
+      ...props,
+      "data-slot": "button",
+      className: cn((render.props as { className?: string }).className, buttonClassName),
+    } as any)
+  }
+
   return (
     <ButtonPrimitive
+      ref={ref}
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={buttonClassName}
+      nativeButton={nativeButton ?? (render ? false : true)}
+      render={render}
       {...props}
     />
   )
-}
+})
+
+Button.displayName = "Button"
 
 export { Button, buttonVariants }
