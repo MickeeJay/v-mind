@@ -82,3 +82,29 @@ Clarinet.test({
     vaultEleven.result.expectOk().expectUint(1_200_000);
   },
 });
+
+Clarinet.test({
+  name: 'zest-adapter: returns a recoverable error when mock balance reads fail',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+    const adapterPrincipal = `${deployer.address}.zest-protocol-adapter`;
+
+    const block = chain.mineBlock([
+      Tx.contractCall('zest-protocol-adapter', 'set-zest-config', mockZestConfig(deployer), deployer.address),
+      Tx.contractCall('zest-protocol-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
+      Tx.contractCall('zest-protocol-adapter', 'deposit-to-zest', [types.uint(7), types.uint(500_000)], deployer.address),
+      Tx.contractCall('mock-zest-protocol', 'set-user-underlying', [types.principal(adapterPrincipal), types.uint(500_000)], deployer.address),
+      Tx.contractCall('mock-zest-protocol', 'set-force-failure', [types.bool(true), types.uint(9_201)], deployer.address),
+    ]);
+
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectOk().expectBool(true);
+    block.receipts[2].result.expectOk().expectUint(500_000);
+    block.receipts[3].result.expectOk().expectBool(true);
+    block.receipts[4].result.expectOk().expectBool(true);
+
+    const balance = chain.callReadOnlyFn('zest-protocol-adapter', 'get-vault-zest-underlying-balance', [types.uint(7)], deployer.address);
+
+    balance.result.expectErr().expectUint(3403);
+  },
+});
