@@ -254,211 +254,211 @@
 		)
 	)
 
-	;; Access pattern: owner-only
-	(define-public (remove-supported-asset (asset-contract principal))
-		(begin
-			(try! (assert-owner))
-			(asserts! (is-some (map-get? supported-assets { asset-contract: asset-contract })) err-asset-not-supported)
-			(map-delete supported-assets { asset-contract: asset-contract })
-			(let ((next-version (bump-config-version)))
-				(begin
-					(print {
-						event: "asset-removed",
-						asset-contract: asset-contract,
-						version: next-version,
-						caller: tx-sender
-					})
-					(ok true)
+		;; Access pattern: owner-only
+		(define-public (remove-supported-asset (asset-contract principal))
+			(begin
+				(try! (assert-owner))
+				(asserts! (is-some (map-get? supported-assets { asset-contract: asset-contract })) err-asset-not-supported)
+				(map-delete supported-assets { asset-contract: asset-contract })
+				(let ((next-version (bump-config-version)))
+					(begin
+						(print {
+							event: "asset-removed",
+							asset-contract: asset-contract,
+							version: next-version,
+							caller: tx-sender
+						})
+						(ok true)
+					)
 				)
 			)
 		)
-	)
 
-	;; Access pattern: owner-only
-	(define-public (set-supported-asset-active (asset-contract principal) (active bool))
-		(begin
-			(try! (assert-owner))
-			(match (map-get? supported-assets { asset-contract: asset-contract })
-				asset-entry
-					(begin
-					(map-set supported-assets
-						{ asset-contract: asset-contract }
-						{
-							asset-contract: (get asset-contract asset-entry),
-							symbol: (get symbol asset-entry),
-							active: active,
-							min-deposit-microstx: (get min-deposit-microstx asset-entry),
-							max-deposit-microstx: (get max-deposit-microstx asset-entry)
-						}
-					)
-					(let ((next-version (bump-config-version)))
+		;; Access pattern: owner-only
+		(define-public (set-supported-asset-active (asset-contract principal) (active bool))
+			(begin
+				(try! (assert-owner))
+				(match (map-get? supported-assets { asset-contract: asset-contract })
+					asset-entry
 						(begin
-							(print {
-								event: "asset-status-updated",
-								asset-contract: asset-contract,
-								active: active,
-								version: next-version,
-								caller: tx-sender
-							})
-							(ok true)
-						)
-					)
-					)
-				err-asset-not-supported
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (set-fee-override (override-key (string-ascii 32)) (fee-rate-bps uint))
-		(begin
-			(try! (assert-owner))
-			(asserts! (> (len override-key) u0) err-invalid-override-key)
-			(asserts! (<= (len override-key) max-override-key-length) err-invalid-override-key)
-			(asserts! (<= fee-rate-bps max-performance-fee-bps) err-invalid-fee-rate)
-			(map-set fee-overrides
-				{ override-key: override-key }
-				{
-					fee-rate-bps: fee-rate-bps,
-					active: true
-				}
-			)
-			(let ((next-version (bump-config-version)))
-				(begin
-					(print {
-						event: "fee-override-updated",
-						override-key: override-key,
-						fee-rate-bps: fee-rate-bps,
-						active: true,
-						version: next-version,
-						caller: tx-sender
-					})
-					(ok true)
-				)
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (remove-fee-override (override-key (string-ascii 32)))
-		(begin
-			(try! (assert-owner))
-			(asserts! (is-some (map-get? fee-overrides { override-key: override-key })) err-override-not-found)
-			(map-delete fee-overrides { override-key: override-key })
-			(let ((next-version (bump-config-version)))
-				(begin
-					(print {
-						event: "fee-override-removed",
-						override-key: override-key,
-						version: next-version,
-						caller: tx-sender
-					})
-					(ok true)
-				)
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
-		(begin
-			(try! (assert-owner))
-			(match (map-get? fee-overrides { override-key: override-key })
-				override-entry
-					(begin
-					(map-set fee-overrides
-						{ override-key: override-key }
-						{
-							fee-rate-bps: (get fee-rate-bps override-entry),
-							active: active
-						}
-					)
-					(let ((next-version (bump-config-version)))
-						(begin
-							(print {
-								event: "fee-override-status-updated",
-								override-key: override-key,
-								active: active,
-								version: next-version,
-								caller: tx-sender
-							})
-							(ok true)
-						)
-					)
-					)
-				err-override-not-found
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (add-whitelisted-strategy-type (strategy-type (string-ascii 32)))
-		(begin
-			(try! (assert-owner))
-			(asserts! (> (len strategy-type) u0) err-invalid-override-key)
-			(asserts! (<= (len strategy-type) max-override-key-length) err-invalid-override-key)
-			(asserts! (is-none (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-already-whitelisted)
-			(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: true })
-			(let ((next-version (bump-config-version)))
-				(begin
-					(print {
-						event: "strategy-type-whitelisted",
-						strategy-type: strategy-type,
-						active: true,
-						version: next-version,
-						caller: tx-sender
-					})
-					(ok true)
-				)
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (remove-whitelisted-strategy-type (strategy-type (string-ascii 32)))
-		(begin
-			(try! (assert-owner))
-			(asserts! (is-some (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-not-whitelisted)
-			(map-delete whitelisted-strategy-types { strategy-type: strategy-type })
-			(let ((next-version (bump-config-version)))
-				(begin
-					(print {
-						event: "strategy-type-removed",
-						strategy-type: strategy-type,
-						version: next-version,
-						caller: tx-sender
-					})
-					(ok true)
-				)
-			)
-		)
-	)
-
-	;; Access pattern: owner-only
-	(define-public (set-whitelisted-strategy-type-active (strategy-type (string-ascii 32)) (active bool))
-		(begin
-			(try! (assert-owner))
-			(match (map-get? whitelisted-strategy-types { strategy-type: strategy-type })
-				strategy-type-entry
-					(begin
-						(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: active })
-						(let ((next-version (bump-config-version)))
-							(begin
-								(print {
-									event: "strategy-type-status-updated",
-									strategy-type: strategy-type,
+							(map-set supported-assets
+								{ asset-contract: asset-contract }
+								{
+									asset-contract: (get asset-contract asset-entry),
+									symbol: (get symbol asset-entry),
 									active: active,
-									version: next-version,
-									caller: tx-sender
-								})
-								(ok true)
+									min-deposit-microstx: (get min-deposit-microstx asset-entry),
+									max-deposit-microstx: (get max-deposit-microstx asset-entry)
+								}
+							)
+							(let ((next-version (bump-config-version)))
+								(begin
+									(print {
+										event: "asset-status-updated",
+										asset-contract: asset-contract,
+										active: active,
+										version: next-version,
+										caller: tx-sender
+									})
+									(ok true)
+								)
 							)
 						)
-					)
-				err-strategy-type-not-whitelisted
+					err-asset-not-supported
+				)
 			)
 		)
-	)
+
+		;; Access pattern: owner-only
+		(define-public (set-fee-override (override-key (string-ascii 32)) (fee-rate-bps uint))
+			(begin
+				(try! (assert-owner))
+				(asserts! (> (len override-key) u0) err-invalid-override-key)
+				(asserts! (<= (len override-key) max-override-key-length) err-invalid-override-key)
+				(asserts! (<= fee-rate-bps max-performance-fee-bps) err-invalid-fee-rate)
+				(map-set fee-overrides
+					{ override-key: override-key }
+					{
+						fee-rate-bps: fee-rate-bps,
+						active: true
+					}
+				)
+				(let ((next-version (bump-config-version)))
+					(begin
+						(print {
+							event: "fee-override-updated",
+							override-key: override-key,
+							fee-rate-bps: fee-rate-bps,
+							active: true,
+							version: next-version,
+							caller: tx-sender
+						})
+						(ok true)
+					)
+				)
+			)
+		)
+
+		;; Access pattern: owner-only
+		(define-public (remove-fee-override (override-key (string-ascii 32)))
+			(begin
+				(try! (assert-owner))
+				(asserts! (is-some (map-get? fee-overrides { override-key: override-key })) err-override-not-found)
+				(map-delete fee-overrides { override-key: override-key })
+				(let ((next-version (bump-config-version)))
+					(begin
+						(print {
+							event: "fee-override-removed",
+							override-key: override-key,
+							version: next-version,
+							caller: tx-sender
+						})
+						(ok true)
+					)
+				)
+			)
+		)
+
+		;; Access pattern: owner-only
+		(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
+			(begin
+				(try! (assert-owner))
+				(match (map-get? fee-overrides { override-key: override-key })
+					override-entry
+						(begin
+							(map-set fee-overrides
+								{ override-key: override-key }
+								{
+									fee-rate-bps: (get fee-rate-bps override-entry),
+									active: active
+								}
+							)
+							(let ((next-version (bump-config-version)))
+								(begin
+									(print {
+										event: "fee-override-status-updated",
+										override-key: override-key,
+										active: active,
+										version: next-version,
+										caller: tx-sender
+									})
+									(ok true)
+								)
+							)
+						)
+					err-override-not-found
+				)
+			)
+		)
+
+		;; Access pattern: owner-only
+		(define-public (add-whitelisted-strategy-type (strategy-type (string-ascii 32)))
+			(begin
+				(try! (assert-owner))
+				(asserts! (> (len strategy-type) u0) err-invalid-override-key)
+				(asserts! (<= (len strategy-type) max-override-key-length) err-invalid-override-key)
+				(asserts! (is-none (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-already-whitelisted)
+				(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: true })
+				(let ((next-version (bump-config-version)))
+					(begin
+						(print {
+							event: "strategy-type-whitelisted",
+							strategy-type: strategy-type,
+							active: true,
+							version: next-version,
+							caller: tx-sender
+						})
+						(ok true)
+					)
+				)
+			)
+		)
+
+		;; Access pattern: owner-only
+		(define-public (remove-whitelisted-strategy-type (strategy-type (string-ascii 32)))
+			(begin
+				(try! (assert-owner))
+				(asserts! (is-some (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-not-whitelisted)
+				(map-delete whitelisted-strategy-types { strategy-type: strategy-type })
+				(let ((next-version (bump-config-version)))
+					(begin
+						(print {
+							event: "strategy-type-removed",
+							strategy-type: strategy-type,
+							version: next-version,
+							caller: tx-sender
+						})
+						(ok true)
+					)
+				)
+			)
+		)
+
+		;; Access pattern: owner-only
+		(define-public (set-whitelisted-strategy-type-active (strategy-type (string-ascii 32)) (active bool))
+			(begin
+				(try! (assert-owner))
+				(match (map-get? whitelisted-strategy-types { strategy-type: strategy-type })
+					strategy-type-entry
+						(begin
+							(map-set whitelisted-strategy-types { strategy-type: strategy-type } { active: active })
+							(let ((next-version (bump-config-version)))
+								(begin
+									(print {
+										event: "strategy-type-status-updated",
+										strategy-type: strategy-type,
+										active: active,
+										version: next-version,
+										caller: tx-sender
+									})
+									(ok true)
+								)
+							)
+						)
+					err-strategy-type-not-whitelisted
+				)
+			)
+		)
 
 (define-read-only (get-protocol-performance-fee-bps)
 	(var-get protocol-performance-fee-bps)
