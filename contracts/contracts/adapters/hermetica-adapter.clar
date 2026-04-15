@@ -22,7 +22,7 @@
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
-(define-data-var use-mock bool true)
+(define-data-var use-mock bool false)
 (define-data-var cached-usdh-per-susdh uint one-8)
 
 (define-data-var staking-contract principal tx-sender)

@@ -10,6 +10,9 @@ Clarinet.test({
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
 
+    const mode = chain.callReadOnlyFn('zest-protocol-adapter', 'get-mock-mode', [], deployer.address);
+    mode.result.expectOk().expectBool(false);
+
     const setup = chain.mineBlock([
       Tx.contractCall('zest-protocol-adapter', 'deposit-to-zest', [types.uint(1), types.uint(1_000_000)], deployer.address),
       Tx.contractCall('zest-protocol-adapter', 'withdraw-from-zest', [types.uint(1), types.uint(400_000)], deployer.address),
@@ -23,9 +26,6 @@ Clarinet.test({
 
     const balance = chain.callReadOnlyFn('zest-protocol-adapter', 'get-vault-zest-underlying-balance', [types.uint(1)], deployer.address);
     balance.result.expectOk().expectUint(600_000);
-
-    const mode = chain.callReadOnlyFn('zest-protocol-adapter', 'get-mock-mode', [], deployer.address);
-    mode.result.expectOk().expectBool(true);
 
     const totalDeployed = chain.callReadOnlyFn('zest-protocol-adapter', 'get-total-deployed', [], deployer.address);
     totalDeployed.result.expectOk().expectUint(600_000);
@@ -53,6 +53,7 @@ Clarinet.test({
     const adapterPrincipal = `${deployer.address}.zest-protocol-adapter`;
 
     const block = chain.mineBlock([
+      Tx.contractCall('zest-protocol-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
       Tx.contractCall('zest-protocol-adapter', 'deposit-to-zest', [types.uint(10), types.uint(1_000_000)], deployer.address),
       Tx.contractCall('zest-protocol-adapter', 'deposit-to-zest', [types.uint(11), types.uint(1_000_000)], deployer.address),
       Tx.contractCall('mock-zest-protocol', 'set-user-underlying', [types.principal(adapterPrincipal), types.uint(2_400_000)], deployer.address),

@@ -17,7 +17,7 @@
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
-(define-data-var use-mock bool true)
+(define-data-var use-mock bool false)
 (define-data-var total-deployed uint u0)
 
 (define-data-var zest-pool-reserve principal tx-sender)

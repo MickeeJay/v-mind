@@ -10,6 +10,9 @@ Clarinet.test({
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
 
+    const mode = chain.callReadOnlyFn('hermetica-adapter', 'get-mock-mode', [], deployer.address);
+    mode.result.expectOk().expectBool(false);
+
     const block = chain.mineBlock([
       Tx.contractCall('hermetica-adapter', 'set-hermetica-config', [mock(deployer), mock(deployer)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'deposit-usdh', [types.uint(1), types.uint(1_000_000)], deployer.address),
@@ -45,6 +48,7 @@ Clarinet.test({
     const deployer = accounts.get('deployer')!;
 
     const block = chain.mineBlock([
+      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'set-hermetica-config', [mock(deployer), mock(deployer)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'deposit-usdh', [types.uint(8), types.uint(1_000_000)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'withdraw-usdh', [types.uint(8), types.uint(250_000)], deployer.address),

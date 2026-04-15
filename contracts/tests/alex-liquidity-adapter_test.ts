@@ -12,6 +12,9 @@ Clarinet.test({
     const tokenX = accounts.get('wallet_1')!;
     const tokenY = accounts.get('wallet_2')!;
 
+    const mode = chain.callReadOnlyFn('alex-liquidity-adapter', 'get-mock-mode', [], deployer.address);
+    mode.result.expectOk().expectBool(false);
+
     const block = chain.mineBlock([
       Tx.contractCall(
         'alex-liquidity-adapter',

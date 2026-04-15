@@ -19,7 +19,7 @@
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
-(define-data-var use-mock bool true)
+(define-data-var use-mock bool false)
 
 (define-data-var core-contract principal tx-sender)
 (define-data-var reserve-contract principal tx-sender)
