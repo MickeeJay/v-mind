@@ -18,12 +18,14 @@
 (define-constant err-invalid-treasury (err u3505))
 (define-constant err-not-pending-owner (err u3506))
 (define-constant err-protocol-paused (err u3507))
+(define-constant err-config-not-initialized (err u3508))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
-(define-data-var use-mock bool true)
+(define-data-var use-mock bool false)
+(define-data-var config-initialized bool false)
 (define-data-var token-x principal tx-sender)
 (define-data-var token-y principal tx-sender)
 (define-data-var pool-factor uint u1000)
@@ -54,6 +56,17 @@
   )
 )
 
+(define-private (configuration-ready)
+  (var-get config-initialized)
+)
+
+(define-private (assert-configured)
+  (if (configuration-ready)
+    (ok true)
+    err-config-not-initialized
+  )
+)
+
 (define-private (get-position (vault-id uint))
   (default-to { lp-balance: u0, token-x-deployed: u0 } (map-get? vault-positions { vault-id: vault-id }))
 )
@@ -63,21 +76,27 @@
 )
 
 (define-private (call-add-position (amount uint))
-  (contract-call? .mock-alex-amm add-to-position
-    (var-get token-x)
-    (var-get token-y)
-    (var-get pool-factor)
-    amount
-    none
+  (begin
+    (try! (assert-configured))
+    (contract-call? .mock-alex-amm add-to-position
+      (var-get token-x)
+      (var-get token-y)
+      (var-get pool-factor)
+      amount
+      none
+    )
   )
 )
 
 (define-private (call-reduce-position (percent uint))
-  (contract-call? .mock-alex-amm reduce-position
-    (var-get token-x)
-    (var-get token-y)
-    (var-get pool-factor)
-    percent
+  (begin
+    (try! (assert-configured))
+    (contract-call? .mock-alex-amm reduce-position
+      (var-get token-x)
+      (var-get token-y)
+      (var-get pool-factor)
+      percent
+    )
   )
 )
 
@@ -95,6 +114,7 @@
     (var-set token-x new-token-x)
     (var-set token-y new-token-y)
     (var-set pool-factor new-pool-factor)
+    (var-set config-initialized true)
     (ok true)
   )
 )
@@ -260,6 +280,10 @@
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-read-only (is-configured)
+  (configuration-ready)
 )
 
 (define-public (deposit (vault-id uint) (amount uint))

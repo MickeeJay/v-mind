@@ -10,6 +10,9 @@ Clarinet.test({
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
 
+    const mode = chain.callReadOnlyFn('stackingdao-adapter', 'get-mock-mode', [], deployer.address);
+    mode.result.expectOk().expectBool(false);
+
     const block = chain.mineBlock([
       Tx.contractCall(
         'stackingdao-adapter',
@@ -55,6 +58,7 @@ Clarinet.test({
     const deployer = accounts.get('deployer')!;
 
     const block = chain.mineBlock([
+      Tx.contractCall('stackingdao-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
       Tx.contractCall(
         'stackingdao-adapter',
         'set-stackingdao-config',

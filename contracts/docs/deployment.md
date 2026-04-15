@@ -69,6 +69,8 @@ set DEPLOYMENT_MANIFEST_PATH=contracts/deployments/manifests/<manifest-file>.jso
 npm run deploy:init --workspace=contracts -- --manifest %DEPLOYMENT_MANIFEST_PATH%
 ```
 
+Initialization now also writes the adapter principal configuration before the adapters are treated as production-ready. Mainnet deployments must provide the adapter initialization block in `contracts/deployments/config/mainnet.json`; the initializer validates those values before continuing.
+
 ## Post-deployment verification
 
 Run verification against the same manifest used for initialization:
