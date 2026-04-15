@@ -53,6 +53,16 @@ Clarinet.test({
 });
 
 Clarinet.test({
+  name: 'stackingdao-adapter: returns recoverable errors for balance reads before configuration',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+
+    const balance = chain.callReadOnlyFn('stackingdao-adapter', 'get-vault-stx-balance', [types.uint(3)], deployer.address);
+    balance.result.expectErr().expectUint(3608);
+  },
+});
+
+Clarinet.test({
   name: 'stackingdao-adapter: reports STX balances using exchange-rate aware accounting',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;

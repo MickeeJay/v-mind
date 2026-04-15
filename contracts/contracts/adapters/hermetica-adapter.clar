@@ -273,7 +273,10 @@
   (begin
     (try! (assert-configured))
     (if (var-get use-mock)
-      (ok (unwrap-panic (contract-call? .mock-hermetica-staking get-usdh-per-susdh)))
+      (match (contract-call? .mock-hermetica-staking get-usdh-per-susdh)
+        rate (ok rate)
+        external-err err-external-call-failed
+      )
       (ok (var-get cached-usdh-per-susdh))
     )
   )
@@ -283,7 +286,7 @@
   (let
     (
       (shares (get susdh-shares (get-position vault-id)))
-      (rate (unwrap-panic (get-usdh-per-susdh-rate)))
+      (rate (try! (get-usdh-per-susdh-rate)))
     )
     (ok (/ (* shares rate) one-8))
   )
