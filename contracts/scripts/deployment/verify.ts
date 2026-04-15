@@ -108,6 +108,12 @@ async function main(): Promise<void> {
     discrepancies.push(`access-control.get-owner mismatch. Expected ${env.deployerAddress}`);
   }
 
+  const alexPrincipal = getContractPrincipal(manifest, 'alex-liquidity-adapter');
+  const alexConfigured = await readOnly(network, env.deployerAddress, alexPrincipal, 'is-configured', []);
+  if (!compareBool(alexConfigured, true)) {
+    discrepancies.push('alex-liquidity-adapter.is-configured false.');
+  }
+
   const protocolConfigPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.protocolConfig);
   const performanceFee = await readOnly(
     network,
@@ -145,6 +151,31 @@ async function main(): Promise<void> {
   const treasury = await readOnly(network, env.deployerAddress, protocolConfigPrincipal, 'get-protocol-treasury', []);
   if (!comparePrincipal(treasury, config.initialConfig.protocolConfig.protocolTreasury)) {
     discrepancies.push(`protocol-config.get-protocol-treasury mismatch. Expected ${config.initialConfig.protocolConfig.protocolTreasury}.`);
+  }
+
+  const adapterInitialization = config.initialConfig.adapterInitialization;
+  if (config.network === 'mainnet' && !adapterInitialization) {
+    throw new Error('Mainnet deployment config must include initialConfig.adapterInitialization.');
+  }
+
+  if (adapterInitialization) {
+    const zestPrincipal = getContractPrincipal(manifest, 'zest-protocol-adapter');
+    const zestConfigured = await readOnly(network, env.deployerAddress, zestPrincipal, 'is-configured', []);
+    if (!compareBool(zestConfigured, true)) {
+      discrepancies.push('zest-protocol-adapter.is-configured false.');
+    }
+
+    const stackingdaoPrincipal = getContractPrincipal(manifest, 'stackingdao-adapter');
+    const stackingdaoConfigured = await readOnly(network, env.deployerAddress, stackingdaoPrincipal, 'is-configured', []);
+    if (!compareBool(stackingdaoConfigured, true)) {
+      discrepancies.push('stackingdao-adapter.is-configured false.');
+    }
+
+    const hermeticaPrincipal = getContractPrincipal(manifest, 'hermetica-adapter');
+    const hermeticaConfigured = await readOnly(network, env.deployerAddress, hermeticaPrincipal, 'is-configured', []);
+    if (!compareBool(hermeticaConfigured, true)) {
+      discrepancies.push('hermetica-adapter.is-configured false.');
+    }
   }
 
   for (const asset of config.initialConfig.protocolConfig.supportedAssets) {

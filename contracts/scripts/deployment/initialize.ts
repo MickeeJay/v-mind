@@ -125,6 +125,15 @@ function expectPrincipal(value: unknown, expected: string, label: string): void 
   }
 }
 
+function getSupportedAssetPrincipal(config: DeploymentConfig, symbol: string): string {
+  const supportedAsset = config.initialConfig.protocolConfig.supportedAssets.find(asset => asset.symbol === symbol);
+  if (!supportedAsset) {
+    throw new Error(`Supported asset ${symbol} not found in deployment config.`);
+  }
+
+  return supportedAsset.assetContract;
+}
+
 async function callAndWait(
   rpcUrl: string,
   timeoutMs: number,
@@ -156,6 +165,16 @@ async function readOnly(
   });
 }
 
+async function assertAdapterConfigured(
+  network: ReturnType<typeof createStacksNetwork>,
+  senderAddress: string,
+  contractPrincipal: string,
+  label: string,
+): Promise<void> {
+  const readiness = await readOnly(network, senderAddress, contractPrincipal, 'is-configured', []);
+  expectBool(readiness, true, label);
+}
+
 async function configureRoles(
   network: ReturnType<typeof createStacksNetwork>,
   manifest: DeploymentManifest,
@@ -171,6 +190,78 @@ async function configureRoles(
 
   for (const grant of roleGrants) {
     console.log(`Granting role ${grant.role} to ${grant.account}`);
+
+async function configureAdapters(
+  network: ReturnType<typeof createStacksNetwork>,
+  manifest: DeploymentManifest,
+  config: DeploymentConfig,
+  senderKey: string,
+  senderAddress: string,
+): Promise<void> {
+  const adapterInitialization = config.initialConfig.adapterInitialization;
+  if (!adapterInitialization && config.network === 'mainnet') {
+    throw new Error('Mainnet deployment config must include initialConfig.adapterInitialization.');
+  }
+
+  const alexTokenX = getSupportedAssetPrincipal(config, 'sBTC');
+  const alexTokenY = getSupportedAssetPrincipal(config, 'USDh');
+  const alexPrincipal = getContractPrincipal(manifest, 'alex-liquidity-adapter');
+  const { contractAddress: alexAddress, contractName: alexName } = splitContractPrincipal(alexPrincipal);
+
+  console.log('Setting ALEX adapter principals');
+  await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
+    callPublicFnTx(network, senderKey, alexAddress, alexName, 'set-alex-config', [
+      principalCV(alexTokenX),
+      principalCV(alexTokenY),
+      uintCV(1000n),
+    ]),
+  );
+  await assertAdapterConfigured(network, senderAddress, alexPrincipal, 'alex-liquidity-adapter.is-configured');
+
+  if (!adapterInitialization) {
+    console.log('No adapter initialization block supplied. Skipping Zest, StackingDAO, and Hermetica principal wiring.');
+    return;
+  }
+
+  const zestPrincipal = getContractPrincipal(manifest, 'zest-protocol-adapter');
+  const { contractAddress: zestAddress, contractName: zestName } = splitContractPrincipal(zestPrincipal);
+  console.log('Setting Zest adapter principals');
+  await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
+    callPublicFnTx(network, senderKey, zestAddress, zestName, 'set-zest-config', [
+      principalCV(adapterInitialization.zest.poolReserve),
+      principalCV(adapterInitialization.zest.ztoken),
+      principalCV(adapterInitialization.zest.asset),
+      principalCV(adapterInitialization.zest.oracle),
+      principalCV(adapterInitialization.zest.incentives),
+    ]),
+  );
+  await assertAdapterConfigured(network, senderAddress, zestPrincipal, 'zest-protocol-adapter.is-configured');
+
+  const stackingdaoPrincipal = getContractPrincipal(manifest, 'stackingdao-adapter');
+  const { contractAddress: stackingdaoAddress, contractName: stackingdaoName } = splitContractPrincipal(stackingdaoPrincipal);
+  console.log('Setting StackingDAO adapter principals');
+  await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
+    callPublicFnTx(network, senderKey, stackingdaoAddress, stackingdaoName, 'set-stackingdao-config', [
+      principalCV(adapterInitialization.stackingdao.core),
+      principalCV(adapterInitialization.stackingdao.reserve),
+      principalCV(adapterInitialization.stackingdao.commission),
+      principalCV(adapterInitialization.stackingdao.staking),
+      principalCV(adapterInitialization.stackingdao.helpers),
+    ]),
+  );
+  await assertAdapterConfigured(network, senderAddress, stackingdaoPrincipal, 'stackingdao-adapter.is-configured');
+
+  const hermeticaPrincipal = getContractPrincipal(manifest, 'hermetica-adapter');
+  const { contractAddress: hermeticaAddress, contractName: hermeticaName } = splitContractPrincipal(hermeticaPrincipal);
+  console.log('Setting Hermetica adapter principals');
+  await callAndWait(config.rpcUrl, config.confirmationTimeoutMs, config.confirmationPollIntervalMs, () =>
+    callPublicFnTx(network, senderKey, hermeticaAddress, hermeticaName, 'set-hermetica-config', [
+      principalCV(adapterInitialization.hermetica.staking),
+      principalCV(adapterInitialization.hermetica.susdh),
+    ]),
+  );
+  await assertAdapterConfigured(network, senderAddress, hermeticaPrincipal, 'hermetica-adapter.is-configured');
+}
 
     await callAndWait(rpcUrl, timeoutMs, pollIntervalMs, () =>
       callPublicFnTx(network, senderKey, contractAddress, contractName, 'grant-role', [
@@ -210,6 +301,8 @@ async function main(): Promise<void> {
     config.confirmationPollIntervalMs,
     config.initialConfig.roleGrants,
   );
+
+  await configureAdapters(network, manifest, config, env.deployerPrivateKey, env.deployerAddress);
 
   const protocolConfigPrincipal = getContractPrincipal(manifest, CORE_CONTRACT_NAMES.protocolConfig);
   const { contractAddress: protocolConfigAddress, contractName: protocolConfigName } =

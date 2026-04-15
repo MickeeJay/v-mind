@@ -12,12 +12,14 @@
 (define-constant err-invalid-treasury (err u3405))
 (define-constant err-not-pending-owner (err u3406))
 (define-constant err-protocol-paused (err u3407))
+(define-constant err-config-not-initialized (err u3408))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool false)
+(define-data-var config-initialized bool false)
 (define-data-var total-deployed uint u0)
 
 (define-data-var zest-pool-reserve principal tx-sender)
@@ -46,6 +48,17 @@
   (if (contract-call? .access-control is-protocol-paused)
     err-protocol-paused
     (ok true)
+  )
+)
+
+(define-private (configuration-ready)
+  (var-get config-initialized)
+)
+
+(define-private (assert-configured)
+  (if (configuration-ready)
+    (ok true)
+    err-config-not-initialized
   )
 )
 
@@ -95,6 +108,25 @@
   )
 )
 
+(define-public (set-zest-config
+  (new-pool-reserve principal)
+  (new-ztoken principal)
+  (new-asset principal)
+  (new-oracle principal)
+  (new-incentives principal)
+)
+  (begin
+    (try! (assert-owner))
+    (var-set zest-pool-reserve new-pool-reserve)
+    (var-set zest-ztoken new-ztoken)
+    (var-set zest-asset new-asset)
+    (var-set zest-oracle new-oracle)
+    (var-set zest-incentives new-incentives)
+    (var-set config-initialized true)
+    (ok true)
+  )
+)
+
 (define-public (transfer-ownership (new-owner principal))
   (begin
     (try! (assert-owner))
@@ -120,6 +152,7 @@
 
 (define-public (deposit-to-zest (vault-id uint) (amount uint))
   (begin
+    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
@@ -160,6 +193,7 @@
 (define-public (withdraw-from-zest (vault-id uint) (amount uint))
   (let ((current (get-vault-position vault-id)))
     (begin
+      (try! (assert-configured))
       (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
@@ -234,25 +268,32 @@
 )
 
 (define-read-only (get-vault-zest-underlying-balance (vault-id uint))
-  (if (var-get use-mock)
-    (let
-      (
-        (total-underlying (unwrap-panic (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
-          (var-get zest-ztoken)
-          (var-get zest-asset)
-          (adapter-principal)
-        )))
-        (vault-deployed (get-vault-position vault-id))
-        (all-deployed (var-get total-deployed))
+  (begin
+    (try! (assert-configured))
+    (if (var-get use-mock)
+      (let
+        (
+          (total-underlying (unwrap-panic (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
+            (var-get zest-ztoken)
+            (var-get zest-asset)
+            (adapter-principal)
+          )))
+          (vault-deployed (get-vault-position vault-id))
+          (all-deployed (var-get total-deployed))
+        )
+        (ok (if (is-eq all-deployed u0) vault-deployed (/ (* total-underlying vault-deployed) all-deployed)))
       )
-      (ok (if (is-eq all-deployed u0) vault-deployed (/ (* total-underlying vault-deployed) all-deployed)))
+      (ok (get-vault-position vault-id))
     )
-    (ok (get-vault-position vault-id))
   )
 )
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-read-only (is-configured)
+  (configuration-ready)
 )
 
 (define-read-only (get-total-deployed)

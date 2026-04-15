@@ -17,12 +17,14 @@
 (define-constant err-invalid-treasury (err u3705))
 (define-constant err-not-pending-owner (err u3706))
 (define-constant err-protocol-paused (err u3707))
+(define-constant err-config-not-initialized (err u3708))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool false)
+(define-data-var config-initialized bool false)
 (define-data-var cached-usdh-per-susdh uint one-8)
 
 (define-data-var staking-contract principal tx-sender)
@@ -51,6 +53,17 @@
   (if (contract-call? .access-control is-protocol-paused)
     err-protocol-paused
     (ok true)
+  )
+)
+
+(define-private (configuration-ready)
+  (var-get config-initialized)
+)
+
+(define-private (assert-configured)
+  (if (configuration-ready)
+    (ok true)
+    err-config-not-initialized
   )
 )
 
@@ -91,6 +104,7 @@
     (try! (assert-owner))
     (var-set staking-contract new-staking)
     (var-set susdh-contract new-susdh)
+    (var-set config-initialized true)
     (ok true)
   )
 )
@@ -120,6 +134,7 @@
 
 (define-public (deposit-usdh (vault-id uint) (amount uint))
   (begin
+    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
@@ -181,6 +196,7 @@
       (current-principal (get usdh-principal-deployed position))
     )
     (begin
+      (try! (assert-configured))
       (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
@@ -254,9 +270,12 @@
 )
 
 (define-read-only (get-usdh-per-susdh-rate)
-  (if (var-get use-mock)
-    (ok (unwrap-panic (contract-call? .mock-hermetica-staking get-usdh-per-susdh)))
-    (ok (var-get cached-usdh-per-susdh))
+  (begin
+    (try! (assert-configured))
+    (if (var-get use-mock)
+      (ok (unwrap-panic (contract-call? .mock-hermetica-staking get-usdh-per-susdh)))
+      (ok (var-get cached-usdh-per-susdh))
+    )
   )
 )
 
@@ -272,6 +291,10 @@
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-read-only (is-configured)
+  (configuration-ready)
 )
 
 (define-read-only (get-cached-rate)

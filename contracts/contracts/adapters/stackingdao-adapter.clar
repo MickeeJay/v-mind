@@ -14,12 +14,14 @@
 (define-constant err-invalid-treasury (err u3605))
 (define-constant err-not-pending-owner (err u3606))
 (define-constant err-protocol-paused (err u3607))
+(define-constant err-config-not-initialized (err u3608))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
 (define-data-var owner principal tx-sender)
 (define-data-var pending-owner (optional principal) none)
 (define-data-var use-mock bool false)
+(define-data-var config-initialized bool false)
 
 (define-data-var core-contract principal tx-sender)
 (define-data-var reserve-contract principal tx-sender)
@@ -53,6 +55,17 @@
   (if (contract-call? .access-control is-protocol-paused)
     err-protocol-paused
     (ok true)
+  )
+)
+
+(define-private (configuration-ready)
+  (var-get config-initialized)
+)
+
+(define-private (assert-configured)
+  (if (configuration-ready)
+    (ok true)
+    err-config-not-initialized
   )
 )
 
@@ -100,6 +113,7 @@
     (var-set commission-contract new-commission)
     (var-set staking-contract new-staking)
     (var-set helpers-contract new-helpers)
+    (var-set config-initialized true)
     (ok true)
   )
 )
@@ -129,6 +143,7 @@
 
 (define-public (mint-ststx (vault-id uint) (amount uint))
   (begin
+    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
@@ -185,6 +200,7 @@
       (current-principal (get stx-principal-deployed position))
     )
     (begin
+      (try! (assert-configured))
       (try! (assert-not-paused))
       (try! (assert-authorized-caller))
       (asserts! (> amount u0) err-invalid-amount)
@@ -268,7 +284,9 @@
 )
 
 (define-read-only (get-ststx-exchange-rate)
-  (let
+  (begin
+    (try! (assert-configured))
+    (let
     (
       (total-shares (var-get total-ststx-shares))
       (total-underlying (get-total-underlying))
@@ -277,6 +295,7 @@
       (if (is-eq total-shares u0)
         one-8
         (/ (* total-underlying one-8) total-shares)
+      )
       )
     )
   )
@@ -294,6 +313,10 @@
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-read-only (is-configured)
+  (configuration-ready)
 )
 
 (define-read-only (get-total-principal-tracked)

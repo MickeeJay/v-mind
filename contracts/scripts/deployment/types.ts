@@ -47,6 +47,27 @@ export interface StrategyConfig {
   authorizedExecutor: string;
 }
 
+export interface AdapterInitializationConfig {
+  zest: {
+    poolReserve: string;
+    ztoken: string;
+    asset: string;
+    oracle: string;
+    incentives: string;
+  };
+  stackingdao: {
+    core: string;
+    reserve: string;
+    commission: string;
+    staking: string;
+    helpers: string;
+  };
+  hermetica: {
+    staking: string;
+    susdh: string;
+  };
+}
+
 export interface TokenInitConfig {
   name: string;
   symbol: string;
@@ -68,6 +89,7 @@ export interface InitialConfig {
   };
   token: TokenInitConfig;
   strategies: StrategyConfig[];
+  adapterInitialization?: AdapterInitializationConfig;
   vaultMaxAumDropBpsPerTx: string;
 }
 
