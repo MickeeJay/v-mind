@@ -43,6 +43,29 @@ Clarinet.test({
 });
 
 Clarinet.test({
+  name: 'hermetica-adapter: returns recoverable errors for read-only rate and balance failures',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+
+    const setup = chain.mineBlock([
+      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
+      Tx.contractCall('hermetica-adapter', 'set-hermetica-config', [mock(deployer), mock(deployer)], deployer.address),
+      Tx.contractCall('mock-hermetica-staking', 'set-force-failure', [types.bool(true), types.uint(9_502)], deployer.address),
+    ]);
+
+    setup.receipts[0].result.expectOk().expectBool(true);
+    setup.receipts[1].result.expectOk().expectBool(true);
+    setup.receipts[2].result.expectOk().expectBool(true);
+
+    const rate = chain.callReadOnlyFn('hermetica-adapter', 'get-usdh-per-susdh-rate', [], deployer.address);
+    rate.result.expectErr().expectUint(3703);
+
+    const balance = chain.callReadOnlyFn('hermetica-adapter', 'get-vault-usdh-balance', [types.uint(3)], deployer.address);
+    balance.result.expectErr().expectUint(3703);
+  },
+});
+
+Clarinet.test({
   name: 'hermetica-adapter: reports USDh balances using yield accrual exchange rate',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;

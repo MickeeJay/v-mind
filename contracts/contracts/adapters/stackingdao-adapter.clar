@@ -305,7 +305,7 @@
   (let
     (
       (shares (get ststx-shares (get-position vault-id)))
-      (rate (unwrap-panic (get-ststx-exchange-rate)))
+      (rate (try! (get-ststx-exchange-rate)))
     )
     (ok (/ (* shares rate) one-8))
   )

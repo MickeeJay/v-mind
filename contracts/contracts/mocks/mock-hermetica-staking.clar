@@ -80,7 +80,10 @@
 )
 
 (define-read-only (get-usdh-per-susdh)
-  (ok (var-get usdh-per-susdh))
+  (if (var-get force-failure)
+    (err (var-get forced-error-code))
+    (ok (var-get usdh-per-susdh))
+  )
 )
 
 (define-read-only (get-balance (account principal))
