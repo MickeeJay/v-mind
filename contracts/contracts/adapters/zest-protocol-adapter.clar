@@ -271,16 +271,13 @@
   (begin
     (try! (assert-configured))
     (if (var-get use-mock)
-      (let
-        (
-          (total-underlying (unwrap-panic (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
-            (var-get zest-ztoken)
-            (var-get zest-asset)
-            (adapter-principal)
-          )))
-          (vault-deployed (get-vault-position vault-id))
-          (all-deployed (var-get total-deployed))
-        )
+      (let ((total-underlying (unwrap! (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
+        (var-get zest-ztoken)
+        (var-get zest-asset)
+        (adapter-principal)
+      ) err-external-call-failed))
+            (vault-deployed (get-vault-position vault-id))
+            (all-deployed (var-get total-deployed)))
         (ok (if (is-eq all-deployed u0) vault-deployed (/ (* total-underlying vault-deployed) all-deployed)))
       )
       (ok (get-vault-position vault-id))
