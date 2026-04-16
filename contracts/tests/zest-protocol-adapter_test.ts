@@ -108,3 +108,18 @@ Clarinet.test({
     balance.result.expectErr().expectUint(3403);
   },
 });
+
+Clarinet.test({
+  name: 'zest-adapter: rejects production calls before configuration',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+
+    const block = chain.mineBlock([
+      Tx.contractCall('zest-protocol-adapter', 'collect-zest-fee', [types.uint(10_000), types.principal(deployer.address)], deployer.address),
+      Tx.contractCall('zest-protocol-adapter', 'emergency-exit-zest', [types.uint(1)], deployer.address),
+    ]);
+
+    block.receipts[0].result.expectErr().expectUint(3408);
+    block.receipts[1].result.expectErr().expectUint(3408);
+  },
+});

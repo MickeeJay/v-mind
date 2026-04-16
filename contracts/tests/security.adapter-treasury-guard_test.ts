@@ -8,15 +8,28 @@ Clarinet.test({
     const attackerTreasury = accounts.get('wallet_8')!;
 
     const block = chain.mineBlock([
+      Tx.contractCall(
+        'zest-protocol-adapter',
+        'set-zest-config',
+        [
+          types.principal(`${deployer.address}.mock-zest-protocol`),
+          types.principal(`${deployer.address}.mock-zest-protocol`),
+          types.principal(`${deployer.address}.mock-zest-protocol`),
+          types.principal(`${deployer.address}.mock-zest-protocol`),
+          types.principal(`${deployer.address}.mock-zest-protocol`),
+        ],
+        deployer.address,
+      ),
       Tx.contractCall('zest-protocol-adapter', 'collect-zest-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
       Tx.contractCall('alex-liquidity-adapter', 'collect-alex-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
       Tx.contractCall('stackingdao-adapter', 'collect-stackingdao-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'collect-hermetica-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
     ]);
 
-    block.receipts[0].result.expectErr().expectUint(3405);
-    block.receipts[1].result.expectErr().expectUint(3505);
-    block.receipts[2].result.expectErr().expectUint(3605);
-    block.receipts[3].result.expectErr().expectUint(3705);
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectErr().expectUint(3405);
+    block.receipts[2].result.expectErr().expectUint(3505);
+    block.receipts[3].result.expectErr().expectUint(3605);
+    block.receipts[4].result.expectErr().expectUint(3705);
   },
 });
