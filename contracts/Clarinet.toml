@@ -33,6 +33,11 @@ path = "contracts/traits/zest-lending-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.zest-reserve-trait]
+path = "contracts/traits/zest-reserve-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.alex-liquidity-trait]
 path = "contracts/traits/alex-liquidity-trait.clar"
 clarity_version = 2
