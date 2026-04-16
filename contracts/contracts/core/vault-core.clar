@@ -1,6 +1,7 @@
 ;; @title V-Mind Vault Core
 ;; @version 2026-04-10-B fixes:
-;;   C-1  Protocol-pause not enforced - assert-not-paused added to every mutating public fn.
+;;   C-1  Protocol-pause enforced on mutating control paths while keeping withdraw callable
+;;        during pauses so vault owners can still exit.
 ;;   C-2  unlock-vault-after-execution returned err-vault-not-active when vault was not locked -
 ;;        replaced with new err-vault-not-locked (u2421).
 ;;   C-3  emergency-withdraw zeroed total-assets and left shares unredeemable -
@@ -93,7 +94,8 @@
   )
 )
 
-;; FIX C-1: every mutating public function calls (try! (assert-not-paused)) first.
+;; FIX C-1: most mutating public functions call (try! (assert-not-paused)) first; withdraw
+;;          is intentionally exempt so paused vaults can still exit.
 (define-private (assert-not-paused)
   (if (contract-call? .access-control is-protocol-paused)
     err-protocol-paused
@@ -275,7 +277,6 @@
 ;; STX is transferred from vault contract escrow back to vault-owner after accounting is settled.
 (define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
-    (try! (assert-not-paused))
     (asserts! (> share-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
