@@ -74,6 +74,17 @@
   (map-set vault-positions { vault-id: vault-id } { deployed-amount: amount })
 )
 
+(define-private (read-live-vault-zest-underlying-balance)
+  (match (contract-call? (var-get zest-pool-reserve) get-user-underlying-asset-balance
+    (var-get zest-ztoken)
+    (var-get zest-asset)
+    (adapter-principal)
+  )
+    live-balance (ok live-balance)
+    external-err err-external-call-failed
+  )
+)
+
 (define-private (call-supply (amount uint))
   (contract-call? .mock-zest-protocol supply
     (var-get zest-ztoken)
@@ -282,7 +293,7 @@
             (all-deployed (var-get total-deployed)))
         (ok (if (is-eq all-deployed u0) vault-deployed (/ (* total-underlying vault-deployed) all-deployed)))
       )
-      (ok (get-vault-position vault-id))
+      (read-live-vault-zest-underlying-balance)
     )
   )
 )
