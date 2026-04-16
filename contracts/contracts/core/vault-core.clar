@@ -19,6 +19,7 @@
 ;; @contract vault-core
 
 (define-constant role-owner u1)
+(define-constant role-emergency-pauser u5)
 (define-constant bps-denominator u10000)
 (define-constant max-bps u10000)
 
@@ -91,6 +92,13 @@
   (if (is-eq tx-sender owner)
     (ok true)
     err-owner-only
+  )
+)
+
+(define-private (is-emergency-recovery-authorized)
+  (or
+    (is-protocol-owner tx-sender)
+    (contract-call? .access-control has-role tx-sender role-emergency-pauser)
   )
 )
 
@@ -438,18 +446,21 @@
   )
 )
 
-;; Access pattern: protocol-owner-only
+;; Access pattern: protocol-owner-only or emergency-pauser when protocol is paused
 ;; FIX C-3: Sets vault to vault-status-emergency PRESERVING total-assets and all shares.
 ;; Shares retain their value. Users can call withdraw() normally to exit.
-;; The protocol owner should then call strategy-execution.emergency-exit-vault to pull funds
-;; from external protocol positions back into the vault's STX escrow balance.
+;; The protocol owner or emergency-pauser can then call strategy-execution.emergency-exit-vault
+;; to pull funds from external protocol positions back into the vault's STX escrow balance.
 ;; After the emergency is resolved, call clear-emergency-vault-status to restore active status.
 (define-public (emergency-withdraw (vault-id uint))
   (begin
-    (try! (assert-protocol-owner))
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
+          (if (contract-call? .access-control is-protocol-paused)
+            (asserts! (is-emergency-recovery-authorized) err-protocol-owner-only)
+            (try! (assert-protocol-owner))
+          )
           (asserts! (not (is-eq (get vault-status vault-entry) vault-status-closed)) err-vault-closed)
           (asserts! (not (is-eq (get vault-status vault-entry) vault-status-emergency)) err-vault-not-active)
           (map-set vaults
@@ -521,12 +532,12 @@
   )
 )
 
-;; Access pattern: strategy-executor-or-protocol-owner
+;; Access pattern: strategy-executor-or-protocol-owner during normal operation;
+;; protocol-owner-or-emergency-pauser while the protocol is paused for recovery.
 ;; Allows locking in vault-status-active OR vault-status-emergency so that
 ;; strategy-execution.emergency-exit-vault can lock an emergency-status vault to perform exits.
 (define-public (lock-vault-for-execution (vault-id uint))
   (begin
-    (try! (assert-not-paused))
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -538,8 +549,14 @@
             err-vault-not-active
           )
           (asserts! (not (get execution-locked vault-entry)) err-vault-locked)
-          (try! (assert-strategy-active (get strategy-id vault-entry)))
-          (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          (if (contract-call? .access-control is-protocol-paused)
+            (asserts! (is-emergency-recovery-authorized) err-protocol-paused)
+            (begin
+              (try! (assert-strategy-active (get strategy-id vault-entry)))
+              (try! (assert-strategy-executor (get strategy-id vault-entry)))
+              true
+            )
+          )
           (map-set vaults
             { vault-id: vault-id }
             {
@@ -568,17 +585,20 @@
   )
 )
 
-;; Access pattern: strategy-executor-or-protocol-owner
+;; Access pattern: strategy-executor-or-protocol-owner during normal operation;
+;; protocol-owner-or-emergency-pauser while the protocol is paused for recovery.
 ;; FIX C-2: was returning err-vault-not-active when vault was not locked.
 ;;          Now returns err-vault-not-locked (u2421) which is semantically correct.
 (define-public (unlock-vault-after-execution (vault-id uint))
   (begin
-    (try! (assert-not-paused))
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
           (asserts! (get execution-locked vault-entry) err-vault-not-locked)
-          (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          (if (contract-call? .access-control is-protocol-paused)
+            (asserts! (is-emergency-recovery-authorized) err-protocol-paused)
+            (try! (assert-strategy-executor (get strategy-id vault-entry)))
+          )
           (map-set vaults
             { vault-id: vault-id }
             {
