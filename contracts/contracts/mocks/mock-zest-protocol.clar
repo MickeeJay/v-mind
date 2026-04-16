@@ -3,6 +3,8 @@
 ;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for Zest borrow-helper and reserve interfaces.
 
+(impl-trait .zest-reserve-trait.zest-reserve-trait)
+
 (define-constant err-forced-failure (err u8001))
 (define-constant err-insufficient-liquidity (err u8002))
 
@@ -77,7 +79,10 @@
 )
 
 (define-read-only (get-user-underlying-asset-balance (lp-token principal) (asset principal) (user principal))
-  (ok (get-user-amount user))
+  (if (var-get force-failure)
+    (err (var-get forced-error-code))
+    (ok (get-user-amount user))
+  )
 )
 
 (define-read-only (get-mock-user-underlying (user principal))

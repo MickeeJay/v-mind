@@ -3,7 +3,7 @@
 ;; @notice Routes V-Mind vault interactions to Zest lending interfaces.
 
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
-
+(use-trait zest-reserve-trait .zest-reserve-trait.zest-reserve-trait)
 (define-constant err-owner-only (err u3400))
 (define-constant err-invalid-amount (err u3401))
 (define-constant err-insufficient-position (err u3402))
@@ -13,6 +13,7 @@
 (define-constant err-not-pending-owner (err u3406))
 (define-constant err-protocol-paused (err u3407))
 (define-constant err-config-not-initialized (err u3408))
+(define-constant zest-live-reserve-contract 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve)
 
 (define-constant strategy-execution-contract .strategy-execution)
 
@@ -21,6 +22,7 @@
 (define-data-var use-mock bool false)
 (define-data-var config-initialized bool false)
 (define-data-var total-deployed uint u0)
+(define-data-var cached-live-total-underlying (optional uint) none)
 
 (define-data-var zest-pool-reserve principal tx-sender)
 (define-data-var zest-ztoken principal tx-sender)
@@ -72,6 +74,41 @@
 
 (define-private (set-vault-position (vault-id uint) (amount uint))
   (map-set vault-positions { vault-id: vault-id } { deployed-amount: amount })
+)
+
+(define-private (calculate-vault-zest-underlying-balance (vault-id uint) (total-underlying uint))
+  (let ((vault-deployed (get-vault-position vault-id))
+        (all-deployed (var-get total-deployed)))
+    (if (is-eq all-deployed u0)
+      vault-deployed
+      (/ (* total-underlying vault-deployed) all-deployed)
+    )
+  )
+)
+
+(define-private (fetch-live-zest-total-underlying (reserve <zest-reserve-trait>))
+  (match (contract-call? reserve get-user-underlying-asset-balance
+    (var-get zest-ztoken)
+    (var-get zest-asset)
+    (adapter-principal)
+  )
+    total-underlying (ok total-underlying)
+    external-err err-external-call-failed
+  )
+)
+
+(define-public (sync-live-zest-underlying-balance (reserve <zest-reserve-trait>))
+  (begin
+    (try! (assert-configured))
+    (match (fetch-live-zest-total-underlying reserve)
+      total-underlying
+        (begin
+          (var-set cached-live-total-underlying (some total-underlying))
+          (ok total-underlying)
+        )
+      external-err err-external-call-failed
+    )
+  )
 )
 
 (define-private (call-supply (amount uint))
@@ -273,16 +310,18 @@
   (begin
     (try! (assert-configured))
     (if (var-get use-mock)
-      (let ((total-underlying (unwrap! (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
+      (match (contract-call? .mock-zest-protocol get-user-underlying-asset-balance
         (var-get zest-ztoken)
         (var-get zest-asset)
         (adapter-principal)
-      ) err-external-call-failed))
-            (vault-deployed (get-vault-position vault-id))
-            (all-deployed (var-get total-deployed)))
-        (ok (if (is-eq all-deployed u0) vault-deployed (/ (* total-underlying vault-deployed) all-deployed)))
       )
-      (ok (get-vault-position vault-id))
+        total-underlying (ok (calculate-vault-zest-underlying-balance vault-id total-underlying))
+        external-err err-external-call-failed
+      )
+      (match (var-get cached-live-total-underlying)
+        total-underlying (ok (calculate-vault-zest-underlying-balance vault-id total-underlying))
+        err-external-call-failed
+      )
     )
   )
 )
