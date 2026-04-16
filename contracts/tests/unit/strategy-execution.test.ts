@@ -286,4 +286,30 @@ describe('strategy-execution', () => {
 
     expect(getPositionAllocated(1, 1)).toBe(0);
   });
+
+  it('emergency-exit-vault: emergency-pauser can recover while the protocol is paused', () => {
+    setupBase();
+
+    const exec = mine(simnet, [
+      tx.callPublicFn(
+        'strategy-execution',
+        'execute-strategy',
+        [u(1), u(1), u(1), u(2_000_000), u(100_000), ...adapterTraits()],
+        ADDR.deployer,
+      ),
+    ]);
+    expectOk(exec[0].result);
+
+    mine(simnet, [
+      tx.callPublicFn('access-control', 'grant-role', [p(ADDR.wallet2), u(5)], ADDR.deployer),
+      tx.callPublicFn('access-control', 'emergency-pause', [], ADDR.wallet2),
+    ]);
+
+    const exit = mine(simnet, [
+      tx.callPublicFn('strategy-execution', 'emergency-exit-vault', [u(1), ...adapterTraits()], ADDR.wallet2),
+    ]);
+    expectOk(exit[0].result);
+
+    expect(getPositionAllocated(1, 1)).toBe(0);
+  });
 });

@@ -219,5 +219,20 @@ describe('vault-core', () => {
       const status = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
       expectOkUint(status.result, 4);
     });
+
+    it('emergency-withdraw: emergency-pauser can recover while the protocol is paused', () => {
+      seedVault();
+
+      mine(simnet, [
+        tx.callPublicFn('access-control', 'grant-role', [p(ADDR.wallet2), u(5)], ADDR.deployer),
+        tx.callPublicFn('access-control', 'emergency-pause', [], ADDR.wallet2),
+      ]);
+
+      const ew = mine(simnet, [tx.callPublicFn('vault-core', 'emergency-withdraw', [u(1)], ADDR.wallet2)]);
+      expectOkUint(ew[0].result, 1);
+
+      const status = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
+      expectOkUint(status.result, 4);
+    });
   });
 });

@@ -21,6 +21,7 @@
 (use-trait protocol-adapter-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant role-owner u1)
+(define-constant role-emergency-pauser u5)
 (define-constant bps-denominator u10000)
 (define-constant one-8 u100000000)
 
@@ -80,6 +81,13 @@
   (if (is-protocol-owner tx-sender)
     (ok true)
     err-owner-only
+  )
+)
+
+(define-private (is-emergency-recovery-authorized)
+  (or
+    (is-protocol-owner tx-sender)
+    (contract-call? .access-control has-role tx-sender role-emergency-pauser)
   )
 )
 
@@ -383,8 +391,8 @@
   )
 )
 
-;; Access pattern: protocol-owner-only
-;; FIX C-1: (try! (assert-not-paused)) at start.
+;; Access pattern: protocol-owner-only during normal operation;
+;; protocol-owner-or-emergency-pauser while the protocol is paused for recovery.
 ;; This can operate on vault-status-emergency because lock-vault-for-execution in vault-core
 ;; now allows locking both active and emergency-status vaults.
 (define-public (emergency-exit-vault
@@ -395,8 +403,10 @@
   (hermetica <hermetica-usdh-trait>)
 )
   (begin
-    (try! (assert-not-paused))
-    (try! (assert-protocol-owner))
+    (if (contract-call? .access-control is-protocol-paused)
+      (asserts! (is-emergency-recovery-authorized) err-owner-only)
+      (try! (assert-protocol-owner))
+    )
     (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (

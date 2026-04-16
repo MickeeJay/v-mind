@@ -47,14 +47,14 @@ core/vault-core.clar:
 
 - create-vault is permissionless for users creating their own vaults.
 - deposit, withdraw, pause-vault, unpause-vault, close-vault are vault-owner-only.
-- emergency-withdraw and emergency-withdraw-all are protocol-owner-only.
-- lock/unlock/execute-approved-strategy are strategy-executor-or-protocol-owner.
+- emergency-withdraw and emergency-withdraw-all are protocol-owner-only, with emergency-pauser allowed during protocol pause for recovery.
+- lock/unlock/execute-approved-strategy are strategy-executor-or-protocol-owner; lock/unlock also accept emergency-pauser during protocol pause for recovery.
 - fee and yield accounting mutations are protocol-owner-only.
 
 core/strategy-execution.clar:
 
 - execute-strategy and rebalance are strategy-executor-or-protocol-owner.
-- emergency-exit-vault is protocol-owner-only.
+- emergency-exit-vault is protocol-owner-only, with emergency-pauser allowed during protocol pause for recovery.
 - query helpers are permissionless.
 
 core/vault-receipt-token.clar:
