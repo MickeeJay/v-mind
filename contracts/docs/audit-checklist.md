@@ -70,13 +70,13 @@ Mocks and traits are out of direct production scope, but are reviewed for test r
   - `create-vault`: permissionless by design
   - `deposit`, `withdraw`, lifecycle controls: vault-owner-only
   - `apply-performance-fee`, `accrue-yield`, `emergency-withdraw`, `set-max-aum-drop-bps-per-tx`: protocol-owner-only, with emergency-pauser allowed for emergency-withdraw while paused
-  - `lock-vault-for-execution`, `unlock-vault-after-execution`, `execute-approved-strategy`: strategy executor or protocol owner; lock/unlock also accept emergency-pauser while paused
+  - `lock-vault-for-execution`, `unlock-vault-after-execution`, `execute-approved-strategy`: access-control strategy-executor role or protocol owner; lock/unlock also accept emergency-pauser while paused
 - `vault-receipt-token`
   - `initialize-token`: owner-only
   - `transfer`: token-holder-only
   - `mint`, `burn`, `sync-vault-assets`: vault-core-only (`contract-caller` check)
 - `strategy-execution`
-  - `execute-strategy`, `rebalance-vault`: strategy executor or protocol owner
+  - `execute-strategy`, `rebalance-vault`: access-control strategy-executor role or protocol owner
   - `emergency-exit-vault`: protocol-owner-only, with emergency-pauser allowed while paused
 
 ### Adapter Contracts

@@ -21,6 +21,7 @@
 (use-trait protocol-adapter-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant role-owner u1)
+(define-constant role-strategy-executor u2)
 (define-constant role-emergency-pauser u5)
 (define-constant bps-denominator u10000)
 (define-constant one-8 u100000000)
@@ -47,8 +48,6 @@
 (define-constant err-allocation-exceeds-vault-assets (err u2611))
 (define-constant err-invalid-rebalance-weights (err u2612))
 (define-constant err-protocol-paused (err u2613))
-
-(define-data-var executor-owner principal tx-sender)
 
 (define-map vault-strategy-positions
   { vault-id: uint, protocol-id: uint }
@@ -92,7 +91,7 @@
 )
 
 (define-private (assert-executor)
-  (if (or (is-eq tx-sender (var-get executor-owner)) (is-protocol-owner tx-sender))
+  (if (or (contract-call? .access-control has-role tx-sender role-strategy-executor) (is-protocol-owner tx-sender))
     (ok true)
     err-executor-only
   )
@@ -481,15 +480,6 @@
   )
 )
 
-;; Access pattern: protocol-owner-only
-(define-public (set-executor-owner (new-executor principal))
-  (begin
-    (try! (assert-protocol-owner))
-    (var-set executor-owner new-executor)
-    (ok true)
-  )
-)
-
 ;; Alias names kept for backward compatibility
 (define-public (execute (vault-id uint) (strategy-id uint) (protocol-id uint) (asset-amount uint) (net-yield uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
   (execute-strategy vault-id strategy-id protocol-id asset-amount net-yield zest alex stackingdao hermetica)
@@ -507,10 +497,6 @@
 
 (define-read-only (get-execution-state (vault-id uint))
   (ok (get-execution-state-internal vault-id))
-)
-
-(define-read-only (get-executor-owner)
-  (ok (var-get executor-owner))
 )
 
 ;; FIX H-2: was define-public. Now define-read-only (enabled because protocol-config getters are read-only).

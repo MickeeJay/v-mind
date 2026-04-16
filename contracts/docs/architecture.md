@@ -83,7 +83,7 @@ Practical dependency sequence for deployment and analysis:
 - strategy-registry gates strategy activation and metadata used by vault and execution flows.
 - vault-core owns user vault state and share/accounting lifecycle.
 - vault-receipt-token mints, burns, and tracks receipt shares per vault.
-- strategy-execution validates cooldown and strategy status, routes assets through adapters, and records execution state.
+- strategy-execution validates cooldown and strategy status, derives execution authorization from access-control roles, routes assets through adapters, and records execution state.
 
 ## Network and Mock Policy
 

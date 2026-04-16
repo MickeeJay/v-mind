@@ -52,6 +52,11 @@ Clarinet.test({
     const protocol = accounts.get('wallet_1')!;
     const executor = accounts.get('wallet_2')!;
 
+    const roleGrant = chain.mineBlock([
+      Tx.contractCall('access-control', 'grant-role', [types.principal(executor.address), types.uint(2)], deployer.address),
+    ]);
+    roleGrant.receipts[0].result.expectOk().expectBool(true);
+
     const block = chain.mineBlock([
       Tx.contractCall('protocol-config', 'add-supported-asset', [types.principal(protocol.address), types.ascii('STX'), types.uint(1_000_000), types.uint(20_000_000)], deployer.address),
       Tx.contractCall('strategy-registry', 'register-strategy', [types.ascii('Yield'), types.uint(1), types.principal(protocol.address), types.uint(1), types.principal(executor.address)], deployer.address),

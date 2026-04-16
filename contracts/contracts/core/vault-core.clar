@@ -19,6 +19,7 @@
 ;; @contract vault-core
 
 (define-constant role-owner u1)
+(define-constant role-strategy-executor u2)
 (define-constant role-emergency-pauser u5)
 (define-constant bps-denominator u10000)
 (define-constant max-bps u10000)
@@ -139,9 +140,12 @@
 (define-private (assert-strategy-executor (strategy-id uint))
   (match (contract-call? .strategy-registry get-strategy-by-id strategy-id)
     strategy-entry
-      (if (or (is-eq tx-sender (get authorized-executor strategy-entry)) (is-protocol-owner tx-sender))
-        (ok true)
-        err-owner-only
+      (begin
+        (asserts! (get active strategy-entry) err-strategy-inactive)
+        (if (or (contract-call? .access-control has-role tx-sender role-strategy-executor) (is-protocol-owner tx-sender))
+          (ok true)
+          err-owner-only
+        )
       )
     err-invalid-strategy
   )
