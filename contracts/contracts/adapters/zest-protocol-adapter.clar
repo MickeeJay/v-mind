@@ -236,6 +236,7 @@
 
 (define-public (collect-zest-fee (amount uint) (treasury principal))
   (begin
+    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
@@ -252,6 +253,7 @@
 
 (define-public (emergency-exit-zest (vault-id uint))
   (begin
+    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (let ((current (get-vault-position vault-id)))
