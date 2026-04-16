@@ -53,16 +53,6 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: 'stackingdao-adapter: returns recoverable errors for balance reads before configuration',
-  async fn(chain: Chain, accounts: Map<string, Account>) {
-    const deployer = accounts.get('deployer')!;
-
-    const balance = chain.callReadOnlyFn('stackingdao-adapter', 'get-vault-stx-balance', [types.uint(3)], deployer.address);
-    balance.result.expectErr().expectUint(3608);
-  },
-});
-
-Clarinet.test({
   name: 'stackingdao-adapter: reports STX balances using exchange-rate aware accounting',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
@@ -78,12 +68,51 @@ Clarinet.test({
       Tx.contractCall('stackingdao-adapter', 'mint-ststx', [types.uint(9), types.uint(1_000_000)], deployer.address),
       Tx.contractCall('stackingdao-adapter', 'redeem-ststx', [types.uint(9), types.uint(400_000)], deployer.address),
       Tx.contractCall('mock-stackingdao-core', 'set-exchange-rate', [types.uint(120_000_000)], deployer.address),
+      Tx.contractCall('stackingdao-adapter', 'sync-live-total-underlying', [mock(deployer)], deployer.address),
     ]);
 
     block.receipts[1].result.expectOk().expectUint(1_000_000);
     block.receipts[2].result.expectOk().expectUint(400_000);
+    block.receipts[5].result.expectOk().expectUint(720_000);
+
+    const tracked = chain.callReadOnlyFn('stackingdao-adapter', 'get-total-principal-tracked', [], deployer.address);
+    tracked.result.expectOk().expectUint(600_000);
+
+    const liveTotal = chain.callReadOnlyFn('stackingdao-adapter', 'get-live-total-underlying', [], deployer.address);
+    liveTotal.result.expectOk().expectUint(720_000);
 
     const balance = chain.callReadOnlyFn('stackingdao-adapter', 'get-vault-stx-balance', [types.uint(9)], deployer.address);
     balance.result.expectOk().expectUint(720_000);
+  },
+});
+
+Clarinet.test({
+  name: 'stackingdao-adapter: surfaces live read failures in non-mock mode',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+
+    const block = chain.mineBlock([
+      Tx.contractCall('stackingdao-adapter', 'set-mock-mode', [types.bool(false)], deployer.address),
+      Tx.contractCall(
+        'stackingdao-adapter',
+        'set-stackingdao-config',
+        [mock(deployer), mock(deployer), mock(deployer), mock(deployer), mock(deployer)],
+        deployer.address,
+      ),
+      Tx.contractCall(
+        'stackingdao-adapter',
+        'sync-live-total-underlying',
+        [types.principal(`${deployer.address}.missing-stackingdao-helper`)],
+        deployer.address,
+      ),
+    ]);
+
+    block.receipts[2].result.expectErr().expectUint(3603);
+
+    const balance = chain.callReadOnlyFn('stackingdao-adapter', 'get-vault-stx-balance', [types.uint(7)], deployer.address);
+    balance.result.expectErr().expectUint(3603);
+
+    const liveTotal = chain.callReadOnlyFn('stackingdao-adapter', 'get-live-total-underlying', [], deployer.address);
+    liveTotal.result.expectErr().expectUint(3603);
   },
 });

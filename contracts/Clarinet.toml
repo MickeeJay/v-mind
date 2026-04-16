@@ -48,6 +48,11 @@ path = "contracts/traits/stackingdao-ststx-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
+[contracts.stackingdao-direct-helpers-trait]
+path = "contracts/traits/stackingdao-direct-helpers-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
 [contracts.hermetica-usdh-trait]
 path = "contracts/traits/hermetica-usdh-trait.clar"
 clarity_version = 2

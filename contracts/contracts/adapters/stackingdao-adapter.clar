@@ -3,6 +3,7 @@
 ;; @notice Routes V-Mind vault interactions to StackingDAO stSTX contracts.
 
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
+(use-trait stackingdao-direct-helpers-trait .stackingdao-direct-helpers-trait.stackingdao-direct-helpers-trait)
 
 (define-constant one-8 u100000000)
 
@@ -31,6 +32,7 @@
 
 (define-data-var total-ststx-shares uint u0)
 (define-data-var total-principal-tracked uint u0)
+(define-data-var cached-live-total-underlying (optional uint) none)
 
 (define-map vault-positions
   { vault-id: uint }
@@ -81,13 +83,28 @@
   (map-set vault-positions { vault-id: vault-id } { ststx-shares: shares, stx-principal-deployed: principal-deployed })
 )
 
+(define-private (refresh-live-total-underlying (helpers <stackingdao-direct-helpers-trait>))
+  (match (contract-call? helpers get-user-balance-in-protocol (adapter-principal) (var-get staking-contract) u0)
+    amount
+      (begin
+        (var-set cached-live-total-underlying (some amount))
+        (ok amount)
+      )
+    external-err err-external-call-failed
+  )
+)
+
+(define-public (sync-live-total-underlying (helpers <stackingdao-direct-helpers-trait>))
+  (begin
+    (try! (assert-configured))
+    (refresh-live-total-underlying helpers)
+  )
+)
+
 (define-private (get-total-underlying)
-  (if (var-get use-mock)
-    (match (contract-call? .mock-stackingdao-core get-user-balance-in-protocol (adapter-principal) (var-get staking-contract) u0)
-      amount amount
-      helper-err (var-get total-principal-tracked)
-    )
-    (var-get total-principal-tracked)
+  (match (var-get cached-live-total-underlying)
+    amount (ok amount)
+    err-external-call-failed
   )
 )
 
@@ -283,19 +300,23 @@
   (ok (get ststx-shares (get-position vault-id)))
 )
 
+(define-read-only (get-live-total-underlying)
+  (get-total-underlying)
+)
+
 (define-read-only (get-ststx-exchange-rate)
   (begin
     (try! (assert-configured))
     (let
-    (
-      (total-shares (var-get total-ststx-shares))
-      (total-underlying (get-total-underlying))
-    )
-    (ok
-      (if (is-eq total-shares u0)
-        one-8
-        (/ (* total-underlying one-8) total-shares)
+      (
+        (total-underlying (try! (get-total-underlying)))
+        (total-shares (var-get total-ststx-shares))
       )
+      (ok
+        (if (is-eq total-shares u0)
+          one-8
+          (/ (* total-underlying one-8) total-shares)
+        )
       )
     )
   )
@@ -313,6 +334,10 @@
 
 (define-read-only (get-mock-mode)
   (ok (var-get use-mock))
+)
+
+(define-read-only (get-configured-stackingdao-helper-contract)
+  (ok (var-get helpers-contract))
 )
 
 (define-read-only (is-configured)

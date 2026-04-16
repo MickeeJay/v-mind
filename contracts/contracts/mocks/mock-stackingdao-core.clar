@@ -3,6 +3,8 @@
 ;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for StackingDAO core/reserve/helper interfaces.
 
+(impl-trait .stackingdao-direct-helpers-trait.stackingdao-direct-helpers-trait)
+
 (define-constant one-8 u100000000)
 
 (define-constant err-forced-failure (err u8201))
