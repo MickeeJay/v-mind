@@ -136,6 +136,26 @@ describe('strategy-execution', () => {
     expectErr(unauthorized[0].result, 2600);
   });
 
+  it('execute-strategy: strategy-executor role authorizes a non-owner caller', () => {
+    setupBase();
+
+    const roleGrant = mine(simnet, [
+      tx.callPublicFn('access-control', 'grant-role', [p(ADDR.wallet4), u(2)], ADDR.deployer),
+    ]);
+    expectOkBool(roleGrant[0].result, true);
+
+    const execution = mine(simnet, [
+      tx.callPublicFn(
+        'strategy-execution',
+        'execute-strategy',
+        [u(1), u(1), u(1), u(500_000), u(0), ...adapterTraits()],
+        ADDR.wallet4,
+      ),
+    ]);
+    expectOk(execution[0].result);
+    expect(getPositionAllocated(1, 1)).toBe(500_000);
+  });
+
   it('execute-strategy: unsupported protocol id is rejected', () => {
     setupBase();
 
