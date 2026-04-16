@@ -42,18 +42,19 @@ core/protocol-config.clar:
 core/strategy-registry.clar:
 
 - Strategy registration and metadata/lifecycle updates are strategy-registrar-or-owner.
+- Strategy executor metadata is recorded for registry bookkeeping, but live execution authorization is role-based.
 
 core/vault-core.clar:
 
 - create-vault is permissionless for users creating their own vaults.
 - deposit, withdraw, pause-vault, unpause-vault, close-vault are vault-owner-only.
 - emergency-withdraw and emergency-withdraw-all are protocol-owner-only, with emergency-pauser allowed during protocol pause for recovery.
-- lock/unlock/execute-approved-strategy are strategy-executor-or-protocol-owner; lock/unlock also accept emergency-pauser during protocol pause for recovery.
+- lock/unlock/execute-approved-strategy are access-control strategy-executor role or protocol owner; lock/unlock also accept emergency-pauser during protocol pause for recovery.
 - fee and yield accounting mutations are protocol-owner-only.
 
 core/strategy-execution.clar:
 
-- execute-strategy and rebalance are strategy-executor-or-protocol-owner.
+- execute-strategy and rebalance are access-control strategy-executor role or protocol owner.
 - emergency-exit-vault is protocol-owner-only, with emergency-pauser allowed during protocol pause for recovery.
 - query helpers are permissionless.
 
