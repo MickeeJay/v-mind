@@ -177,6 +177,20 @@ describe('vault-core', () => {
       expectOkUint(status.result, 2);
     });
 
+    it('withdraw: paused vault still allows owner exit', () => {
+      seedVault();
+      mine(simnet, [tx.callPublicFn('vault-core', 'pause-vault', [u(1)], ADDR.deployer)]);
+
+      const wd = mine(simnet, [tx.callPublicFn('vault-core', 'withdraw', [u(1), u(2_000_000)], ADDR.deployer)]);
+      expectOkUint(wd[0].result, 2_000_000);
+
+      const assets = simnet.callReadOnlyFn('vault-core', 'get-vault-total-assets', [u(1)], ADDR.deployer);
+      expectOkUint(assets.result, 3_000_000);
+
+      const status = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
+      expectOkUint(status.result, 2);
+    });
+
     it('close-vault: zero balance vault — status becomes closed', () => {
       seedVault();
       mine(simnet, [tx.callPublicFn('vault-core', 'withdraw', [u(1), u(5_000_000)], ADDR.deployer)]);
