@@ -220,6 +220,31 @@ describe('vault-core', () => {
       expectOkUint(status.result, 4);
     });
 
+    it('withdraw: emergency vault still allows owner exit and protocol owner can restore active state', () => {
+      seedVault();
+
+      const emergency = mine(simnet, [tx.callPublicFn('vault-core', 'emergency-withdraw-all', [u(1)], ADDR.deployer)]);
+      expectOkUint(emergency[0].result, 1);
+
+      const emergencyWithdraw = mine(simnet, [tx.callPublicFn('vault-core', 'withdraw', [u(1), u(2_000_000)], ADDR.deployer)]);
+      expectOkUint(emergencyWithdraw[0].result, 2_000_000);
+
+      const emergencyAssets = simnet.callReadOnlyFn('vault-core', 'get-vault-total-assets', [u(1)], ADDR.deployer);
+      expectOkUint(emergencyAssets.result, 3_000_000);
+
+      const emergencyStatus = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
+      expectOkUint(emergencyStatus.result, 4);
+
+      const clear = mine(simnet, [tx.callPublicFn('vault-core', 'clear-emergency-vault-status', [u(1)], ADDR.deployer)]);
+      expectOkBool(clear[0].result, true);
+
+      const activeStatus = simnet.callReadOnlyFn('vault-core', 'get-vault-status', [u(1)], ADDR.deployer);
+      expectOkUint(activeStatus.result, 1);
+
+      const postRecoveryWithdraw = mine(simnet, [tx.callPublicFn('vault-core', 'withdraw', [u(1), u(1_000_000)], ADDR.deployer)]);
+      expectOkUint(postRecoveryWithdraw[0].result, 1_000_000);
+    });
+
     it('emergency-withdraw: emergency-pauser can recover while the protocol is paused', () => {
       seedVault();
 
