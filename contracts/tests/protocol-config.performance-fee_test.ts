@@ -1,6 +1,5 @@
-// @ts-nocheck
-import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
-import { assertEquals } from 'https://deno.land/std@0.90.0/testing/asserts.ts';
+import { Clarinet, Tx, Chain, Account, types } from './helpers/legacy-clarinet';
+import { expect } from 'vitest';
 
 Clarinet.test({
   name: 'protocol-config: owner can set performance fee within bounds',
@@ -61,6 +60,6 @@ Clarinet.test({
     const versionAfter = chain.callReadOnlyFn('protocol-config', 'get-config-version', [], deployer.address);
     versionAfter.result.expectUint(2);
 
-    assertEquals(block.receipts.length, 1);
+    expect(block.receipts.length).toBe(1);
   },
 });

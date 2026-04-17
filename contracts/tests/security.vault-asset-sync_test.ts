@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
+import { Clarinet, Tx, Chain, Account, types } from './helpers/legacy-clarinet';
 
 Clarinet.test({
   name: 'security: vault-core and receipt-token asset accounting stay synchronized',

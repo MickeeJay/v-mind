@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
+import { Clarinet, Tx, Chain, Account, types } from './helpers/legacy-clarinet';
 
 const PROTOCOL_ZEST = 1;
 
