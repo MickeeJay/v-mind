@@ -335,7 +335,7 @@ npm run test
 ```bash
 # Contracts
 cd contracts
-clarinet test --coverage
+npm test
 
 # Agent
 cd agent

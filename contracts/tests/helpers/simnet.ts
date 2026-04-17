@@ -4,6 +4,15 @@ import { expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
+export type TransactionResultLike = Omit<ParsedTransactionResult, 'result'> & {
+  result: any;
+};
+
+export type SimnetLike = Omit<Simnet, 'mineBlock' | 'callReadOnlyFn'> & {
+  mineBlock(calls: Array<ReturnType<typeof tx.callPublicFn>>): TransactionResultLike[];
+  callReadOnlyFn(contract: string, method: string, args: any[], sender: string): TransactionResultLike;
+};
+
 export const ADDR = {
   deployer: 'ST33898GA3Q16CGXTNXACHEBF7TP5ABREYTTFC138',
   wallet1: 'ST15022M49CD9GZM1DYX6YTQA726DN9FC8BGTZTES',
@@ -62,9 +71,9 @@ function ensureSdkCompatibleSimnetPlan() {
   fs.writeFileSync(planPath, output.join('\n'));
 }
 
-export async function bootSimnet(): Promise<Simnet> {
+export async function bootSimnet(): Promise<SimnetLike> {
   ensureSdkCompatibleSimnetPlan();
-  return initSimnet('./Clarinet.toml');
+  return initSimnet('./Clarinet.toml') as Promise<SimnetLike>;
 }
 
 export function p(address: string) {
@@ -108,7 +117,7 @@ export function expectOkUint(result: any, value: number) {
   expect(Number(result.value.value)).toBe(value);
 }
 
-export function mine(simnet: Simnet, calls: Array<ReturnType<typeof tx.callPublicFn>>): ParsedTransactionResult[] {
+export function mine(simnet: SimnetLike, calls: Array<ReturnType<typeof tx.callPublicFn>>): TransactionResultLike[] {
   return simnet.mineBlock(calls);
 }
 
@@ -121,7 +130,7 @@ export function adapterTraits() {
   ];
 }
 
-export function initializeVaultToken(simnet: Simnet) {
+export function initializeVaultToken(simnet: SimnetLike) {
   return mine(simnet, [
     tx.callPublicFn(
       'vault-receipt-token',
@@ -138,7 +147,7 @@ export function initializeVaultToken(simnet: Simnet) {
   ]);
 }
 
-export function registerDefaultAssetAndStrategy(simnet: Simnet) {
+export function registerDefaultAssetAndStrategy(simnet: SimnetLike) {
   return mine(simnet, [
     tx.callPublicFn(
       'protocol-config',

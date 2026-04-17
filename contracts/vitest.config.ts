@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: [
       'tests/unit/**/*.test.ts',
+      'tests/**/*_test.ts',
       'tests/integration/**/*.test.ts',
       'tests/adversarial/**/*.test.ts',
     ],

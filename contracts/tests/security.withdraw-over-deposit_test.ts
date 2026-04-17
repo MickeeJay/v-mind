@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
+import { Clarinet, Tx, Chain, Account, types } from './helpers/legacy-clarinet';
 
 Clarinet.test({
   name: 'security: withdrawing more than deposited fails and preserves vault assets',

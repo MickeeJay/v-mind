@@ -5,8 +5,8 @@
   "description": "V-Mind smart contracts for Stacks blockchain",
   "scripts": {
     "dev": "clarinet integrate",
-    "test": "vitest run",
-    "test:legacy": "clarinet test --coverage",
+    "test": "npm run type-check && vitest run",
+    "type-check": "tsc --project tsconfig.json --noEmit",
     "check": "clarinet check",
     "deploy:testnet": "clarinet deployments apply -p deployments/testnet.yaml",
     "deploy:mainnet": "clarinet deployments apply -p deployments/mainnet.yaml",

@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet/index.ts';
+import { Clarinet, Tx, Chain, Account, types } from './helpers/legacy-clarinet';
 
 function mock(account: Account) {
   return types.principal(`${account.address}.mock-stackingdao-core`);
