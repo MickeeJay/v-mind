@@ -3,9 +3,10 @@
 ;; @version 2026-04-10 added deterministic failure toggles and reconciliation safety banner
 ;; @notice Local test double for Hermetica staking and sUSDh token interfaces.
 
+(impl-trait .hermetica-staking-trait.hermetica-staking-trait)
+
 (define-constant one-8 u100000000)
 
-(define-constant err-forced-failure (err u8301))
 (define-constant err-insufficient-shares (err u8302))
 
 (define-data-var force-failure bool false)

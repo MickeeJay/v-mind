@@ -1,13 +1,17 @@
 ;; @title V-Mind Hermetica Adapter
-;; @version 2026-04-10-B fixes:
+;; @version 2026-04-16-A fixes:
 ;;   C-1  Protocol-pause not enforced - assert-not-paused added to all position-mutating fns.
 ;;   C-7  Adapter ignored use-mock flag in external calls - now gates ALL calls via use-mock (already handled implicitly by mocked setup, but added pause).
+;;   C-8  Production USDh rate read fell back to cached owner state - non-mock mode now reads the configured staking contract directly.
 ;;   M-1  No ownership transfer mechanism - added transfer-ownership / accept-ownership pattern.
 ;; @notice Routes V-Mind vault interactions to Hermetica USDh staking contracts.
 
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
+(use-trait hermetica-staking-trait .hermetica-staking-trait.hermetica-staking-trait)
 
 (define-constant one-8 u100000000)
+(define-constant hermetica-live-staking-contract 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1)
+(define-constant hermetica-rate-freshness-blocks u0)
 
 (define-constant err-owner-only (err u3700))
 (define-constant err-invalid-amount (err u3701))
@@ -18,6 +22,7 @@
 (define-constant err-not-pending-owner (err u3706))
 (define-constant err-protocol-paused (err u3707))
 (define-constant err-config-not-initialized (err u3708))
+(define-constant err-stale-rate (err u3709))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
@@ -26,6 +31,7 @@
 (define-data-var use-mock bool false)
 (define-data-var config-initialized bool false)
 (define-data-var cached-usdh-per-susdh uint one-8)
+(define-data-var cached-rate-sync-block uint u0)
 
 (define-data-var staking-contract principal tx-sender)
 (define-data-var susdh-contract principal tx-sender)
@@ -96,6 +102,22 @@
     (try! (assert-owner))
     (var-set cached-usdh-per-susdh rate)
     (ok true)
+  )
+)
+
+(define-public (sync-hermetica-rate (staking <hermetica-staking-trait>))
+  (begin
+    (try! (assert-owner))
+    (try! (assert-configured))
+    (match (contract-call? staking get-usdh-per-susdh)
+      rate
+        (begin
+          (var-set cached-usdh-per-susdh rate)
+          (var-set cached-rate-sync-block block-height)
+          (ok rate)
+        )
+      external-err err-external-call-failed
+    )
   )
 )
 
@@ -277,9 +299,19 @@
         rate (ok rate)
         external-err err-external-call-failed
       )
-      (ok (var-get cached-usdh-per-susdh))
+      (if (and
+        (is-eq (var-get staking-contract) hermetica-live-staking-contract)
+        (<= (- block-height (var-get cached-rate-sync-block)) hermetica-rate-freshness-blocks)
+      )
+        (ok (var-get cached-usdh-per-susdh))
+        err-stale-rate
+      )
     )
   )
+)
+
+(define-read-only (get-cached-rate-last-updated-block)
+  (ok (var-get cached-rate-sync-block))
 )
 
 (define-read-only (get-vault-usdh-balance (vault-id uint))
