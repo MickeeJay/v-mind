@@ -69,9 +69,9 @@ set DEPLOYMENT_MANIFEST_PATH=contracts/deployments/manifests/<manifest-file>.jso
 npm run deploy:init --workspace=contracts -- --manifest %DEPLOYMENT_MANIFEST_PATH%
 ```
 
-Initialization now also writes the adapter principal configuration before the adapters are treated as production-ready. Mainnet deployments must provide the adapter initialization block in `contracts/deployments/config/mainnet.json`; the initializer validates those values before continuing.
+Initialization now also writes the adapter principal configuration before the adapters are treated as production-ready. Mainnet deployments must provide the adapter initialization block in `contracts/deployments/config/mainnet.json`; the initializer validates those values before continuing. This is a prerequisite, not a launch approval. Do not proceed until the production-readiness gate below passes.
 
-## Post-deployment verification
+## Post-deployment verification and production-readiness gate
 
 Run verification against the same manifest used for initialization:
 
@@ -89,6 +89,17 @@ Verification checks include:
 6. Strategy execution read-only values match protocol configuration.
 
 If discrepancies are found, the script exits non-zero and prints each mismatch.
+
+### Production-readiness gate
+
+The deployment is not release-ready until all of the following are confirmed against the deployed manifest and selected config:
+
+1. Each adapter principal resolves to the intended production contract for the target network, with no mock or placeholder wiring left in the mainnet config.
+2. Each adapter reports `is-configured = true` after initialization.
+3. Each adapter reports `get-mock-mode = false` before launch approval.
+4. `protocol-config.get-protocol-treasury()` matches the governance-approved treasury principal and does not fall back to the deployer address or any placeholder.
+
+If any production-critical value is still temporary, stop the runbook, correct the config or initialization state, and rerun initialization and verification before launch approval.
 
 ## Rollback and failure handling
 
