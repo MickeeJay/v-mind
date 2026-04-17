@@ -4,8 +4,10 @@ description = "V-Mind DeFi Strategy Automation Smart Contracts"
 authors = []
 telemetry = false
 cache_dir = "./.cache"
-requirements = []
 boot_contracts = []
+
+[[project.requirements ]]
+contract_id = "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1"
 
 # --- Traits (no inter-contract dependencies) -----------------------------------
 [contracts.sip-010-ft-trait]
@@ -55,6 +57,11 @@ epoch = 2.4
 
 [contracts.hermetica-usdh-trait]
 path = "contracts/traits/hermetica-usdh-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.hermetica-staking-trait]
+path = "contracts/traits/hermetica-staking-trait.clar"
 clarity_version = 2
 epoch = 2.4
 
