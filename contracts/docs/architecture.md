@@ -93,5 +93,4 @@ Practical dependency sequence for deployment and analysis:
 
 ## Notes
 
-- There is no vault-registry contract in the reconciled architecture.
 - Vault identity and lifecycle state are handled directly by core/vault-core.clar.

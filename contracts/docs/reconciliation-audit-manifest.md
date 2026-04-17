@@ -5,6 +5,7 @@ Branch: feat/contract-reconciliation
 
 ## Scope
 Full audit of all Clarity contracts under contracts/contracts before any implementation edits.
+The inventory below matches the current Clarinet.toml and source tree.
 
 ## Contract Inventory (.clar)
 
@@ -20,7 +21,6 @@ Full audit of all Clarity contracts under contracts/contracts before any impleme
 | contracts/contracts/core/strategy-registry.clar | 315 | yes |
 | contracts/contracts/core/vault-core.clar | 678 | yes |
 | contracts/contracts/core/vault-receipt-token.clar | 345 | yes |
-| contracts/contracts/core/vault-registry.clar | 116 | yes |
 | contracts/contracts/libraries/constants-lib.clar | 56 | yes |
 | contracts/contracts/libraries/error-codes-lib.clar | 35 | yes |
 | contracts/contracts/libraries/strategy-validation-lib.clar | 39 | yes |
@@ -44,24 +44,21 @@ Full audit of all Clarity contracts under contracts/contracts before any impleme
 
 ## Structural Findings Before Fixes
 
-2. Core contract is named vault-core.clar and must be renamed to vault-core.clar.
-4. Core directory contains an extra vault-registry.clar not listed in canonical target core set; needs resolution.
-5. Adapters contain inline hardcoded principal literals rather than library constants.
-6. Libraries currently expose mostly read-only helpers; constants-lib is incomplete for required protocol constants and external principal constants.
-7. error-codes-lib is incomplete relative to project-wide err usage and contracts still contain inline error constants.
-8. access-control lacks required role names (strategy-registrar, vault-operator, emergency-pauser) and global emergency pause/unpause entry points.
-9. protocol-config naming diverges from required names (e.g. get-max-active-vaults-per-user vs max-vaults-per-user), and supported-asset map exists but core required fields need harmonization.
-10. strategy-registry has required activation/deactivation and retrieval logic but function naming differs from required validate-strategy-for-execution.
-11. strategy-execution function exists but named rebalance-vault instead of rebalance and references vault-core principal name.
-12. Mocks do not uniformly contain required top warning comment text and should be normalized.
-13. Test framework under contracts/tests uses Clarinet v1 Deno-style APIs and requires Clarinet v2 SDK + Vitest setup.
+1. Adapters contain inline hardcoded principal literals rather than library constants.
+2. Libraries currently expose mostly read-only helpers; constants-lib is incomplete for required protocol constants and external principal constants.
+3. error-codes-lib is incomplete relative to project-wide err usage and contracts still contain inline error constants.
+4. access-control lacks required role names (strategy-registrar, vault-operator, emergency-pauser) and global emergency pause/unpause entry points.
+5. protocol-config naming diverges from required names (e.g. get-max-active-vaults-per-user vs max-vaults-per-user), and supported-asset map exists but core required fields need harmonization.
+6. strategy-registry has required activation/deactivation and retrieval logic but function naming differs from required validate-strategy-for-execution.
+7. strategy-execution function exists but named rebalance-vault instead of rebalance and references vault-core principal name.
+8. Mocks do not uniformly contain required top warning comment text and should be normalized.
+9. Test framework under contracts/tests uses Clarinet v1 Deno-style APIs and requires Clarinet v2 SDK + Vitest setup.
 
 ## Reconciliation Plan
 
-2. Rename vault-core.clar to vault-core.clar and update all references.
-3. Reconcile trait, library, adapter, and core function names to canonical required set.
-4. Centralize external principals in constants-lib and remove inline adapter principals.
-5. Consolidate error constants into error-codes-lib and update err references.
-6. Reorder Clarinet.toml declarations in strict dependency order and isolate mocks to local dev/test network only.
-7. Migrate test framework to @hirosystems/clarinet-sdk + Vitest and validate startup.
-8. Update architecture and security documentation after code reconciliation.
+1. Reconcile trait, library, adapter, and core function names to canonical required set.
+2. Centralize external principals in constants-lib and remove inline adapter principals.
+3. Consolidate error constants into error-codes-lib and update err references.
+4. Reorder Clarinet.toml declarations in strict dependency order and isolate mocks to local dev/test network only.
+5. Migrate test framework to @hirosystems/clarinet-sdk + Vitest and validate startup.
+6. Update architecture and security documentation after code reconciliation.

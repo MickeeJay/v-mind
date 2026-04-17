@@ -7,7 +7,6 @@ This checklist covers all production V-Mind contracts under `contracts/contracts
 - `core/access-control.clar`
 - `core/protocol-config.clar`
 - `core/strategy-registry.clar`
-- `core/vault-registry.clar`
 - `core/vault-core.clar`
 - `core/vault-receipt-token.clar`
 - `core/strategy-execution.clar`
@@ -64,8 +63,6 @@ Mocks and traits are out of direct production scope, but are reviewed for test r
   - all mutating functions: owner-only
 - `strategy-registry`
   - all mutating functions: strategy-registrar role or owner fallback
-- `vault-registry`
-  - all mutating functions: owner-only
 - `vault-core`
   - `create-vault`: permissionless by design
   - `deposit`, `withdraw`, lifecycle controls: vault-owner-only
