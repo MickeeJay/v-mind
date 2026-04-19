@@ -13,7 +13,8 @@
 (define-constant err-not-pending-owner (err u3406))
 (define-constant err-protocol-paused (err u3407))
 (define-constant err-config-not-initialized (err u3408))
-(define-constant zest-live-reserve-contract 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve)
+(define-constant err-invalid-sync-source (err u3409))
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-constant strategy-execution-contract .strategy-execution)
 
@@ -68,6 +69,13 @@
   (as-contract tx-sender)
 )
 
+(define-private (is-contract-principal (target principal))
+  (match (principal-destruct? target)
+    principal-data (is-some (get name principal-data))
+    principal-data (is-some (get name principal-data))
+  )
+)
+
 (define-private (get-vault-position (vault-id uint))
   (default-to u0 (get deployed-amount (map-get? vault-positions { vault-id: vault-id })))
 )
@@ -86,21 +94,16 @@
   )
 )
 
-(define-private (fetch-live-zest-total-underlying (reserve <zest-reserve-trait>))
-  (match (contract-call? reserve get-user-underlying-asset-balance
-    (var-get zest-ztoken)
-    (var-get zest-asset)
-    (adapter-principal)
-  )
-    total-underlying (ok total-underlying)
-    external-err err-external-call-failed
-  )
-)
-
 (define-public (sync-live-zest-underlying-balance (reserve <zest-reserve-trait>))
   (begin
+    (try! (assert-owner))
     (try! (assert-configured))
-    (match (fetch-live-zest-total-underlying reserve)
+    (asserts! (is-eq (contract-of reserve) (var-get zest-pool-reserve)) err-invalid-sync-source)
+    (match (contract-call? reserve get-user-underlying-asset-balance
+      (var-get zest-ztoken)
+      (var-get zest-asset)
+      (adapter-principal)
+    )
       total-underlying
         (begin
           (var-set cached-live-total-underlying (some total-underlying))
@@ -154,6 +157,11 @@
 )
   (begin
     (try! (assert-owner))
+    (asserts! (is-contract-principal new-pool-reserve) err-config-not-initialized)
+    (asserts! (is-contract-principal new-ztoken) err-config-not-initialized)
+    (asserts! (is-contract-principal new-asset) err-config-not-initialized)
+    (asserts! (is-contract-principal new-oracle) err-config-not-initialized)
+    (asserts! (is-contract-principal new-incentives) err-config-not-initialized)
     (var-set zest-pool-reserve new-pool-reserve)
     (var-set zest-ztoken new-ztoken)
     (var-set zest-asset new-asset)
@@ -167,6 +175,7 @@
 (define-public (transfer-ownership (new-owner principal))
   (begin
     (try! (assert-owner))
+    (asserts! (is-standard new-owner) err-not-pending-owner)
     (var-set pending-owner (some new-owner))
     (print { event: "zest-adapter-ownership-transfer-initiated", pending-owner: new-owner })
     (ok true)
@@ -189,17 +198,25 @@
 
 (define-public (deposit-to-zest (vault-id uint) (amount uint))
   (begin
-    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (asserts! (> amount u0) err-invalid-amount)
     (match (call-supply amount)
       supply-result
         (if supply-result
-          (let ((updated (+ (get-vault-position vault-id) amount)))
+          (let
+            (
+              (current (get-vault-position vault-id))
+              (current-total (var-get total-deployed))
+              (updated (+ (get-vault-position vault-id) amount))
+            )
             (begin
+              (asserts! (<= amount (- max-uint current)) err-invalid-amount)
+              (asserts! (<= amount (- max-uint current-total)) err-invalid-amount)
               (set-vault-position vault-id updated)
-              (var-set total-deployed (+ (var-get total-deployed) amount))
+              (var-set total-deployed (+ current-total amount))
               (print {
                 event: "v-mind-zest-deposit",
                 vault-id: vault-id,
@@ -228,62 +245,59 @@
 )
 
 (define-public (withdraw-from-zest (vault-id uint) (amount uint))
-  (let ((current (get-vault-position vault-id)))
-    (begin
-      (try! (assert-configured))
-      (try! (assert-not-paused))
-      (try! (assert-authorized-caller))
-      (asserts! (> amount u0) err-invalid-amount)
-      (asserts! (>= current amount) err-insufficient-position)
-      (match (call-withdraw amount)
-        withdraw-result
-          (if withdraw-result
-            (let ((updated (- current amount)))
-              (begin
-                (asserts! (>= (var-get total-deployed) amount) err-insufficient-position)
-                (set-vault-position vault-id updated)
-                (var-set total-deployed (- (var-get total-deployed) amount))
-                (print {
-                  event: "v-mind-zest-withdraw",
-                  vault-id: vault-id,
-                  amount: amount,
-                  updated-position: updated,
-                  mock-mode: (var-get use-mock)
-                })
-                (ok amount)
+  (begin
+    (try! (assert-not-paused))
+    (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
+    (asserts! (> amount u0) err-invalid-amount)
+    (let ((current (get-vault-position vault-id)))
+      (begin
+        (asserts! (>= current amount) err-insufficient-position)
+        (match (call-withdraw amount)
+          withdraw-result
+            (if withdraw-result
+              (let ((updated (- current amount)))
+                (begin
+                  (asserts! (>= (var-get total-deployed) amount) err-insufficient-position)
+                  (set-vault-position vault-id updated)
+                  (var-set total-deployed (- (var-get total-deployed) amount))
+                  (print {
+                    event: "v-mind-zest-withdraw",
+                    vault-id: vault-id,
+                    amount: amount,
+                    updated-position: updated,
+                    mock-mode: (var-get use-mock)
+                  })
+                  (ok amount)
+                )
               )
+              err-external-call-failed
             )
-            err-external-call-failed
-          )
-        external-err
-          (begin
-            (print {
-              event: "v-mind-zest-withdraw-failed",
-              vault-id: vault-id,
-              amount: amount,
-              external-error: external-err,
-              normalized-error: err-external-call-failed
-            })
-            err-external-call-failed
-          )
+          external-err
+            (begin
+              (print {
+                event: "v-mind-zest-withdraw-failed",
+                vault-id: vault-id,
+                amount: amount,
+                external-error: external-err,
+                normalized-error: err-external-call-failed
+              })
+              err-external-call-failed
+            )
+        )
       )
     )
   )
 )
 
-(define-public (collect-zest-fee (amount uint) (treasury principal))
+(define-read-only (collect-zest-fee (amount uint) (treasury principal))
   (begin
     (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
-    (print {
-      event: "v-mind-zest-fee-collected",
-      amount: amount,
-      treasury: treasury,
-      caller: tx-sender
-    })
     (ok true)
   )
 )
@@ -293,6 +307,7 @@
     (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (let ((current (get-vault-position vault-id)))
       (if (is-eq current u0)
         (ok u0)
@@ -320,7 +335,7 @@
       )
       (match (var-get cached-live-total-underlying)
         total-underlying (ok (calculate-vault-zest-underlying-balance vault-id total-underlying))
-        err-external-call-failed
+        (ok (get-vault-position vault-id))
       )
     )
   )

@@ -10,6 +10,7 @@
 (use-trait hermetica-staking-trait .hermetica-staking-trait.hermetica-staking-trait)
 
 (define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 (define-constant hermetica-live-staking-contract 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.staking-v1-1)
 (define-constant hermetica-rate-freshness-blocks u0)
 
@@ -23,6 +24,7 @@
 (define-constant err-protocol-paused (err u3707))
 (define-constant err-config-not-initialized (err u3708))
 (define-constant err-stale-rate (err u3709))
+(define-constant err-invalid-sync-source (err u3710))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
@@ -77,6 +79,13 @@
   (as-contract tx-sender)
 )
 
+(define-private (is-contract-principal (target principal))
+  (match (principal-destruct? target)
+    principal-data (is-some (get name principal-data))
+    principal-data (is-some (get name principal-data))
+  )
+)
+
 (define-private (get-position (vault-id uint))
   (default-to { susdh-shares: u0, usdh-principal-deployed: u0 } (map-get? vault-positions { vault-id: vault-id }))
 )
@@ -86,7 +95,7 @@
 )
 
 (define-private (get-susdh-balance)
-  (unwrap-panic (contract-call? .mock-hermetica-staking get-balance (adapter-principal)))
+  (ok (unwrap! (contract-call? .mock-hermetica-staking get-balance (adapter-principal)) err-external-call-failed))
 )
 
 (define-public (set-mock-mode (enabled bool))
@@ -100,6 +109,7 @@
 (define-public (set-cached-rate (rate uint))
   (begin
     (try! (assert-owner))
+    (asserts! (> rate u0) err-invalid-amount)
     (var-set cached-usdh-per-susdh rate)
     (ok true)
   )
@@ -109,6 +119,10 @@
   (begin
     (try! (assert-owner))
     (try! (assert-configured))
+    (if (var-get use-mock)
+      (asserts! (is-eq (contract-of staking) .mock-hermetica-staking) err-invalid-sync-source)
+      (asserts! (is-eq (contract-of staking) (var-get staking-contract)) err-invalid-sync-source)
+    )
     (match (contract-call? staking get-usdh-per-susdh)
       rate
         (begin
@@ -124,6 +138,8 @@
 (define-public (set-hermetica-config (new-staking principal) (new-susdh principal))
   (begin
     (try! (assert-owner))
+    (asserts! (is-contract-principal new-staking) err-config-not-initialized)
+    (asserts! (is-contract-principal new-susdh) err-config-not-initialized)
     (var-set staking-contract new-staking)
     (var-set susdh-contract new-susdh)
     (var-set config-initialized true)
@@ -134,6 +150,7 @@
 (define-public (transfer-ownership (new-owner principal))
   (begin
     (try! (assert-owner))
+    (asserts! (is-standard new-owner) err-not-pending-owner)
     (var-set pending-owner (some new-owner))
     (print { event: "hermetica-adapter-ownership-transfer-initiated", pending-owner: new-owner })
     (ok true)
@@ -156,24 +173,29 @@
 
 (define-public (deposit-usdh (vault-id uint) (amount uint))
   (begin
-    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (asserts! (> amount u0) err-invalid-amount)
-    (let ((before-balance (get-susdh-balance)))
+    (let ((before-balance (try! (get-susdh-balance))))
       (match
-        (contract-call? .mock-hermetica-staking stake amount none)
+        (as-contract (contract-call? .mock-hermetica-staking stake amount none))
         stake-ok
           (if stake-ok
             (let
               (
-                (after-balance (get-susdh-balance))
+                (after-balance (try! (get-susdh-balance)))
                 (minted-shares (if (>= after-balance before-balance) (- after-balance before-balance) u0))
                 (position (get-position vault-id))
-                (updated-shares (+ (get susdh-shares position) minted-shares))
-                (updated-principal (+ (get usdh-principal-deployed position) amount))
+                (current-shares (get susdh-shares position))
+                (current-principal (get usdh-principal-deployed position))
+                (updated-shares (+ current-shares minted-shares))
+                (updated-principal (+ current-principal amount))
               )
               (begin
+                (asserts! (<= minted-shares (- max-uint current-shares)) err-invalid-amount)
+                (asserts! (<= amount (- max-uint current-principal)) err-invalid-amount)
                 (set-position vault-id updated-shares updated-principal)
                 (print {
                   event: "v-mind-hermetica-deposit",
@@ -211,65 +233,62 @@
 )
 
 (define-public (withdraw-usdh (vault-id uint) (amount uint))
-  (let
-    (
-      (position (get-position vault-id))
-      (current-shares (get susdh-shares position))
-      (current-principal (get usdh-principal-deployed position))
-    )
-    (begin
-      (try! (assert-configured))
-      (try! (assert-not-paused))
-      (try! (assert-authorized-caller))
-      (asserts! (> amount u0) err-invalid-amount)
-      (asserts! (>= current-shares amount) err-insufficient-position)
-      (match
-        (contract-call? .mock-hermetica-staking unstake amount)
-        usdh-out
-          (let
-            (
-              (updated-shares (- current-shares amount))
-              (updated-principal (if (>= current-principal usdh-out) (- current-principal usdh-out) u0))
+  (begin
+    (try! (assert-not-paused))
+    (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
+    (asserts! (> amount u0) err-invalid-amount)
+    (let
+      (
+        (position (get-position vault-id))
+        (current-shares (get susdh-shares position))
+        (current-principal (get usdh-principal-deployed position))
+      )
+      (begin
+        (asserts! (>= current-shares amount) err-insufficient-position)
+        (match
+          (as-contract (contract-call? .mock-hermetica-staking unstake amount))
+          usdh-out
+            (let
+              (
+                (updated-shares (- current-shares amount))
+                (updated-principal (if (>= current-principal usdh-out) (- current-principal usdh-out) u0))
+              )
+              (begin
+                (set-position vault-id updated-shares updated-principal)
+                (print {
+                  event: "v-mind-hermetica-withdraw",
+                  vault-id: vault-id,
+                  susdh-burned: amount,
+                  usdh-out: usdh-out,
+                  vault-susdh-shares: updated-shares
+                })
+                (ok usdh-out)
+              )
             )
+          external-err
             (begin
-              (set-position vault-id updated-shares updated-principal)
               (print {
-                event: "v-mind-hermetica-withdraw",
+                event: "v-mind-hermetica-withdraw-failed",
                 vault-id: vault-id,
                 susdh-burned: amount,
-                usdh-out: usdh-out,
-                vault-susdh-shares: updated-shares
+                external-error: external-err
               })
-              (ok usdh-out)
+              err-external-call-failed
             )
-          )
-        external-err
-          (begin
-            (print {
-              event: "v-mind-hermetica-withdraw-failed",
-              vault-id: vault-id,
-              susdh-burned: amount,
-              external-error: external-err
-            })
-            err-external-call-failed
-          )
+        )
       )
     )
   )
 )
 
-(define-public (collect-hermetica-fee (amount uint) (treasury principal))
+(define-read-only (collect-hermetica-fee (amount uint) (treasury principal))
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
-    (print {
-      event: "v-mind-hermetica-fee-collected",
-      amount: amount,
-      treasury: treasury,
-      caller: tx-sender
-    })
     (ok true)
   )
 )
@@ -278,6 +297,7 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (let ((shares (get susdh-shares (get-position vault-id))))
       (if (is-eq shares u0)
         (ok u0)
@@ -334,6 +354,10 @@
 
 (define-read-only (get-cached-rate)
   (ok (var-get cached-usdh-per-susdh))
+)
+
+(define-read-only (get-susdh-contract)
+  (ok (var-get susdh-contract))
 )
 
 (define-public (deposit (vault-id uint) (amount uint))

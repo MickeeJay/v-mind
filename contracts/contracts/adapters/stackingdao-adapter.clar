@@ -6,6 +6,7 @@
 (use-trait stackingdao-direct-helpers-trait .stackingdao-direct-helpers-trait.stackingdao-direct-helpers-trait)
 
 (define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-constant err-owner-only (err u3600))
 (define-constant err-invalid-amount (err u3601))
@@ -16,6 +17,7 @@
 (define-constant err-not-pending-owner (err u3606))
 (define-constant err-protocol-paused (err u3607))
 (define-constant err-config-not-initialized (err u3608))
+(define-constant err-invalid-sync-source (err u3609))
 
 (define-constant strategy-execution-contract .strategy-execution)
 
@@ -75,6 +77,13 @@
   (as-contract tx-sender)
 )
 
+(define-private (is-contract-principal (target principal))
+  (match (principal-destruct? target)
+    principal-data (is-some (get name principal-data))
+    principal-data (is-some (get name principal-data))
+  )
+)
+
 (define-private (get-position (vault-id uint))
   (default-to { ststx-shares: u0, stx-principal-deployed: u0 } (map-get? vault-positions { vault-id: vault-id }))
 )
@@ -83,21 +92,19 @@
   (map-set vault-positions { vault-id: vault-id } { ststx-shares: shares, stx-principal-deployed: principal-deployed })
 )
 
-(define-private (refresh-live-total-underlying (helpers <stackingdao-direct-helpers-trait>))
-  (match (contract-call? helpers get-user-balance-in-protocol (adapter-principal) (var-get staking-contract) u0)
-    amount
-      (begin
-        (var-set cached-live-total-underlying (some amount))
-        (ok amount)
-      )
-    external-err err-external-call-failed
-  )
-)
-
 (define-public (sync-live-total-underlying (helpers <stackingdao-direct-helpers-trait>))
   (begin
+    (try! (assert-owner))
     (try! (assert-configured))
-    (refresh-live-total-underlying helpers)
+    (asserts! (is-eq (contract-of helpers) (var-get helpers-contract)) err-invalid-sync-source)
+    (match (contract-call? helpers get-user-balance-in-protocol (adapter-principal) (var-get staking-contract) u0)
+      amount
+        (begin
+          (var-set cached-live-total-underlying (some amount))
+          (ok amount)
+        )
+      external-err err-external-call-failed
+    )
   )
 )
 
@@ -125,11 +132,17 @@
 )
   (begin
     (try! (assert-owner))
+    (asserts! (is-contract-principal new-core) err-config-not-initialized)
+    (asserts! (is-contract-principal new-reserve) err-config-not-initialized)
+    (asserts! (is-contract-principal new-commission) err-config-not-initialized)
+    (asserts! (is-contract-principal new-staking) err-config-not-initialized)
+    (asserts! (is-contract-principal new-helpers) err-config-not-initialized)
     (var-set core-contract new-core)
     (var-set reserve-contract new-reserve)
     (var-set commission-contract new-commission)
     (var-set staking-contract new-staking)
     (var-set helpers-contract new-helpers)
+    (var-set cached-live-total-underlying none)
     (var-set config-initialized true)
     (ok true)
   )
@@ -138,6 +151,7 @@
 (define-public (transfer-ownership (new-owner principal))
   (begin
     (try! (assert-owner))
+    (asserts! (is-standard new-owner) err-not-pending-owner)
     (var-set pending-owner (some new-owner))
     (print { event: "stackingdao-adapter-ownership-transfer-initiated", pending-owner: new-owner })
     (ok true)
@@ -160,28 +174,37 @@
 
 (define-public (mint-ststx (vault-id uint) (amount uint))
   (begin
-    (try! (assert-configured))
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (asserts! (> amount u0) err-invalid-amount)
     (match
-      (contract-call? .mock-stackingdao-core deposit
-        (var-get reserve-contract)
-        (var-get commission-contract)
-        (var-get staking-contract)
-        (var-get helpers-contract)
-        amount
-        none
-        none
+      (as-contract
+        (contract-call? .mock-stackingdao-core deposit
+          (var-get reserve-contract)
+          (var-get commission-contract)
+          (var-get staking-contract)
+          (var-get helpers-contract)
+          amount
+          none
+          none
+        )
       )
       minted-shares
         (let
           (
             (position (get-position vault-id))
-            (updated-shares (+ (get ststx-shares position) minted-shares))
-            (updated-principal (+ (get stx-principal-deployed position) amount))
+            (current-shares (get ststx-shares position))
+            (current-principal (get stx-principal-deployed position))
+            (updated-shares (+ current-shares minted-shares))
+            (updated-principal (+ current-principal amount))
           )
           (begin
+            (asserts! (<= minted-shares (- max-uint current-shares)) err-invalid-amount)
+            (asserts! (<= amount (- max-uint current-principal)) err-invalid-amount)
+            (asserts! (<= minted-shares (- max-uint (var-get total-ststx-shares))) err-invalid-amount)
+            (asserts! (<= amount (- max-uint (var-get total-principal-tracked))) err-invalid-amount)
             (set-position vault-id updated-shares updated-principal)
             (var-set total-ststx-shares (+ (var-get total-ststx-shares) minted-shares))
             (var-set total-principal-tracked (+ (var-get total-principal-tracked) amount))
@@ -217,18 +240,21 @@
       (current-principal (get stx-principal-deployed position))
     )
     (begin
-      (try! (assert-configured))
       (try! (assert-not-paused))
       (try! (assert-authorized-caller))
+      (try! (assert-configured))
+      (asserts! (> vault-id u0) err-invalid-amount)
       (asserts! (> amount u0) err-invalid-amount)
       (asserts! (>= current-shares amount) err-insufficient-position)
       (match
-        (contract-call? .mock-stackingdao-core withdraw-idle
-          (var-get reserve-contract)
-          (var-get helpers-contract)
-          (var-get commission-contract)
-          (var-get staking-contract)
-          amount
+        (as-contract
+          (contract-call? .mock-stackingdao-core withdraw-idle
+            (var-get reserve-contract)
+            (var-get helpers-contract)
+            (var-get commission-contract)
+            (var-get staking-contract)
+            amount
+          )
         )
         withdraw-result
           (let
@@ -267,18 +293,12 @@
   )
 )
 
-(define-public (collect-stackingdao-fee (amount uint) (treasury principal))
+(define-read-only (collect-stackingdao-fee (amount uint) (treasury principal))
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
-    (print {
-      event: "v-mind-stackingdao-fee-collected",
-      amount: amount,
-      treasury: treasury,
-      caller: tx-sender
-    })
     (ok true)
   )
 )
@@ -287,6 +307,7 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (let ((shares (get ststx-shares (get-position vault-id))))
       (if (is-eq shares u0)
         (ok u0)
@@ -338,6 +359,10 @@
 
 (define-read-only (get-configured-stackingdao-helper-contract)
   (ok (var-get helpers-contract))
+)
+
+(define-read-only (get-configured-stackingdao-core-contract)
+  (ok (var-get core-contract))
 )
 
 (define-read-only (is-configured)

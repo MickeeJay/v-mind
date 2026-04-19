@@ -9,6 +9,7 @@
 (impl-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-constant err-owner-only (err u3500))
 (define-constant err-invalid-amount (err u3501))
@@ -67,6 +68,13 @@
   )
 )
 
+(define-private (is-contract-principal (target principal))
+  (match (principal-destruct? target)
+    principal-data (is-some (get name principal-data))
+    principal-data (is-some (get name principal-data))
+  )
+)
+
 (define-private (get-position (vault-id uint))
   (default-to { lp-balance: u0, token-x-deployed: u0 } (map-get? vault-positions { vault-id: vault-id }))
 )
@@ -78,12 +86,14 @@
 (define-private (call-add-position (amount uint))
   (begin
     (try! (assert-configured))
-    (contract-call? .mock-alex-amm add-to-position
-      (var-get token-x)
-      (var-get token-y)
-      (var-get pool-factor)
-      amount
-      none
+    (as-contract
+      (contract-call? .mock-alex-amm add-to-position
+        (var-get token-x)
+        (var-get token-y)
+        (var-get pool-factor)
+        amount
+        none
+      )
     )
   )
 )
@@ -91,11 +101,13 @@
 (define-private (call-reduce-position (percent uint))
   (begin
     (try! (assert-configured))
-    (contract-call? .mock-alex-amm reduce-position
-      (var-get token-x)
-      (var-get token-y)
-      (var-get pool-factor)
-      percent
+    (as-contract
+      (contract-call? .mock-alex-amm reduce-position
+        (var-get token-x)
+        (var-get token-y)
+        (var-get pool-factor)
+        percent
+      )
     )
   )
 )
@@ -111,6 +123,9 @@
 (define-public (set-alex-config (new-token-x principal) (new-token-y principal) (new-pool-factor uint))
   (begin
     (try! (assert-owner))
+    (asserts! (is-contract-principal new-token-x) err-config-not-initialized)
+    (asserts! (is-contract-principal new-token-y) err-config-not-initialized)
+    (asserts! (> new-pool-factor u0) err-invalid-amount)
     (var-set token-x new-token-x)
     (var-set token-y new-token-y)
     (var-set pool-factor new-pool-factor)
@@ -122,6 +137,7 @@
 (define-public (transfer-ownership (new-owner principal))
   (begin
     (try! (assert-owner))
+    (asserts! (is-standard new-owner) err-not-pending-owner)
     (var-set pending-owner (some new-owner))
     (print { event: "alex-adapter-ownership-transfer-initiated", pending-owner: new-owner })
     (ok true)
@@ -146,6 +162,8 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (asserts! (> amount u0) err-invalid-amount)
     (match (call-add-position amount)
       add-result
@@ -155,10 +173,14 @@
             (dy (get dy add-result))
             (minted-lp (get supply add-result))
             (position (get-position vault-id))
-            (updated-lp (+ (get lp-balance position) minted-lp))
-            (updated-token-x (+ (get token-x-deployed position) dx))
+            (current-lp (get lp-balance position))
+            (current-token-x (get token-x-deployed position))
+            (updated-lp (+ current-lp minted-lp))
+            (updated-token-x (+ current-token-x dx))
           )
           (begin
+            (asserts! (<= minted-lp (- max-uint current-lp)) err-invalid-amount)
+            (asserts! (<= dx (- max-uint current-token-x)) err-invalid-amount)
             (set-position vault-id updated-lp updated-token-x)
             (print {
               event: "v-mind-alex-add-liquidity",
@@ -189,70 +211,68 @@
 )
 
 (define-public (withdraw-alex-liquidity (vault-id uint) (amount uint))
-  (let
-    (
-      (position (get-position vault-id))
-      (current-lp (get lp-balance position))
-      (current-token-x (get token-x-deployed position))
-    )
-    (begin
-      (try! (assert-not-paused))
-      (try! (assert-authorized-caller))
-      (asserts! (> amount u0) err-invalid-amount)
-      (asserts! (>= current-lp amount) err-insufficient-position)
-      (let ((percent (if (is-eq amount current-lp) one-8 (/ (* amount one-8) current-lp))))
-        (match (call-reduce-position percent)
-          withdraw-result
-            (let
-              (
-                (dx (get dx withdraw-result))
-                (dy (get dy withdraw-result))
-                (updated-lp (- current-lp amount))
-                (updated-token-x (if (>= current-token-x dx) (- current-token-x dx) u0))
+  (begin
+    (try! (assert-not-paused))
+    (try! (assert-authorized-caller))
+    (try! (assert-configured))
+    (asserts! (> vault-id u0) err-invalid-amount)
+    (asserts! (> amount u0) err-invalid-amount)
+    (let
+      (
+        (position (get-position vault-id))
+        (current-lp (get lp-balance position))
+        (current-token-x (get token-x-deployed position))
+      )
+      (begin
+        (asserts! (>= current-lp amount) err-insufficient-position)
+        (let ((percent (if (is-eq amount current-lp) one-8 (/ (* amount one-8) current-lp))))
+          (match (call-reduce-position percent)
+            withdraw-result
+              (let
+                (
+                  (dx (get dx withdraw-result))
+                  (dy (get dy withdraw-result))
+                  (updated-lp (- current-lp amount))
+                  (updated-token-x (if (>= current-token-x dx) (- current-token-x dx) u0))
+                )
+                (begin
+                  (set-position vault-id updated-lp updated-token-x)
+                  (print {
+                    event: "v-mind-alex-withdraw-liquidity",
+                    vault-id: vault-id,
+                    lp-burned: amount,
+                    token-x-out: dx,
+                    token-y-out: dy,
+                    lp-balance: updated-lp,
+                    mock-mode: (var-get use-mock)
+                  })
+                  (ok dx)
+                )
               )
+            external-err
               (begin
-                (set-position vault-id updated-lp updated-token-x)
                 (print {
-                  event: "v-mind-alex-withdraw-liquidity",
+                  event: "v-mind-alex-withdraw-liquidity-failed",
                   vault-id: vault-id,
                   lp-burned: amount,
-                  token-x-out: dx,
-                  token-y-out: dy,
-                  lp-balance: updated-lp,
-                  mock-mode: (var-get use-mock)
+                  external-error: external-err,
+                  normalized-error: err-external-call-failed
                 })
-                (ok dx)
+                err-external-call-failed
               )
-            )
-          external-err
-            (begin
-              (print {
-                event: "v-mind-alex-withdraw-liquidity-failed",
-                vault-id: vault-id,
-                lp-burned: amount,
-                external-error: external-err,
-                normalized-error: err-external-call-failed
-              })
-              err-external-call-failed
-            )
+          )
         )
       )
     )
   )
 )
 
-(define-public (collect-alex-fee (amount uint) (treasury principal))
+(define-read-only (collect-alex-fee (amount uint) (treasury principal))
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq treasury (contract-call? .protocol-config get-protocol-treasury)) err-invalid-treasury)
-    (print {
-      event: "v-mind-alex-fee-collected",
-      amount: amount,
-      treasury: treasury,
-      caller: tx-sender
-    })
     (ok true)
   )
 )
@@ -261,6 +281,7 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-authorized-caller))
+    (asserts! (> vault-id u0) err-invalid-amount)
     (let ((current-lp (get lp-balance (get-position vault-id))))
       (if (is-eq current-lp u0)
         (ok u0)
