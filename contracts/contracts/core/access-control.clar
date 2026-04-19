@@ -65,6 +65,7 @@
 (define-public (commit-transfer-ownership (new-owner principal))
   (begin
     (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
+    (asserts! (is-standard new-owner) err-owner-only)
     (print { event: "ownership-transfer-committed", current-owner: tx-sender, pending-owner: new-owner })
     (ok (var-set pending-owner (some new-owner)))
   )
@@ -93,7 +94,14 @@
 (define-public (grant-role (account principal) (role uint))
   (begin
     (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (asserts! (is-valid-role role) err-invalid-role)
+    (asserts! (is-standard account) err-invalid-role)
+    (asserts! (or
+      (is-eq role role-owner)
+      (is-eq role role-strategy-executor)
+      (is-eq role role-strategy-registrar)
+      (is-eq role role-vault-operator)
+      (is-eq role role-emergency-pauser)
+    ) err-invalid-role)
     (map-set role-membership
       { account: account, role: role }
       { enabled: true }
@@ -107,7 +115,14 @@
 (define-public (revoke-role (account principal) (role uint))
   (begin
     (asserts! (is-eq tx-sender (var-get contract-owner)) err-owner-only)
-    (asserts! (is-valid-role role) err-invalid-role)
+    (asserts! (is-standard account) err-invalid-role)
+    (asserts! (or
+      (is-eq role role-owner)
+      (is-eq role role-strategy-executor)
+      (is-eq role role-strategy-registrar)
+      (is-eq role role-vault-operator)
+      (is-eq role role-emergency-pauser)
+    ) err-invalid-role)
     (asserts! (default-to false (get enabled (map-get? role-membership { account: account, role: role }))) err-role-not-assigned)
     (map-delete role-membership { account: account, role: role })
     (print { event: "role-revoked", account: account, role: role, caller: tx-sender })

@@ -27,7 +27,6 @@
 ;; @documentation
 ;; - contracts/docs/configuration-changelog.md
 
-(define-constant bps-denominator u10000)
 (define-constant max-performance-fee-bps u2000)
 (define-constant max-max-active-vaults-per-user u200)
 (define-constant max-minimum-deposit-microstx u1000000000000)
@@ -195,6 +194,7 @@
 (define-public (set-protocol-treasury (new-treasury principal))
 	(begin
 		(try! (assert-owner))
+		(asserts! (is-standard new-treasury) err-invalid-asset-symbol)
 		(var-set protocol-treasury new-treasury)
 		(let ((next-version (bump-config-version)))
 			(begin
@@ -221,6 +221,7 @@
 	)
 		(begin
 			(try! (assert-owner))
+			(asserts! (is-standard asset-contract) err-invalid-asset-symbol)
 			(asserts! (is-none (map-get? supported-assets { asset-contract: asset-contract })) err-asset-already-supported)
 			(asserts! (> (len symbol) u0) err-invalid-asset-symbol)
 			(asserts! (<= (len symbol) max-asset-symbol-length) err-invalid-asset-symbol)
@@ -258,6 +259,7 @@
 		(define-public (remove-supported-asset (asset-contract principal))
 			(begin
 				(try! (assert-owner))
+				(asserts! (is-standard asset-contract) err-invalid-asset-symbol)
 				(asserts! (is-some (map-get? supported-assets { asset-contract: asset-contract })) err-asset-not-supported)
 				(map-delete supported-assets { asset-contract: asset-contract })
 				(let ((next-version (bump-config-version)))
@@ -278,6 +280,7 @@
 		(define-public (set-supported-asset-active (asset-contract principal) (active bool))
 			(begin
 				(try! (assert-owner))
+				(asserts! (is-standard asset-contract) err-invalid-asset-symbol)
 				(match (map-get? supported-assets { asset-contract: asset-contract })
 					asset-entry
 						(begin
@@ -343,6 +346,8 @@
 		(define-public (remove-fee-override (override-key (string-ascii 32)))
 			(begin
 				(try! (assert-owner))
+				(asserts! (> (len override-key) u0) err-invalid-override-key)
+				(asserts! (<= (len override-key) max-override-key-length) err-invalid-override-key)
 				(asserts! (is-some (map-get? fee-overrides { override-key: override-key })) err-override-not-found)
 				(map-delete fee-overrides { override-key: override-key })
 				(let ((next-version (bump-config-version)))
@@ -363,6 +368,8 @@
 		(define-public (set-fee-override-active (override-key (string-ascii 32)) (active bool))
 			(begin
 				(try! (assert-owner))
+				(asserts! (> (len override-key) u0) err-invalid-override-key)
+				(asserts! (<= (len override-key) max-override-key-length) err-invalid-override-key)
 				(match (map-get? fee-overrides { override-key: override-key })
 					override-entry
 						(begin
@@ -418,6 +425,8 @@
 		(define-public (remove-whitelisted-strategy-type (strategy-type (string-ascii 32)))
 			(begin
 				(try! (assert-owner))
+				(asserts! (> (len strategy-type) u0) err-invalid-override-key)
+				(asserts! (<= (len strategy-type) max-override-key-length) err-invalid-override-key)
 				(asserts! (is-some (map-get? whitelisted-strategy-types { strategy-type: strategy-type })) err-strategy-type-not-whitelisted)
 				(map-delete whitelisted-strategy-types { strategy-type: strategy-type })
 				(let ((next-version (bump-config-version)))
@@ -438,6 +447,8 @@
 		(define-public (set-whitelisted-strategy-type-active (strategy-type (string-ascii 32)) (active bool))
 			(begin
 				(try! (assert-owner))
+				(asserts! (> (len strategy-type) u0) err-invalid-override-key)
+				(asserts! (<= (len strategy-type) max-override-key-length) err-invalid-override-key)
 				(match (map-get? whitelisted-strategy-types { strategy-type: strategy-type })
 					strategy-type-entry
 						(begin

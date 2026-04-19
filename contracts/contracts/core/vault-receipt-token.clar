@@ -119,7 +119,7 @@
   (name (string-ascii 32))
   (symbol (string-ascii 32))
   (decimals uint)
-  (uri (optional (string-utf8 256)))
+  (uri (optional (string-utf8 512)))
 )
   (begin
     (try! (assert-owner))
@@ -128,27 +128,24 @@
     (asserts! (> (len name) u0) err-invalid-token-metadata)
     (asserts! (> (len symbol) u0) err-invalid-token-metadata)
     (asserts! (<= decimals max-token-decimals) err-invalid-decimals)
-    (let
-      (
-        (validated-uri
-          (match uri uri-value
+    (begin
+      (var-set vault-core-contract vault-core)
+      (var-set token-name name)
+      (var-set token-symbol symbol)
+      (var-set token-decimals decimals)
+      (if (is-some uri)
+        (let ((uri-value (unwrap! uri err-invalid-token-metadata)))
+          (let ((validated-uri (unwrap! (as-max-len? uri-value u256) err-invalid-token-metadata)))
             (begin
-              (asserts! (> (len uri-value) u0) err-invalid-token-metadata)
-              (some uri-value)
+              (asserts! (> (len validated-uri) u0) err-invalid-token-metadata)
+              (var-set token-uri (some validated-uri))
             )
-            none
           )
         )
+        (var-set token-uri none)
       )
-      (begin
-        (var-set vault-core-contract vault-core)
-        (var-set token-name name)
-        (var-set token-symbol symbol)
-        (var-set token-decimals decimals)
-        (var-set token-uri validated-uri)
-        (var-set initialized true)
-        (ok true)
-      )
+      (var-set initialized true)
+      (ok true)
     )
   )
 )
@@ -343,6 +340,9 @@
   (begin
     (try! (assert-vault-core))
     (asserts! (> vault-id u0) err-invalid-vault-id)
+    (let ((vault-share-supply (get-vault-total-supply-internal vault-id)))
+      (asserts! (or (> vault-share-supply u0) (is-eq total-assets u0)) err-invalid-amount)
+    )
     (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
     (ok total-assets)
   )

@@ -40,8 +40,8 @@
 )
   (let (
       (valid-name (and (> (len name) u0) (<= (len name) max-name-len)))
-      (valid-type (unwrap-panic (is-valid-strategy-type strategy-type)))
-      (valid-risk (unwrap-panic (is-valid-risk-tier risk-tier)))
+      (valid-type (unwrap! (is-valid-strategy-type strategy-type) err-validation-failed))
+      (valid-risk (unwrap! (is-valid-risk-tier risk-tier) err-validation-failed))
     )
     (if (and valid-name valid-type valid-risk)
       (ok true)
@@ -51,7 +51,7 @@
 )
 
 (define-read-only (validate-strategy-metadata (name (string-ascii 64)) (metadata-uri (string-ascii 256)))
-  (if (or (is-eq (len name) u0) (is-eq (len metadata-uri) u0))
+  (if (or (is-eq (len name) u0) (is-eq (len metadata-uri) u0) (> (len metadata-uri) max-uri-len))
       err-validation-failed
       (ok true)
   )

@@ -134,6 +134,8 @@
       (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
       (asserts! (is-valid-strategy-type strategy-type) err-invalid-strategy-type)
       (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
+      (asserts! (not (is-standard target-protocol)) err-invalid-strategy-type)
+      (asserts! (is-standard authorized-executor) err-executor-mismatch)
       (asserts! (is-none (map-get? strategies { strategy-id: strategy-id })) err-already-registered)
       (try! (append-strategy-id-by-type strategy-type strategy-id))
       (map-set strategies
@@ -172,6 +174,7 @@
 (define-public (activate-strategy (strategy-id uint))
   (begin
     (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (asserts! (> strategy-id u0) err-not-found)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
@@ -205,6 +208,7 @@
 (define-public (deactivate-strategy (strategy-id uint))
   (begin
     (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (asserts! (> strategy-id u0) err-not-found)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin
@@ -245,8 +249,11 @@
   )
   (begin
     (asserts! (is-strategy-registrar tx-sender) err-registrar-only)
+    (asserts! (> strategy-id u0) err-not-found)
     (asserts! (> (len strategy-name) u0) err-invalid-strategy-name)
     (asserts! (is-valid-risk-tier risk-tier) err-invalid-risk-tier)
+    (asserts! (not (is-standard target-protocol)) err-invalid-strategy-type)
+    (asserts! (is-standard authorized-executor) err-executor-mismatch)
     (match (map-get? strategies { strategy-id: strategy-id })
       strategy-entry
         (begin

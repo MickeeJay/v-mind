@@ -52,7 +52,6 @@
 (define-constant err-vault-asset-invariant (err u2420))
 (define-constant err-vault-not-locked (err u2421))
 (define-constant err-protocol-paused (err u2422))
-(define-constant err-transfer-failed (err u2423))
 (define-constant err-vault-not-emergency (err u2424))
 
 (define-data-var next-vault-id uint u1)
@@ -123,20 +122,6 @@
   )
 )
 
-(define-private (assert-supported-asset-and-amount (asset-contract principal) (amount uint))
-  (match (contract-call? .protocol-config get-supported-asset asset-contract)
-    asset-entry
-      (begin
-        (asserts! (get active asset-entry) err-asset-inactive)
-        (asserts! (>= amount (contract-call? .protocol-config get-minimum-deposit-microstx)) err-deposit-below-minimum)
-        (asserts! (>= amount (get min-deposit-microstx asset-entry)) err-deposit-below-minimum)
-        (asserts! (<= amount (get max-deposit-microstx asset-entry)) err-deposit-above-asset-max)
-        (ok true)
-      )
-    err-asset-not-supported
-  )
-)
-
 (define-private (assert-strategy-executor (strategy-id uint))
   (match (contract-call? .strategy-registry get-strategy-by-id strategy-id)
     strategy-entry
@@ -152,11 +137,13 @@
 )
 
 (define-private (assert-vault-assets-synced (vault-id uint) (expected-assets uint))
-  (let ((receipt-assets (unwrap-panic (contract-call? .vault-receipt-token get-vault-total-assets vault-id))))
-    (if (is-eq receipt-assets expected-assets)
-      (ok true)
-      err-vault-asset-invariant
-    )
+  (match (contract-call? .vault-receipt-token get-vault-total-assets vault-id)
+    receipt-assets
+      (if (is-eq receipt-assets expected-assets)
+        (ok true)
+        err-vault-asset-invariant
+      )
+    external-err err-vault-asset-invariant
   )
 )
 
@@ -191,8 +178,31 @@
     (begin
       (try! (assert-not-paused))
       (asserts! (> initial-deposit u0) err-invalid-amount)
-      (try! (assert-supported-asset-and-amount asset-contract initial-deposit))
-      (try! (assert-strategy-active strategy-id))
+      (asserts! (is-standard asset-contract) err-asset-not-supported)
+      (asserts! (> strategy-id u0) err-invalid-strategy)
+      (try!
+        (match (contract-call? .protocol-config get-supported-asset asset-contract)
+          asset-entry
+            (begin
+              (asserts! (get active asset-entry) err-asset-inactive)
+              (asserts! (>= initial-deposit (contract-call? .protocol-config get-minimum-deposit-microstx)) err-deposit-below-minimum)
+              (asserts! (>= initial-deposit (get min-deposit-microstx asset-entry)) err-deposit-below-minimum)
+              (asserts! (<= initial-deposit (get max-deposit-microstx asset-entry)) err-deposit-above-asset-max)
+              (ok true)
+            )
+          err-asset-not-supported
+        )
+      )
+      (try!
+        (match (contract-call? .strategy-registry get-strategy-by-id strategy-id)
+          strategy-entry
+            (begin
+              (asserts! (contract-call? .strategy-registry is-strategy-active strategy-id) err-strategy-inactive)
+              (ok true)
+            )
+          err-invalid-strategy
+        )
+      )
       ;; Transfer STX from user into vault contract escrow (Clarity atomicity reverts this on any later failure)
       (try! (stx-transfer? initial-deposit tx-sender (as-contract tx-sender)))
       (map-set vaults
@@ -231,6 +241,7 @@
 (define-public (deposit (vault-id uint) (asset-contract principal) (amount uint))
   (begin
     (try! (assert-not-paused))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (asserts! (> amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
@@ -289,6 +300,7 @@
 ;; STX is transferred from vault contract escrow back to vault-owner after accounting is settled.
 (define-public (withdraw (vault-id uint) (share-amount uint))
   (begin
+    (asserts! (> vault-id u0) err-vault-not-found)
     (asserts! (> share-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
@@ -347,6 +359,7 @@
 (define-public (pause-vault (vault-id uint))
   (begin
     (try! (assert-not-paused))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -382,6 +395,7 @@
 (define-public (unpause-vault (vault-id uint))
   (begin
     (try! (assert-not-paused))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -417,6 +431,7 @@
 (define-public (close-vault (vault-id uint))
   (begin
     (try! (assert-not-paused))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -458,6 +473,7 @@
 ;; After the emergency is resolved, call clear-emergency-vault-status to restore active status.
 (define-public (emergency-withdraw (vault-id uint))
   (begin
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -506,6 +522,7 @@
 (define-public (clear-emergency-vault-status (vault-id uint))
   (begin
     (try! (assert-protocol-owner))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -542,6 +559,7 @@
 ;; strategy-execution.emergency-exit-vault can lock an emergency-status vault to perform exits.
 (define-public (lock-vault-for-execution (vault-id uint))
   (begin
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -595,6 +613,7 @@
 ;;          Now returns err-vault-not-locked (u2421) which is semantically correct.
 (define-public (unlock-vault-after-execution (vault-id uint))
   (begin
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -635,6 +654,7 @@
 (define-public (execute-approved-strategy (vault-id uint))
   (begin
     (try! (assert-not-paused))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
         (begin
@@ -676,6 +696,7 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-protocol-owner))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (asserts! (> fee-amount u0) err-invalid-fee-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry
@@ -731,6 +752,7 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-protocol-owner))
+    (asserts! (> vault-id u0) err-vault-not-found)
     (asserts! (> yield-amount u0) err-invalid-amount)
     (match (map-get? vaults { vault-id: vault-id })
       vault-entry

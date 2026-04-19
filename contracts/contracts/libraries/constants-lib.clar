@@ -28,8 +28,6 @@
 ;; - Constants are static and require redeployment to change.
 
 (define-constant bps-denominator u10000)
-(define-constant max-platform-fee-bps u1000)
-(define-constant max-performance-fee-bps u3000)
 (define-constant max-fee-rate-bps u3000)
 
 (define-constant minimum-deposit-microstx u1000000)
