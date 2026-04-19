@@ -9,10 +9,13 @@ import {
   uintCV,
 } from '@stacks/transactions';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AgentConfig } from '../config';
+
 import { TestLogger } from '../utils/test-logger';
+
 import { StacksClient } from './stacks-client';
 import { VaultReader, VaultReaderError } from './vault-reader';
+
+import type { AgentConfig } from '../config';
 
 function encodeClarity(value: Parameters<typeof serializeCV>[0]): string {
   return `0x${Buffer.from(serializeCV(value)).toString('hex')}`;

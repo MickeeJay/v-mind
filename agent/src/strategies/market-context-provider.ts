@@ -1,12 +1,12 @@
+import type { MarketContextProvider } from './evaluation-orchestrator';
 import type {
   MarketContext,
   StrategyConfiguration,
   VaultEvaluationState,
 } from './strategy-evaluator';
-import type { MarketContextProvider } from './evaluation-orchestrator';
 
 export class StaticMarketContextProvider implements MarketContextProvider {
-  async getMarketContext(
+  getMarketContext(
     _vault: VaultEvaluationState,
     strategy: StrategyConfiguration
   ): Promise<MarketContext> {
@@ -32,12 +32,12 @@ export class StaticMarketContextProvider implements MarketContextProvider {
       }
     }
 
-    return {
+    return Promise.resolve({
       protocolHealth,
       assetPrices,
       estimatedGasCost: 1,
       estimatedRebalanceBenefit: 10,
       triggeredExitSignals: [],
-    };
+    });
   }
 }

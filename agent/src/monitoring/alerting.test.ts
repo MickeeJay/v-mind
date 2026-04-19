@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { TestLogger } from '../utils/test-logger';
+
 import { AgentAlerting } from './alerting';
 
 describe('AgentAlerting', () => {

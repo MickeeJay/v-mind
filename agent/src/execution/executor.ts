@@ -1,7 +1,7 @@
-import type { ClarityValue } from '@stacks/transactions';
 import type { StacksTransactionBuilder } from '../blockchain';
-import type { AppLogger } from '../utils/logger';
 import type { SubmissionTracker } from './submission-tracker';
+import type { AppLogger } from '../utils/logger';
+import type { ClarityValue } from '@stacks/transactions';
 
 export interface ExecutionRequest {
   vaultId: string;

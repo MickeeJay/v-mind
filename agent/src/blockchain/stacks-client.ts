@@ -6,7 +6,7 @@ import {
 import {
   StacksMainnet,
   StacksMocknet,
-  StacksNetwork,
+  type StacksNetwork,
   StacksTestnet,
 } from '@stacks/network';
 import {
@@ -17,11 +17,13 @@ import {
   type ClarityValue,
   type PrincipalCV,
 } from '@stacks/transactions';
-import { z } from 'zod';
+import { type z } from 'zod';
+
+import { HttpRequestError, withRetry } from './retry';
+import { coreNodeInfoSchema, readOnlyCallResponseSchema } from './schemas';
+
 import type { AgentConfig } from '../config';
 import type { AppLogger } from '../utils/logger';
-import { coreNodeInfoSchema, readOnlyCallResponseSchema } from './schemas';
-import { HttpRequestError, withRetry } from './retry';
 
 export interface ChainTip {
   blockHeight: number;

@@ -1,5 +1,5 @@
-import type { AppLogger } from '../../utils/logger';
 import type { TransactionNodeClient } from './stacks-node-client';
+import type { AppLogger } from '../../utils/logger';
 
 export class NonceManager {
   private nextNonce: bigint | undefined;

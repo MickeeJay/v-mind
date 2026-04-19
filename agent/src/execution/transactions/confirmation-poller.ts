@@ -1,4 +1,3 @@
-import type { AppLogger } from '../../utils/logger';
 import type { PendingTransactionStore } from './pending-transaction-store';
 import type { TransactionNodeClient } from './stacks-node-client';
 import type {
@@ -7,6 +6,7 @@ import type {
   RetryableFailureContext,
   TransactionStatus,
 } from './types';
+import type { AppLogger } from '../../utils/logger';
 
 export interface ConfirmationPollerOptions {
   requiredConfirmations: number;

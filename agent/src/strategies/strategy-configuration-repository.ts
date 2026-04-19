@@ -1,7 +1,8 @@
 import { uintCV } from '@stacks/transactions';
 import { z } from 'zod';
+
 import { strategyEntrySchema, type BlockchainClient } from '../blockchain';
-import type { AppLogger } from '../utils/logger';
+
 import type {
   DCAStrategyConfiguration,
   ExitStrategyConfiguration,
@@ -11,6 +12,7 @@ import type {
   StrategyType,
   YieldOptimiserStrategyConfiguration,
 } from './index';
+import type { AppLogger } from '../utils/logger';
 
 const STRATEGY_TYPE_YIELD = 1n;
 const STRATEGY_TYPE_REBALANCE = 2n;

@@ -1,6 +1,7 @@
-import type { AppLogger } from '../utils/logger';
 import { blockEventSchema, type BlockEvent } from './schemas';
+
 import type { StacksClient } from './stacks-client';
+import type { AppLogger } from '../utils/logger';
 
 export type BlockListener = (event: BlockEvent) => void;
 

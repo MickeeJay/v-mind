@@ -1,19 +1,20 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import Database from 'better-sqlite3';
+
+import BetterSqlite3 from 'better-sqlite3';
 
 export interface SqliteDatabaseOptions {
   databasePath: string;
 }
 
 export class SqliteDatabase {
-  private readonly database: InstanceType<typeof Database>;
+  private readonly database: InstanceType<typeof BetterSqlite3>;
 
   constructor(options: SqliteDatabaseOptions) {
     const resolvedPath = resolve(options.databasePath);
     mkdirSync(dirname(resolvedPath), { recursive: true });
 
-    this.database = new Database(resolvedPath);
+    this.database = new BetterSqlite3(resolvedPath);
     this.database.pragma('journal_mode = WAL');
     this.database.pragma('foreign_keys = ON');
     this.database.pragma('busy_timeout = 5000');
@@ -22,7 +23,7 @@ export class SqliteDatabase {
     this.initializeSchema();
   }
 
-  get rawDatabase(): InstanceType<typeof Database> {
+  get rawDatabase(): InstanceType<typeof BetterSqlite3> {
     return this.database;
   }
 

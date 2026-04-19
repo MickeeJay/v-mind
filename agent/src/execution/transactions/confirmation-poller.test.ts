@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
-import { InMemoryPendingTransactionStore } from './pending-transaction-store';
-import type { TransactionNodeClient } from './stacks-node-client';
+
 import { ConfirmationPoller } from './confirmation-poller';
+import { InMemoryPendingTransactionStore } from './pending-transaction-store';
+
+import type { TransactionNodeClient } from './stacks-node-client';
 
 describe('ConfirmationPoller', () => {
   it('marks transactions confirmed after required confirmations', async () => {

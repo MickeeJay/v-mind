@@ -1,4 +1,4 @@
-import { AppLogger } from './logger';
+import { type AppLogger } from './logger';
 
 export interface GracefulShutdownOptions {
   logger: AppLogger;

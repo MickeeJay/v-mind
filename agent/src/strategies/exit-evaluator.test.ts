@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { ExitEvaluator } from './exit-evaluator';
+
 import type { ExitStrategyConfiguration, StrategyEvaluationInput } from './strategy-evaluator';
 
 const strategy: ExitStrategyConfiguration = {

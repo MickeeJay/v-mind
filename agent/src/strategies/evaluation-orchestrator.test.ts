@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+
+import { EvaluationOrchestrator } from './evaluation-orchestrator';
+
 import type {
   MarketContextProvider,
   OnChainVaultRegistry,
   StrategyConfigurationRepository,
   StrategyEvaluatorFactory,
 } from './evaluation-orchestrator';
-import { EvaluationOrchestrator } from './evaluation-orchestrator';
 import type {
   DCAStrategyConfiguration,
   ExitStrategyConfiguration,

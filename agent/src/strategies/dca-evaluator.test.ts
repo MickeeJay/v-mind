@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { DCAEvaluator } from './dca-evaluator';
+
 import type { DCAStrategyConfiguration, StrategyEvaluationInput } from './strategy-evaluator';
 
 const strategy: DCAStrategyConfiguration = {

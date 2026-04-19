@@ -1,12 +1,13 @@
-import type { StacksNetwork } from '@stacks/network';
 import {
   AnchorMode,
   PostConditionMode,
   makeContractCall,
   type StacksTransaction,
 } from '@stacks/transactions';
-import type { AppLogger } from '../../utils/logger';
+
 import type { SignTransactionRequest } from './types';
+import type { AppLogger } from '../../utils/logger';
+import type { StacksNetwork } from '@stacks/network';
 
 export class TransactionSigner {
   constructor(

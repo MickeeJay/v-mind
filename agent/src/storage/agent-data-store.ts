@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { SqliteDatabase } from './sqlite-database';
+
+import { type SqliteDatabase } from './sqlite-database';
+
 import type {
   ExecutionHistoryInsert,
   ExecutionHistoryRecord,
@@ -97,7 +99,6 @@ export class AgentDataStore {
   listExecutionHistory(query: ExecutionHistoryQuery): PaginatedResult<ExecutionHistoryRecord> {
     const page = normalizePage(query.page);
     const limit = normalizeLimit(query.limit);
-    const offset = (page - 1) * limit;
     const { rows, total } = this.queryExecutionHistoryRows(
       {
         vaultId: query.vaultId,
@@ -126,9 +127,9 @@ export class AgentDataStore {
       totalExecutions: summary.totalExecutions,
       successfulExecutions: summary.successfulExecutions,
       failedExecutions: summary.failedExecutions,
-      averageAttempts: summary.averageAttempts,
-      averageConfirmations: summary.averageConfirmations,
-      averageFeeMicrostx: summary.averageFeeMicrostx,
+      averageAttempts: summary.averageAttempts ?? 0,
+      averageConfirmations: summary.averageConfirmations ?? 0,
+      averageFeeMicrostx: summary.averageFeeMicrostx ?? 0,
       lastExecutionAt: summary.lastExecutionAt,
       recentExecutions,
     };
@@ -144,9 +145,9 @@ export class AgentDataStore {
       totalExecutions: summary.totalExecutions,
       successfulExecutions: summary.successfulExecutions,
       failedExecutions: summary.failedExecutions,
-      averageAttempts: summary.averageAttempts,
-      averageConfirmations: summary.averageConfirmations,
-      averageFeeMicrostx: summary.averageFeeMicrostx,
+      averageAttempts: summary.averageAttempts ?? 0,
+      averageConfirmations: summary.averageConfirmations ?? 0,
+      averageFeeMicrostx: summary.averageFeeMicrostx ?? 0,
       lastExecutionAt: summary.lastExecutionAt,
       recentExecutions,
     };

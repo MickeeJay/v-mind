@@ -1,4 +1,4 @@
-import { StacksNetwork } from '@stacks/network';
+import { type StacksNetwork } from '@stacks/network';
 import {
   AnchorMode,
   PostConditionMode,
@@ -7,8 +7,8 @@ import {
   type ClarityValue,
   type StacksTransaction,
 } from '@stacks/transactions';
-import pRetry from 'p-retry';
 import { z } from 'zod';
+
 import type { AgentConfig } from '../config';
 import type { AppLogger } from '../utils/logger';
 
@@ -68,6 +68,8 @@ export class StacksTransactionService implements StacksTransactionBuilder {
   }
 
   async submitSignedTransaction(transaction: StacksTransaction): Promise<TransactionSubmissionResult> {
+    const { default: pRetry } = await import('p-retry');
+
     return pRetry(
       async () => {
         const response = await broadcastTransaction(transaction, this.network);

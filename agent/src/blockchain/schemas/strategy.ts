@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { clarityBooleanSchema, clarityPrincipalSchema, clarityUintSchema } from './clarity';
 
 export const strategyEntrySchema = z.object({

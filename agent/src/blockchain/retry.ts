@@ -1,4 +1,3 @@
-import pRetry, { AbortError } from 'p-retry';
 import type { AppLogger } from '../utils/logger';
 
 export interface RetryPolicy {
@@ -36,6 +35,8 @@ export async function withRetry<T>(
   logger: AppLogger,
   operationName: string
 ): Promise<T> {
+  const { default: pRetry, AbortError } = await import('p-retry');
+
   return pRetry(
     async () => {
       try {

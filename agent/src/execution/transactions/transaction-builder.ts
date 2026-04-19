@@ -1,4 +1,3 @@
-import type { StacksNetwork } from '@stacks/network';
 import {
   AnchorMode,
   PostConditionMode,
@@ -7,8 +6,10 @@ import {
   makeUnsignedContractCall,
   publicKeyToString,
 } from '@stacks/transactions';
-import type { AppLogger } from '../../utils/logger';
+
 import type { BuildUnsignedTransactionRequest, UnsignedContractCallTransaction } from './types';
+import type { AppLogger } from '../../utils/logger';
+import type { StacksNetwork } from '@stacks/network';
 
 export class TransactionBuilder {
   constructor(

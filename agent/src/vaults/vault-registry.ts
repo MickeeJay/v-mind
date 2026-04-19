@@ -1,7 +1,9 @@
-import { z } from 'zod';
 import { uintCV } from '@stacks/transactions';
-import type { BlockchainClient } from '../blockchain';
+import { z } from 'zod';
+
 import { clarityOkResponseSchema } from '../blockchain';
+
+import type { BlockchainClient } from '../blockchain';
 import type { OnChainVaultRegistry, VaultEvaluationState } from '../strategies';
 import type { AppLogger } from '../utils/logger';
 

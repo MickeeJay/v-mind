@@ -1,12 +1,12 @@
+import { type BlockExecutionScheduler, runWithConcurrency } from './scheduler';
+
 import type { BlockEvent, PollingBlockSubscription } from '../blockchain';
-import type { PendingTransactionStore } from '../execution';
-import type { ExecutionPipeline, ExecutionPipelineRequest } from '../execution';
+import type { PendingTransactionStore , ExecutionPipeline, ExecutionPipelineRequest } from '../execution';
 import type { EvaluationOrchestrator, ReadyVaultExecution, VaultEvaluationOutcome } from '../strategies';
-import type { AppLogger } from '../utils/logger';
 import type { AgentAlerting } from './alerting';
 import type { InMemoryMetricsRecorder } from './metrics';
 import type { AgentRuntimeState } from './runtime-state';
-import { BlockExecutionScheduler, runWithConcurrency } from './scheduler';
+import type { AppLogger } from '../utils/logger';
 
 export interface AgentLoop {
   start(): Promise<void>;
@@ -37,9 +37,9 @@ export class BlockDrivenAgentLoop implements AgentLoop {
 
   constructor(private readonly options: BlockDrivenAgentLoopOptions) {}
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     if (this.running) {
-      return;
+      return Promise.resolve();
     }
 
     this.running = true;
@@ -54,6 +54,8 @@ export class BlockDrivenAgentLoop implements AgentLoop {
     this.staleBlockTimer = setInterval(() => {
       this.options.alerting.checkStaleBlock();
     }, this.options.staleBlockCheckIntervalMs);
+
+    return Promise.resolve();
   }
 
   async stop(): Promise<void> {
@@ -79,7 +81,7 @@ export class BlockDrivenAgentLoop implements AgentLoop {
 
     this.processingQueuedEvents = true;
     this.processingPromise = this.consumeQueue()
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.options.runtimeState.setStatus('degraded');
         this.options.logger.error({ err: error }, 'Unhandled error while consuming queued block events');
       })

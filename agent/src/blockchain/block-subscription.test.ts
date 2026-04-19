@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../utils/test-logger';
+
 import { PollingBlockSubscription } from './block-subscription';
+
 import type { StacksClient } from './stacks-client';
 
 describe('PollingBlockSubscription', () => {

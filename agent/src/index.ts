@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { contractPrincipalCV, uintCV } from '@stacks/transactions';
+
 import {
   PollingBlockSubscription,
   StacksApiBlockchainClient,
@@ -207,7 +208,7 @@ function toContractPrincipalCV(contractPrincipal: string) {
   return contractPrincipalCV(reference.address, reference.name);
 }
 
-void main().catch((error) => {
+void main().catch((error: unknown) => {
   const fallbackLogger = createLogger({
     level: config.logLevel,
     serviceName: config.serviceName,

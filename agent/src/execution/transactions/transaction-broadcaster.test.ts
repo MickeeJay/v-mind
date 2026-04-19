@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
+
 import { InMemoryPendingTransactionStore } from './pending-transaction-store';
+import { type BroadcastRejectedError, TransactionBroadcaster } from './transaction-broadcaster';
+
 import type { TransactionNodeClient } from './stacks-node-client';
-import { BroadcastRejectedError, TransactionBroadcaster } from './transaction-broadcaster';
 
 describe('TransactionBroadcaster', () => {
   it('broadcasts a signed transaction and stores pending state', async () => {

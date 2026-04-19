@@ -1,14 +1,17 @@
 import { uintCV } from '@stacks/transactions';
 import { z } from 'zod';
-import type { AppLogger } from '../utils/logger';
+
+import { parseContractIdentifier, type ContractReference } from './contracts';
 import {
   clarityOkResponseSchema,
   vaultEntrySchema,
   vaultStateSchema,
   type VaultState,
 } from './schemas';
+
 import type { StacksClient } from './stacks-client';
-import { parseContractIdentifier, type ContractReference } from './contracts';
+import type { AppLogger } from '../utils/logger';
+
 
 export interface VaultReaderOptions {
   contractAddress?: string;

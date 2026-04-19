@@ -1,7 +1,9 @@
 import { StacksTestnet } from '@stacks/network';
 import { uintCV } from '@stacks/transactions';
 import { describe, expect, it } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
+
 import { TransactionBuilder } from './transaction-builder';
 import { TransactionSigner } from './transaction-signer';
 

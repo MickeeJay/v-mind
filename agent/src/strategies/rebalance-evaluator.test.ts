@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { RebalanceEvaluator } from './rebalance-evaluator';
+
 import type { RebalanceStrategyConfiguration, StrategyEvaluationInput } from './strategy-evaluator';
 
 const strategy: RebalanceStrategyConfiguration = {

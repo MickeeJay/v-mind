@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { DEFAULT_SHUTDOWN_TIMEOUT_MS, SERVICE_NAME } from './constants';
 
 const envSchema = z.object({

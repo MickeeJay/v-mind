@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import pino from 'pino';
+
+import pinoLib, { stdTimeFunctions } from 'pino';
+
+import type { DestinationStream, LevelWithSilent, Logger as PinoLogger } from 'pino';
 
 export type LogContext = Record<string, unknown>;
 
@@ -14,15 +17,15 @@ export interface AppLogger {
 }
 
 export interface CreateLoggerOptions {
-  level: pino.LevelWithSilent;
+  level: LevelWithSilent;
   serviceName: string;
   nodeEnv: 'development' | 'test' | 'production';
-  destination?: pino.DestinationStream;
+  destination?: DestinationStream;
   baseContext?: LogContext;
 }
 
 export function createLogger(options: CreateLoggerOptions): AppLogger {
-  const logger = pino(
+  const logger = pinoLib(
     {
       level: options.level,
       base: {
@@ -30,7 +33,7 @@ export function createLogger(options: CreateLoggerOptions): AppLogger {
         env: options.nodeEnv,
         ...(options.baseContext ?? {}),
       },
-      timestamp: pino.stdTimeFunctions.isoTime,
+      timestamp: stdTimeFunctions.isoTime,
       formatters: {
         level: (label) => ({ level: label }),
       },
@@ -49,7 +52,7 @@ export function withRequestContext(
   return logger.child({ requestId, ...context });
 }
 
-function wrapPinoLogger(logger: pino.Logger): AppLogger {
+function wrapPinoLogger(logger: PinoLogger): AppLogger {
   const rawLogger = logger as unknown as {
     trace: (...args: unknown[]) => void;
     debug: (...args: unknown[]) => void;

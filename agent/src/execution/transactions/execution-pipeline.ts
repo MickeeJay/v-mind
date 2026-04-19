@@ -1,12 +1,13 @@
+import { type ConfirmationPoller } from './confirmation-poller';
+import { type FeeEstimator } from './fee-estimator';
+import { type NonceManager } from './nonce-manager';
+import { BroadcastRejectedError, type TransactionBroadcaster } from './transaction-broadcaster';
+import { type TransactionBuilder } from './transaction-builder';
+import { type TransactionSigner } from './transaction-signer';
+
+import type { ExecutionPipelineRequest, ExecutionPipelineResult } from './types';
 import type { StrategyEvaluationResult } from '../../strategies';
 import type { AppLogger } from '../../utils/logger';
-import { ConfirmationPoller } from './confirmation-poller';
-import { FeeEstimator } from './fee-estimator';
-import { NonceManager } from './nonce-manager';
-import { BroadcastRejectedError, TransactionBroadcaster } from './transaction-broadcaster';
-import { TransactionBuilder } from './transaction-builder';
-import { TransactionSigner } from './transaction-signer';
-import type { ExecutionPipelineRequest, ExecutionPipelineResult } from './types';
 
 export interface ExecutionPipelineDependencies {
   transactionBuilder: TransactionBuilder;
@@ -77,6 +78,8 @@ export class ExecutionPipeline {
               },
               'Retryable transaction failure detected; pipeline will resubmit'
             );
+
+            await Promise.resolve();
           },
         });
 

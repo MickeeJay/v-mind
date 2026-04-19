@@ -1,16 +1,19 @@
 import { StacksTestnet } from '@stacks/network';
 import { uintCV } from '@stacks/transactions';
 import { describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
+
 import { ConfirmationPoller } from './confirmation-poller';
 import { ExecutionPipeline } from './execution-pipeline';
 import { FeeEstimator } from './fee-estimator';
 import { NonceManager } from './nonce-manager';
 import { InMemoryPendingTransactionStore } from './pending-transaction-store';
-import type { TransactionNodeClient } from './stacks-node-client';
 import { TransactionBroadcaster } from './transaction-broadcaster';
 import { TransactionBuilder } from './transaction-builder';
 import { TransactionSigner } from './transaction-signer';
+
+import type { TransactionNodeClient } from './stacks-node-client';
 
 const senderKey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 const senderAddress = 'ST2J8EVYHP2NQX38NSYWW0YPPH2Q1D5NVTQJ9MS8X';

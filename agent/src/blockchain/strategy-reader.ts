@@ -1,6 +1,7 @@
 import { uintCV } from '@stacks/transactions';
 import { z } from 'zod';
-import type { AppLogger } from '../utils/logger';
+
+import { parseContractIdentifier, type ContractReference } from './contracts';
 import {
   clarityListSchema,
   clarityUintSchema,
@@ -8,8 +9,10 @@ import {
   strategyEntrySchema,
   type StrategyConfiguration,
 } from './schemas';
+
 import type { StacksClient } from './stacks-client';
-import { parseContractIdentifier, type ContractReference } from './contracts';
+import type { AppLogger } from '../utils/logger';
+
 
 export interface StrategyReaderOptions {
   contractAddress?: string;

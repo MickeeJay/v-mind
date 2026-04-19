@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { YieldOptimiserEvaluator } from './yield-optimiser-evaluator';
+
 import type { StrategyEvaluationInput, YieldOptimiserStrategyConfiguration } from './strategy-evaluator';
 
 const strategy: YieldOptimiserStrategyConfiguration = {

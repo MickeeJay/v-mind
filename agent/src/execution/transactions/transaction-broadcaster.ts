@@ -1,7 +1,7 @@
-import type { AppLogger } from '../../utils/logger';
 import type { PendingTransactionStore } from './pending-transaction-store';
 import type { TransactionNodeClient } from './stacks-node-client';
 import type { BroadcastRequest, PendingTransactionRecord } from './types';
+import type { AppLogger } from '../../utils/logger';
 
 export class BroadcastRejectedError extends Error {
   constructor(

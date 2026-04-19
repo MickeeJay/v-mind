@@ -1,7 +1,9 @@
 import { StacksTestnet } from '@stacks/network';
 import { PayloadType, uintCV } from '@stacks/transactions';
 import { describe, expect, it } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
+
 import { TransactionBuilder } from './transaction-builder';
 
 const testSenderKey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';

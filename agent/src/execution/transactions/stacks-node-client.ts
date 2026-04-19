@@ -1,4 +1,3 @@
-import type { StacksNetwork } from '@stacks/network';
 import {
 	broadcastTransaction,
 	estimateTransactionByteLength,
@@ -7,15 +6,18 @@ import {
 	type TxBroadcastResult,
 } from '@stacks/transactions';
 import { z } from 'zod';
+
 import { HttpRequestError, withRetry } from '../../blockchain/retry';
-import type { AgentConfig } from '../../config';
-import type { AppLogger } from '../../utils/logger';
+
 import type {
 	BroadcastResult,
 	OnChainNonceState,
 	TransactionStatus,
 	TxStatus,
 } from './types';
+import type { AgentConfig } from '../../config';
+import type { AppLogger } from '../../utils/logger';
+import type { StacksNetwork } from '@stacks/network';
 
 export interface TransactionNodeClient {
 	getAddressNonces(address: string): Promise<OnChainNonceState>;
@@ -142,9 +144,12 @@ export class HttpTransactionNodeClient implements TransactionNodeClient {
 		}
 
 		const [firstEstimation, ...restEstimations] = estimations;
+		if (!firstEstimation) {
+			throw new Error('Stacks node returned no fee estimations');
+		}
 		const highestFee = restEstimations.reduce(
 			(maxFee, current) => Math.max(maxFee, current.fee),
-			firstEstimation!.fee
+			firstEstimation.fee
 		);
 		return BigInt(highestFee);
 	}

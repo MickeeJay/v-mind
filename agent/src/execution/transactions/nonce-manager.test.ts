@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
-import type { TransactionNodeClient } from './stacks-node-client';
+
 import { NonceManager } from './nonce-manager';
+
+import type { TransactionNodeClient } from './stacks-node-client';
 
 describe('NonceManager', () => {
   it('initializes from chain possible next nonce and allocates sequentially', async () => {

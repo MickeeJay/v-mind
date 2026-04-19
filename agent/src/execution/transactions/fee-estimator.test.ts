@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { TestLogger } from '../../utils/test-logger';
-import type { TransactionNodeClient } from './stacks-node-client';
+
 import { FeeEstimator } from './fee-estimator';
+
+import type { TransactionNodeClient } from './stacks-node-client';
 import type { UnsignedContractCallTransaction } from './types';
 
 describe('FeeEstimator', () => {

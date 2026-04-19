@@ -1,6 +1,6 @@
-import type { AppLogger } from '../../utils/logger';
 import type { TransactionNodeClient } from './stacks-node-client';
 import type { FeeEstimate, UnsignedContractCallTransaction } from './types';
+import type { AppLogger } from '../../utils/logger';
 
 export interface FeeEstimatorOptions {
   nodeClient: TransactionNodeClient;
