@@ -6,7 +6,7 @@ Clarinet.test({
     const deployer = accounts.get('deployer')!;
     const attackerTreasury = accounts.get('wallet_8')!;
 
-    const block = chain.mineBlock([
+    const setup = chain.mineBlock([
       Tx.contractCall(
         'zest-protocol-adapter',
         'set-zest-config',
@@ -19,16 +19,37 @@ Clarinet.test({
         ],
         deployer.address,
       ),
-      Tx.contractCall('zest-protocol-adapter', 'collect-zest-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
-      Tx.contractCall('alex-liquidity-adapter', 'collect-alex-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
-      Tx.contractCall('stackingdao-adapter', 'collect-stackingdao-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
-      Tx.contractCall('hermetica-adapter', 'collect-hermetica-fee', [types.uint(10_000), types.principal(attackerTreasury.address)], deployer.address),
     ]);
 
-    block.receipts[0].result.expectOk().expectBool(true);
-    block.receipts[1].result.expectErr().expectUint(3405);
-    block.receipts[2].result.expectErr().expectUint(3505);
-    block.receipts[3].result.expectErr().expectUint(3605);
-    block.receipts[4].result.expectErr().expectUint(3705);
+    const zestFee = chain.callReadOnlyFn(
+      'zest-protocol-adapter',
+      'collect-zest-fee',
+      [types.uint(10_000), types.principal(attackerTreasury.address)],
+      deployer.address,
+    );
+    const alexFee = chain.callReadOnlyFn(
+      'alex-liquidity-adapter',
+      'collect-alex-fee',
+      [types.uint(10_000), types.principal(attackerTreasury.address)],
+      deployer.address,
+    );
+    const stackingdaoFee = chain.callReadOnlyFn(
+      'stackingdao-adapter',
+      'collect-stackingdao-fee',
+      [types.uint(10_000), types.principal(attackerTreasury.address)],
+      deployer.address,
+    );
+    const hermeticaFee = chain.callReadOnlyFn(
+      'hermetica-adapter',
+      'collect-hermetica-fee',
+      [types.uint(10_000), types.principal(attackerTreasury.address)],
+      deployer.address,
+    );
+
+    setup.receipts[0].result.expectOk().expectBool(true);
+    zestFee.result.expectErr().expectUint(3405);
+    alexFee.result.expectErr().expectUint(3505);
+    stackingdaoFee.result.expectErr().expectUint(3605);
+    hermeticaFee.result.expectErr().expectUint(3705);
   },
 });

@@ -15,10 +15,11 @@ Clarinet.test({
 
     const setup = chain.mineBlock([
       Tx.contractCall('hermetica-adapter', 'set-hermetica-config', [hermeticaMainnet(), hermeticaMainnet()], deployer.address),
-      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(false)], deployer.address),
+      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(true)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'set-cached-rate', [types.uint(77_000_000)], deployer.address),
       Tx.contractCall('mock-hermetica-staking', 'set-usdh-per-susdh', [types.uint(131_000_000)], deployer.address),
       Tx.contractCall('hermetica-adapter', 'sync-hermetica-rate', [mock(deployer)], deployer.address),
+      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(false)], deployer.address),
     ]);
 
     setup.receipts[0].result.expectOk().expectBool(true);
@@ -26,12 +27,30 @@ Clarinet.test({
     setup.receipts[2].result.expectOk().expectBool(true);
     setup.receipts[3].result.expectOk().expectBool(true);
     setup.receipts[4].result.expectOk().expectUint(131_000_000);
+    setup.receipts[5].result.expectOk().expectBool(true);
 
     const cachedRate = chain.callReadOnlyFn('hermetica-adapter', 'get-cached-rate', [], deployer.address);
     cachedRate.result.expectOk().expectUint(131_000_000);
 
     const liveRate = chain.callReadOnlyFn('hermetica-adapter', 'get-usdh-per-susdh-rate', [], deployer.address);
     liveRate.result.expectOk().expectUint(131_000_000);
+  },
+});
+
+Clarinet.test({
+  name: 'hermetica-adapter: rejects sync requests from an unconfigured staking principal in non-mock mode',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+
+    const setup = chain.mineBlock([
+      Tx.contractCall('hermetica-adapter', 'set-hermetica-config', [hermeticaMainnet(), hermeticaMainnet()], deployer.address),
+      Tx.contractCall('hermetica-adapter', 'set-mock-mode', [types.bool(false)], deployer.address),
+      Tx.contractCall('hermetica-adapter', 'sync-hermetica-rate', [mock(deployer)], deployer.address),
+    ]);
+
+    setup.receipts[0].result.expectOk().expectBool(true);
+    setup.receipts[1].result.expectOk().expectBool(true);
+    setup.receipts[2].result.expectErr().expectUint(3710);
   },
 });
 

@@ -4,6 +4,10 @@ function mock(account: Account) {
   return types.principal(`${account.address}.mock-stackingdao-core`);
 }
 
+function mismatchedConfiguredHelper(account: Account) {
+  return types.principal(`${account.address}.mock-zest-protocol`);
+}
+
 Clarinet.test({
   name: 'stackingdao-adapter: routes mint and redeem flows through core interface',
   async fn(chain: Chain, accounts: Map<string, Account>) {
@@ -70,8 +74,8 @@ Clarinet.test({
       Tx.contractCall('stackingdao-adapter', 'sync-live-total-underlying', [mock(deployer)], deployer.address),
     ]);
 
-    block.receipts[1].result.expectOk().expectUint(1_000_000);
-    block.receipts[2].result.expectOk().expectUint(400_000);
+    block.receipts[2].result.expectOk().expectUint(1_000_000);
+    block.receipts[3].result.expectOk().expectUint(400_000);
     block.receipts[5].result.expectOk().expectUint(720_000);
 
     const tracked = chain.callReadOnlyFn('stackingdao-adapter', 'get-total-principal-tracked', [], deployer.address);
@@ -95,23 +99,41 @@ Clarinet.test({
       Tx.contractCall(
         'stackingdao-adapter',
         'set-stackingdao-config',
-        [mock(deployer), mock(deployer), mock(deployer), mock(deployer), mock(deployer)],
+        [mock(deployer), mock(deployer), mock(deployer), mock(deployer), mismatchedConfiguredHelper(deployer)],
         deployer.address,
       ),
       Tx.contractCall(
         'stackingdao-adapter',
         'sync-live-total-underlying',
-        [types.principal(`${deployer.address}.missing-stackingdao-helper`)],
+        [mock(deployer)],
         deployer.address,
       ),
     ]);
 
-    block.receipts[2].result.expectErr().expectUint(3603);
+    block.receipts[2].result.expectErr().expectUint(3609);
 
     const balance = chain.callReadOnlyFn('stackingdao-adapter', 'get-vault-stx-balance', [types.uint(7)], deployer.address);
     balance.result.expectErr().expectUint(3603);
 
     const liveTotal = chain.callReadOnlyFn('stackingdao-adapter', 'get-live-total-underlying', [], deployer.address);
     liveTotal.result.expectErr().expectUint(3603);
+  },
+});
+
+Clarinet.test({
+  name: 'stackingdao-adapter: requires owner and configured helper when syncing live totals',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+    const attacker = accounts.get('wallet_7')!;
+
+    const block = chain.mineBlock([
+      Tx.contractCall('stackingdao-adapter', 'set-stackingdao-config', [mock(deployer), mock(deployer), mock(deployer), mock(deployer), mismatchedConfiguredHelper(deployer)], deployer.address),
+      Tx.contractCall('stackingdao-adapter', 'sync-live-total-underlying', [mock(deployer)], attacker.address),
+      Tx.contractCall('stackingdao-adapter', 'sync-live-total-underlying', [mock(deployer)], deployer.address),
+    ]);
+
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectErr().expectUint(3600);
+    block.receipts[2].result.expectErr().expectUint(3609);
   },
 });

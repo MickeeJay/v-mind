@@ -4,6 +4,10 @@ function mock(account: Account) {
   return types.principal(`${account.address}.mock-zest-protocol`);
 }
 
+function mismatchedConfiguredReserve(account: Account) {
+  return types.principal(`${account.address}.mock-alex-amm`);
+}
+
 function mockZestConfig(account: Account) {
   const principal = mock(account);
   return [principal, principal, principal, principal, principal];
@@ -113,12 +117,36 @@ Clarinet.test({
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
 
+    const fee = chain.callReadOnlyFn(
+      'zest-protocol-adapter',
+      'collect-zest-fee',
+      [types.uint(10_000), types.principal(deployer.address)],
+      deployer.address,
+    );
+
     const block = chain.mineBlock([
-      Tx.contractCall('zest-protocol-adapter', 'collect-zest-fee', [types.uint(10_000), types.principal(deployer.address)], deployer.address),
       Tx.contractCall('zest-protocol-adapter', 'emergency-exit-zest', [types.uint(1)], deployer.address),
     ]);
 
+    fee.result.expectErr().expectUint(3408);
     block.receipts[0].result.expectErr().expectUint(3408);
-    block.receipts[1].result.expectErr().expectUint(3408);
+  },
+});
+
+Clarinet.test({
+  name: 'zest-adapter: requires owner and configured reserve when syncing live underlying',
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+    const attacker = accounts.get('wallet_7')!;
+
+    const block = chain.mineBlock([
+      Tx.contractCall('zest-protocol-adapter', 'set-zest-config', [mismatchedConfiguredReserve(deployer), mock(deployer), mock(deployer), mock(deployer), mock(deployer)], deployer.address),
+      Tx.contractCall('zest-protocol-adapter', 'sync-live-zest-underlying-balance', [mock(deployer)], attacker.address),
+      Tx.contractCall('zest-protocol-adapter', 'sync-live-zest-underlying-balance', [mock(deployer)], deployer.address),
+    ]);
+
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectErr().expectUint(3400);
+    block.receipts[2].result.expectErr().expectUint(3409);
   },
 });

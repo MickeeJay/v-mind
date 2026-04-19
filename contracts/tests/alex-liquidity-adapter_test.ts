@@ -8,8 +8,6 @@ Clarinet.test({
   name: 'alex-adapter: routes deposit and withdrawal through ALEX pool interface',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const tokenX = accounts.get('wallet_1')!;
-    const tokenY = accounts.get('wallet_2')!;
 
     const mode = chain.callReadOnlyFn('alex-liquidity-adapter', 'get-mock-mode', [], deployer.address);
     mode.result.expectOk().expectBool(false);
@@ -18,7 +16,7 @@ Clarinet.test({
       Tx.contractCall(
         'alex-liquidity-adapter',
         'set-alex-config',
-        [types.principal(tokenX.address), types.principal(tokenY.address), types.uint(1_000)],
+        [mock(deployer), mock(deployer), types.uint(1_000)],
         deployer.address,
       ),
       Tx.contractCall('alex-liquidity-adapter', 'provide-alex-liquidity', [types.uint(1), types.uint(1_000_000)], deployer.address),
@@ -40,14 +38,12 @@ Clarinet.test({
   name: 'alex-adapter: normalizes external add/remove failures',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const tokenX = accounts.get('wallet_1')!;
-    const tokenY = accounts.get('wallet_2')!;
 
     const block = chain.mineBlock([
       Tx.contractCall(
         'alex-liquidity-adapter',
         'set-alex-config',
-        [types.principal(tokenX.address), types.principal(tokenY.address), types.uint(1_000)],
+        [mock(deployer), mock(deployer), types.uint(1_000)],
         deployer.address,
       ),
       Tx.contractCall('mock-alex-amm', 'set-force-failure', [types.bool(true), types.uint(9_301)], deployer.address),
@@ -62,14 +58,12 @@ Clarinet.test({
   name: 'alex-adapter: reports LP and primary token tracking for balance reporting',
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const tokenX = accounts.get('wallet_1')!;
-    const tokenY = accounts.get('wallet_2')!;
 
     const block = chain.mineBlock([
       Tx.contractCall(
         'alex-liquidity-adapter',
         'set-alex-config',
-        [types.principal(tokenX.address), types.principal(tokenY.address), types.uint(1_000)],
+        [mock(deployer), mock(deployer), types.uint(1_000)],
         deployer.address,
       ),
       Tx.contractCall('alex-liquidity-adapter', 'provide-alex-liquidity', [types.uint(7), types.uint(900_000)], deployer.address),
