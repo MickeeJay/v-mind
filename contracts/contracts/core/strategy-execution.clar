@@ -23,7 +23,7 @@
 (define-constant role-strategy-executor u2)
 (define-constant role-emergency-pauser u5)
 (define-constant bps-denominator u10000)
-(define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-constant protocol-id-zest u1)
 (define-constant protocol-id-alex u2)
@@ -42,14 +42,11 @@
 (define-constant err-executor-only (err u2600))
 (define-constant err-owner-only (err u2601))
 (define-constant err-invalid-vault-id (err u2602))
-(define-constant err-vault-not-active (err u2603))
 (define-constant err-strategy-not-found (err u2604))
-(define-constant err-strategy-inactive (err u2605))
 (define-constant err-cooldown-active (err u2606))
 (define-constant err-invalid-amount (err u2607))
 (define-constant err-invalid-protocol (err u2608))
 (define-constant err-insufficient-position (err u2609))
-(define-constant err-invalid-weight-split (err u2610))
 (define-constant err-allocation-exceeds-vault-assets (err u2611))
 (define-constant err-invalid-rebalance-weights (err u2612))
 (define-constant err-protocol-paused (err u2613))
@@ -110,46 +107,6 @@
   )
 )
 
-(define-private (assert-valid-protocol-id (protocol-id uint))
-  (if (or
-        (is-eq protocol-id protocol-id-zest)
-        (is-eq protocol-id protocol-id-alex)
-        (is-eq protocol-id protocol-id-stackingdao)
-        (is-eq protocol-id protocol-id-hermetica)
-      )
-    (ok true)
-    err-invalid-protocol
-  )
-)
-
-(define-private (assert-valid-adapter-contract
-  (adapter-contract principal)
-  (expected-contract principal)
-)
-  (if (or
-        (is-eq adapter-contract expected-contract)
-        (is-eq adapter-contract mock-integrations-contract)
-      )
-    (ok true)
-    err-invalid-protocol
-  )
-)
-
-(define-private (assert-approved-adapter-traits
-  (zest <zest-lending-trait>)
-  (alex <alex-liquidity-trait>)
-  (stackingdao <stackingdao-ststx-trait>)
-  (hermetica <hermetica-usdh-trait>)
-)
-  (begin
-    (try! (assert-valid-adapter-contract (contract-of zest) zest-adapter-contract))
-    (try! (assert-valid-adapter-contract (contract-of alex) alex-adapter-contract))
-    (try! (assert-valid-adapter-contract (contract-of stackingdao) stackingdao-adapter-contract))
-    (try! (assert-valid-adapter-contract (contract-of hermetica) hermetica-adapter-contract))
-    (ok true)
-  )
-)
-
 (define-private (get-protocol-position-internal (vault-id uint) (protocol-id uint))
   (default-to
     { allocated-assets: u0, last-updated-block: u0 }
@@ -196,15 +153,27 @@
   )
 )
 
-(define-private (deposit-into-protocol (protocol-id uint) (vault-id uint) (asset-amount uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
+(define-private (deposit-into-protocol (protocol-id uint) (vault-id uint) (asset-amount uint) (zest-mock bool) (alex-mock bool) (stackingdao-mock bool) (hermetica-mock bool))
   (if (is-eq protocol-id protocol-id-zest)
-    (contract-call? zest deposit-to-zest vault-id asset-amount)
+    (if zest-mock
+      (contract-call? .mock-defi-integrations deposit-to-zest vault-id asset-amount)
+      (contract-call? .zest-protocol-adapter deposit-to-zest vault-id asset-amount)
+    )
     (if (is-eq protocol-id protocol-id-alex)
-      (contract-call? alex provide-alex-liquidity vault-id asset-amount)
+      (if alex-mock
+        (contract-call? .mock-defi-integrations provide-alex-liquidity vault-id asset-amount)
+        (contract-call? .alex-liquidity-adapter provide-alex-liquidity vault-id asset-amount)
+      )
       (if (is-eq protocol-id protocol-id-stackingdao)
-        (contract-call? stackingdao mint-ststx vault-id asset-amount)
+        (if stackingdao-mock
+          (contract-call? .mock-defi-integrations mint-ststx vault-id asset-amount)
+          (contract-call? .stackingdao-adapter mint-ststx vault-id asset-amount)
+        )
         (if (is-eq protocol-id protocol-id-hermetica)
-          (contract-call? hermetica deposit-usdh vault-id asset-amount)
+          (if hermetica-mock
+            (contract-call? .mock-defi-integrations deposit-usdh vault-id asset-amount)
+            (contract-call? .hermetica-adapter deposit-usdh vault-id asset-amount)
+          )
           err-invalid-protocol
         )
       )
@@ -212,15 +181,27 @@
   )
 )
 
-(define-private (withdraw-from-protocol (protocol-id uint) (vault-id uint) (asset-amount uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
+(define-private (withdraw-from-protocol (protocol-id uint) (vault-id uint) (asset-amount uint) (zest-mock bool) (alex-mock bool) (stackingdao-mock bool) (hermetica-mock bool))
   (if (is-eq protocol-id protocol-id-zest)
-    (contract-call? zest withdraw-from-zest vault-id asset-amount)
+    (if zest-mock
+      (contract-call? .mock-defi-integrations withdraw-from-zest vault-id asset-amount)
+      (contract-call? .zest-protocol-adapter withdraw-from-zest vault-id asset-amount)
+    )
     (if (is-eq protocol-id protocol-id-alex)
-      (contract-call? alex withdraw-alex-liquidity vault-id asset-amount)
+      (if alex-mock
+        (contract-call? .mock-defi-integrations withdraw-alex-liquidity vault-id asset-amount)
+        (contract-call? .alex-liquidity-adapter withdraw-alex-liquidity vault-id asset-amount)
+      )
       (if (is-eq protocol-id protocol-id-stackingdao)
-        (contract-call? stackingdao redeem-ststx vault-id asset-amount)
+        (if stackingdao-mock
+          (contract-call? .mock-defi-integrations redeem-ststx vault-id asset-amount)
+          (contract-call? .stackingdao-adapter redeem-ststx vault-id asset-amount)
+        )
         (if (is-eq protocol-id protocol-id-hermetica)
-          (contract-call? hermetica withdraw-usdh vault-id asset-amount)
+          (if hermetica-mock
+            (contract-call? .mock-defi-integrations withdraw-usdh vault-id asset-amount)
+            (contract-call? .hermetica-adapter withdraw-usdh vault-id asset-amount)
+          )
           err-invalid-protocol
         )
       )
@@ -228,15 +209,27 @@
   )
 )
 
-(define-private (collect-protocol-fee (protocol-id uint) (fee-amount uint) (treasury principal) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
+(define-private (collect-protocol-fee (protocol-id uint) (fee-amount uint) (treasury principal) (zest-mock bool) (alex-mock bool) (stackingdao-mock bool) (hermetica-mock bool))
   (if (is-eq protocol-id protocol-id-zest)
-    (contract-call? zest collect-zest-fee fee-amount treasury)
+    (if zest-mock
+      (contract-call? .mock-defi-integrations collect-zest-fee fee-amount treasury)
+      (contract-call? .zest-protocol-adapter collect-zest-fee fee-amount treasury)
+    )
     (if (is-eq protocol-id protocol-id-alex)
-      (contract-call? alex collect-alex-fee fee-amount treasury)
+      (if alex-mock
+        (contract-call? .mock-defi-integrations collect-alex-fee fee-amount treasury)
+        (contract-call? .alex-liquidity-adapter collect-alex-fee fee-amount treasury)
+      )
       (if (is-eq protocol-id protocol-id-stackingdao)
-        (contract-call? stackingdao collect-stackingdao-fee fee-amount treasury)
+        (if stackingdao-mock
+          (contract-call? .mock-defi-integrations collect-stackingdao-fee fee-amount treasury)
+          (contract-call? .stackingdao-adapter collect-stackingdao-fee fee-amount treasury)
+        )
         (if (is-eq protocol-id protocol-id-hermetica)
-          (contract-call? hermetica collect-hermetica-fee fee-amount treasury)
+          (if hermetica-mock
+            (contract-call? .mock-defi-integrations collect-hermetica-fee fee-amount treasury)
+            (contract-call? .hermetica-adapter collect-hermetica-fee fee-amount treasury)
+          )
           err-invalid-protocol
         )
       )
@@ -244,15 +237,27 @@
   )
 )
 
-(define-private (emergency-exit-from-protocol (protocol-id uint) (vault-id uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
+(define-private (emergency-exit-from-protocol (protocol-id uint) (vault-id uint) (zest-mock bool) (alex-mock bool) (stackingdao-mock bool) (hermetica-mock bool))
   (if (is-eq protocol-id protocol-id-zest)
-    (contract-call? zest emergency-exit-zest vault-id)
+    (if zest-mock
+      (contract-call? .mock-defi-integrations emergency-exit-zest vault-id)
+      (contract-call? .zest-protocol-adapter emergency-exit-zest vault-id)
+    )
     (if (is-eq protocol-id protocol-id-alex)
-      (contract-call? alex emergency-exit-alex vault-id)
+      (if alex-mock
+        (contract-call? .mock-defi-integrations emergency-exit-alex vault-id)
+        (contract-call? .alex-liquidity-adapter emergency-exit-alex vault-id)
+      )
       (if (is-eq protocol-id protocol-id-stackingdao)
-        (contract-call? stackingdao emergency-exit-stackingdao vault-id)
+        (if stackingdao-mock
+          (contract-call? .mock-defi-integrations emergency-exit-stackingdao vault-id)
+          (contract-call? .stackingdao-adapter emergency-exit-stackingdao vault-id)
+        )
         (if (is-eq protocol-id protocol-id-hermetica)
-          (contract-call? hermetica emergency-exit-hermetica vault-id)
+          (if hermetica-mock
+            (contract-call? .mock-defi-integrations emergency-exit-hermetica vault-id)
+            (contract-call? .hermetica-adapter emergency-exit-hermetica vault-id)
+          )
           err-invalid-protocol
         )
       )
@@ -295,47 +300,78 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
-    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
-    (asserts! (> vault-id u0) err-invalid-vault-id)
-    (asserts! (> strategy-id u0) err-strategy-not-found)
-    (try! (assert-valid-protocol-id protocol-id))
-    (asserts! (> asset-amount u0) err-invalid-amount)
-    (let ((vault-entry (try! (assert-cooldown-and-strategy vault-id strategy-id))))
+    (let
+      (
+        (zest-contract (contract-of zest))
+        (alex-contract (contract-of alex))
+        (stackingdao-contract (contract-of stackingdao))
+        (hermetica-contract (contract-of hermetica))
+        (zest-mock (is-eq (contract-of zest) mock-integrations-contract))
+        (alex-mock (is-eq (contract-of alex) mock-integrations-contract))
+        (stackingdao-mock (is-eq (contract-of stackingdao) mock-integrations-contract))
+        (hermetica-mock (is-eq (contract-of hermetica) mock-integrations-contract))
+      )
       (begin
-        (asserts! (>= (get total-assets vault-entry) asset-amount) err-allocation-exceeds-vault-assets)
-        (let
-          (
-            (position (get-protocol-position-internal vault-id protocol-id))
-            (performance-fee-bps (contract-call? .protocol-config get-protocol-performance-fee-bps))
-            (fee-amount (/ (* net-yield performance-fee-bps) bps-denominator))
-            (treasury (contract-call? .protocol-config get-protocol-treasury))
-          )
-          (let ((updated-allocation (- (+ (get allocated-assets position) asset-amount) fee-amount)))
-            (begin
-              (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
-              (try! (deposit-into-protocol protocol-id vault-id asset-amount zest alex stackingdao hermetica))
-              (if (> fee-amount u0)
-                (try! (collect-protocol-fee protocol-id fee-amount treasury zest alex stackingdao hermetica))
-                true
+        (asserts! (or zest-mock (is-eq zest-contract zest-adapter-contract)) err-invalid-protocol)
+        (asserts! (or alex-mock (is-eq alex-contract alex-adapter-contract)) err-invalid-protocol)
+        (asserts! (or stackingdao-mock (is-eq stackingdao-contract stackingdao-adapter-contract)) err-invalid-protocol)
+        (asserts! (or hermetica-mock (is-eq hermetica-contract hermetica-adapter-contract)) err-invalid-protocol)
+        (asserts! (> vault-id u0) err-invalid-vault-id)
+        (asserts! (> strategy-id u0) err-strategy-not-found)
+        (asserts! (or
+          (is-eq protocol-id protocol-id-zest)
+          (is-eq protocol-id protocol-id-alex)
+          (is-eq protocol-id protocol-id-stackingdao)
+          (is-eq protocol-id protocol-id-hermetica)
+        ) err-invalid-protocol)
+        (asserts! (> asset-amount u0) err-invalid-amount)
+        (let ((vault-entry (try! (assert-cooldown-and-strategy vault-id strategy-id))))
+          (begin
+            (asserts! (>= (get total-assets vault-entry) asset-amount) err-allocation-exceeds-vault-assets)
+            (let
+              (
+                (position (get-protocol-position-internal vault-id protocol-id))
+                (performance-fee-bps (contract-call? .protocol-config get-protocol-performance-fee-bps))
+                (fee-amount (/ (* net-yield performance-fee-bps) bps-denominator))
+                (treasury (contract-call? .protocol-config get-protocol-treasury))
+                (current-allocation (get allocated-assets position))
               )
-              (map-set vault-strategy-positions
-                { vault-id: vault-id, protocol-id: protocol-id }
-                { allocated-assets: updated-allocation, last-updated-block: block-height }
+              (begin
+                (asserts! (<= asset-amount (- max-uint current-allocation)) err-invalid-amount)
+                (let ((pre-fee-allocation (+ current-allocation asset-amount)))
+                  (begin
+                    (asserts! (<= fee-amount pre-fee-allocation) err-invalid-amount)
+                    (let ((updated-allocation (- pre-fee-allocation fee-amount)))
+                      (begin
+                        (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+                        (try! (deposit-into-protocol protocol-id vault-id asset-amount zest-mock alex-mock stackingdao-mock hermetica-mock))
+                        (if (> fee-amount u0)
+                          (try! (collect-protocol-fee protocol-id fee-amount treasury zest-mock alex-mock stackingdao-mock hermetica-mock))
+                          true
+                        )
+                        (map-set vault-strategy-positions
+                          { vault-id: vault-id, protocol-id: protocol-id }
+                          { allocated-assets: updated-allocation, last-updated-block: block-height }
+                        )
+                        (write-execution-state vault-id net-yield fee-amount)
+                        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+                        (print {
+                          event: "strategy-executed",
+                          vault-id: vault-id,
+                          strategy-id: strategy-id,
+                          protocol-id: protocol-id,
+                          asset-amount: asset-amount,
+                          updated-allocation: updated-allocation,
+                          net-yield: net-yield,
+                          fee-collected: fee-amount,
+                          execution-block: block-height
+                        })
+                        (ok updated-allocation)
+                      )
+                    )
+                  )
+                )
               )
-              (write-execution-state vault-id net-yield fee-amount)
-              (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-              (print {
-                event: "strategy-executed",
-                vault-id: vault-id,
-                strategy-id: strategy-id,
-                protocol-id: protocol-id,
-                asset-amount: asset-amount,
-                updated-allocation: updated-allocation,
-                net-yield: net-yield,
-                fee-collected: fee-amount,
-                execution-block: block-height
-              })
-              (ok updated-allocation)
             )
           )
         )
@@ -364,56 +400,90 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
-    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
-    (asserts! (> vault-id u0) err-invalid-vault-id)
-    (asserts! (> strategy-id u0) err-strategy-not-found)
-    (try! (assert-valid-protocol-id from-protocol-id))
-    (try! (assert-valid-protocol-id to-protocol-id))
-    (asserts! (> rebalance-amount u0) err-invalid-amount)
-    (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
-    ;; Full allocation list must sum to exactly bps-denominator (10000 bp = 100%)
-    ;; and every non-zero entry must clear the minimum meaningful allocation threshold.
-    (let ((total-bps (fold sum-allocation-bps target-allocations u0))
-          (invalid-bps (fold flag-invalid-allocation-bps target-allocations u0)))
-      (begin
-        (asserts! (is-eq invalid-bps u0) err-invalid-rebalance-weights)
-        (asserts! (is-eq total-bps bps-denominator) err-invalid-rebalance-weights)
-      )
-    )
-    (try! (assert-cooldown-and-strategy vault-id strategy-id))
     (let
       (
-        (from-position (get-protocol-position-internal vault-id from-protocol-id))
-        (from-allocated (get allocated-assets from-position))
+        (zest-contract (contract-of zest))
+        (alex-contract (contract-of alex))
+        (stackingdao-contract (contract-of stackingdao))
+        (hermetica-contract (contract-of hermetica))
+        (zest-mock (is-eq (contract-of zest) mock-integrations-contract))
+        (alex-mock (is-eq (contract-of alex) mock-integrations-contract))
+        (stackingdao-mock (is-eq (contract-of stackingdao) mock-integrations-contract))
+        (hermetica-mock (is-eq (contract-of hermetica) mock-integrations-contract))
       )
       (begin
-        (asserts! (>= from-allocated rebalance-amount) err-insufficient-position)
-        (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
-        (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
-        (map-set vault-strategy-positions
-          { vault-id: vault-id, protocol-id: from-protocol-id }
-          { allocated-assets: (- from-allocated rebalance-amount), last-updated-block: block-height }
-        )
-        (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
-        (let ((to-position (get-protocol-position-internal vault-id to-protocol-id)))
-          (map-set vault-strategy-positions
-            { vault-id: vault-id, protocol-id: to-protocol-id }
-            { allocated-assets: (+ (get allocated-assets to-position) rebalance-amount), last-updated-block: block-height }
+        (asserts! (or zest-mock (is-eq zest-contract zest-adapter-contract)) err-invalid-protocol)
+        (asserts! (or alex-mock (is-eq alex-contract alex-adapter-contract)) err-invalid-protocol)
+        (asserts! (or stackingdao-mock (is-eq stackingdao-contract stackingdao-adapter-contract)) err-invalid-protocol)
+        (asserts! (or hermetica-mock (is-eq hermetica-contract hermetica-adapter-contract)) err-invalid-protocol)
+        (asserts! (> vault-id u0) err-invalid-vault-id)
+        (asserts! (> strategy-id u0) err-strategy-not-found)
+        (asserts! (or
+          (is-eq from-protocol-id protocol-id-zest)
+          (is-eq from-protocol-id protocol-id-alex)
+          (is-eq from-protocol-id protocol-id-stackingdao)
+          (is-eq from-protocol-id protocol-id-hermetica)
+        ) err-invalid-protocol)
+        (asserts! (or
+          (is-eq to-protocol-id protocol-id-zest)
+          (is-eq to-protocol-id protocol-id-alex)
+          (is-eq to-protocol-id protocol-id-stackingdao)
+          (is-eq to-protocol-id protocol-id-hermetica)
+        ) err-invalid-protocol)
+        (asserts! (> rebalance-amount u0) err-invalid-amount)
+        (asserts! (not (is-eq from-protocol-id to-protocol-id)) err-invalid-protocol)
+        ;; Full allocation list must sum to exactly bps-denominator (10000 bp = 100%)
+        ;; and every non-zero entry must clear the minimum meaningful allocation threshold.
+        (let ((total-bps (fold sum-allocation-bps target-allocations u0))
+              (invalid-bps (fold flag-invalid-allocation-bps target-allocations u0)))
+          (begin
+            (asserts! (is-eq invalid-bps u0) err-invalid-rebalance-weights)
+            (asserts! (is-eq total-bps bps-denominator) err-invalid-rebalance-weights)
           )
         )
-        (write-execution-state vault-id u0 u0)
-        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-        (print {
-          event: "vault-rebalanced",
-          vault-id: vault-id,
-          strategy-id: strategy-id,
-          from-protocol-id: from-protocol-id,
-          to-protocol-id: to-protocol-id,
-          rebalance-amount: rebalance-amount,
-          target-allocations: target-allocations,
-          execution-block: block-height
-        })
-        (ok rebalance-amount)
+        (try! (assert-cooldown-and-strategy vault-id strategy-id))
+        (let
+          (
+            (from-position (get-protocol-position-internal vault-id from-protocol-id))
+            (from-allocated (get allocated-assets from-position))
+          )
+          (begin
+            (asserts! (>= from-allocated rebalance-amount) err-insufficient-position)
+            (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+            (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest-mock alex-mock stackingdao-mock hermetica-mock))
+            (map-set vault-strategy-positions
+              { vault-id: vault-id, protocol-id: from-protocol-id }
+              { allocated-assets: (- from-allocated rebalance-amount), last-updated-block: block-height }
+            )
+            (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest-mock alex-mock stackingdao-mock hermetica-mock))
+            (let
+              (
+                (to-position (get-protocol-position-internal vault-id to-protocol-id))
+                (to-current (get allocated-assets to-position))
+              )
+              (begin
+                (asserts! (<= rebalance-amount (- max-uint to-current)) err-invalid-amount)
+                (map-set vault-strategy-positions
+                  { vault-id: vault-id, protocol-id: to-protocol-id }
+                  { allocated-assets: (+ to-current rebalance-amount), last-updated-block: block-height }
+                )
+              )
+            )
+            (write-execution-state vault-id u0 u0)
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+            (print {
+              event: "vault-rebalanced",
+              vault-id: vault-id,
+              strategy-id: strategy-id,
+              from-protocol-id: from-protocol-id,
+              to-protocol-id: to-protocol-id,
+              rebalance-amount: rebalance-amount,
+              target-allocations: target-allocations,
+              execution-block: block-height
+            })
+            (ok rebalance-amount)
+          )
+        )
       )
     )
   )
@@ -432,42 +502,59 @@
 )
   (begin
     (asserts! (> vault-id u0) err-invalid-vault-id)
-    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
-    (if (contract-call? .access-control is-protocol-paused)
-      (asserts! (is-emergency-recovery-authorized) err-owner-only)
-      (try! (assert-protocol-owner))
-    )
-    (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
     (let
       (
-        (zest-withdrawn (try! (emergency-exit-from-protocol protocol-id-zest vault-id zest alex stackingdao hermetica)))
-        (alex-withdrawn (try! (emergency-exit-from-protocol protocol-id-alex vault-id zest alex stackingdao hermetica)))
-        (sdao-withdrawn (try! (emergency-exit-from-protocol protocol-id-stackingdao vault-id zest alex stackingdao hermetica)))
-        (herm-withdrawn (try! (emergency-exit-from-protocol protocol-id-hermetica vault-id zest alex stackingdao hermetica)))
-        (total-recovered (+ (+ zest-withdrawn alex-withdrawn) (+ sdao-withdrawn herm-withdrawn)))
+        (zest-contract (contract-of zest))
+        (alex-contract (contract-of alex))
+        (stackingdao-contract (contract-of stackingdao))
+        (hermetica-contract (contract-of hermetica))
+        (zest-mock (is-eq (contract-of zest) mock-integrations-contract))
+        (alex-mock (is-eq (contract-of alex) mock-integrations-contract))
+        (stackingdao-mock (is-eq (contract-of stackingdao) mock-integrations-contract))
+        (hermetica-mock (is-eq (contract-of hermetica) mock-integrations-contract))
       )
       (begin
-        ;; Zero all position records
-        (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-zest }
-          { allocated-assets: u0, last-updated-block: block-height })
-        (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-alex }
-          { allocated-assets: u0, last-updated-block: block-height })
-        (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-stackingdao }
-          { allocated-assets: u0, last-updated-block: block-height })
-        (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-hermetica }
-          { allocated-assets: u0, last-updated-block: block-height })
-        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-        (print {
-          event: "vault-emergency-exit",
-          vault-id: vault-id,
-          zest-withdrawn: zest-withdrawn,
-          alex-withdrawn: alex-withdrawn,
-          sdao-withdrawn: sdao-withdrawn,
-          herm-withdrawn: herm-withdrawn,
-          total-recovered: total-recovered,
-          caller: tx-sender
-        })
-        (ok total-recovered)
+        (asserts! (or zest-mock (is-eq zest-contract zest-adapter-contract)) err-invalid-protocol)
+        (asserts! (or alex-mock (is-eq alex-contract alex-adapter-contract)) err-invalid-protocol)
+        (asserts! (or stackingdao-mock (is-eq stackingdao-contract stackingdao-adapter-contract)) err-invalid-protocol)
+        (asserts! (or hermetica-mock (is-eq hermetica-contract hermetica-adapter-contract)) err-invalid-protocol)
+        (if (contract-call? .access-control is-protocol-paused)
+          (asserts! (is-emergency-recovery-authorized) err-owner-only)
+          (try! (assert-protocol-owner))
+        )
+        (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+        (let
+          (
+            (zest-withdrawn (try! (emergency-exit-from-protocol protocol-id-zest vault-id zest-mock alex-mock stackingdao-mock hermetica-mock)))
+            (alex-withdrawn (try! (emergency-exit-from-protocol protocol-id-alex vault-id zest-mock alex-mock stackingdao-mock hermetica-mock)))
+            (sdao-withdrawn (try! (emergency-exit-from-protocol protocol-id-stackingdao vault-id zest-mock alex-mock stackingdao-mock hermetica-mock)))
+            (herm-withdrawn (try! (emergency-exit-from-protocol protocol-id-hermetica vault-id zest-mock alex-mock stackingdao-mock hermetica-mock)))
+            (total-recovered (+ (+ zest-withdrawn alex-withdrawn) (+ sdao-withdrawn herm-withdrawn)))
+          )
+          (begin
+            ;; Zero all position records
+            (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-zest }
+              { allocated-assets: u0, last-updated-block: block-height })
+            (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-alex }
+              { allocated-assets: u0, last-updated-block: block-height })
+            (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-stackingdao }
+              { allocated-assets: u0, last-updated-block: block-height })
+            (map-set vault-strategy-positions { vault-id: vault-id, protocol-id: protocol-id-hermetica }
+              { allocated-assets: u0, last-updated-block: block-height })
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+            (print {
+              event: "vault-emergency-exit",
+              vault-id: vault-id,
+              zest-withdrawn: zest-withdrawn,
+              alex-withdrawn: alex-withdrawn,
+              sdao-withdrawn: sdao-withdrawn,
+              herm-withdrawn: herm-withdrawn,
+              total-recovered: total-recovered,
+              caller: tx-sender
+            })
+            (ok total-recovered)
+          )
+        )
       )
     )
   )
@@ -486,28 +573,50 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
-    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
-    (asserts! (> vault-id u0) err-invalid-vault-id)
-    (try! (assert-valid-protocol-id protocol-id))
-    (asserts! (> asset-amount u0) err-invalid-amount)
-    (let ((position (get-protocol-position-internal vault-id protocol-id)))
+    (let
+      (
+        (zest-contract (contract-of zest))
+        (alex-contract (contract-of alex))
+        (stackingdao-contract (contract-of stackingdao))
+        (hermetica-contract (contract-of hermetica))
+        (zest-mock (is-eq (contract-of zest) mock-integrations-contract))
+        (alex-mock (is-eq (contract-of alex) mock-integrations-contract))
+        (stackingdao-mock (is-eq (contract-of stackingdao) mock-integrations-contract))
+        (hermetica-mock (is-eq (contract-of hermetica) mock-integrations-contract))
+      )
       (begin
-        (asserts! (>= (get allocated-assets position) asset-amount) err-insufficient-position)
-        (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
-        (try! (withdraw-from-protocol protocol-id vault-id asset-amount zest alex stackingdao hermetica))
-        (map-set vault-strategy-positions
-          { vault-id: vault-id, protocol-id: protocol-id }
-          { allocated-assets: (- (get allocated-assets position) asset-amount), last-updated-block: block-height }
+        (asserts! (or zest-mock (is-eq zest-contract zest-adapter-contract)) err-invalid-protocol)
+        (asserts! (or alex-mock (is-eq alex-contract alex-adapter-contract)) err-invalid-protocol)
+        (asserts! (or stackingdao-mock (is-eq stackingdao-contract stackingdao-adapter-contract)) err-invalid-protocol)
+        (asserts! (or hermetica-mock (is-eq hermetica-contract hermetica-adapter-contract)) err-invalid-protocol)
+        (asserts! (> vault-id u0) err-invalid-vault-id)
+        (asserts! (or
+          (is-eq protocol-id protocol-id-zest)
+          (is-eq protocol-id protocol-id-alex)
+          (is-eq protocol-id protocol-id-stackingdao)
+          (is-eq protocol-id protocol-id-hermetica)
+        ) err-invalid-protocol)
+        (asserts! (> asset-amount u0) err-invalid-amount)
+        (let ((position (get-protocol-position-internal vault-id protocol-id)))
+          (begin
+            (asserts! (>= (get allocated-assets position) asset-amount) err-insufficient-position)
+            (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+            (try! (withdraw-from-protocol protocol-id vault-id asset-amount zest-mock alex-mock stackingdao-mock hermetica-mock))
+            (map-set vault-strategy-positions
+              { vault-id: vault-id, protocol-id: protocol-id }
+              { allocated-assets: (- (get allocated-assets position) asset-amount), last-updated-block: block-height }
+            )
+            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+            (print {
+              event: "strategy-withdraw",
+              vault-id: vault-id,
+              protocol-id: protocol-id,
+              asset-amount: asset-amount,
+              remaining-allocation: (- (get allocated-assets position) asset-amount)
+            })
+            (ok asset-amount)
+          )
         )
-        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-        (print {
-          event: "strategy-withdraw",
-          vault-id: vault-id,
-          protocol-id: protocol-id,
-          asset-amount: asset-amount,
-          remaining-allocation: (- (get allocated-assets position) asset-amount)
-        })
-        (ok asset-amount)
       )
     )
   )
