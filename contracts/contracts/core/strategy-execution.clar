@@ -18,7 +18,6 @@
 (use-trait alex-liquidity-trait .alex-liquidity-trait.alex-liquidity-trait)
 (use-trait stackingdao-ststx-trait .stackingdao-ststx-trait.stackingdao-ststx-trait)
 (use-trait hermetica-usdh-trait .hermetica-usdh-trait.hermetica-usdh-trait)
-(use-trait protocol-adapter-trait .protocol-adapter-trait.protocol-adapter-trait)
 
 (define-constant role-owner u1)
 (define-constant role-strategy-executor u2)
@@ -30,6 +29,12 @@
 (define-constant protocol-id-alex u2)
 (define-constant protocol-id-stackingdao u3)
 (define-constant protocol-id-hermetica u4)
+
+(define-constant zest-adapter-contract .zest-protocol-adapter)
+(define-constant alex-adapter-contract .alex-liquidity-adapter)
+(define-constant stackingdao-adapter-contract .stackingdao-adapter)
+(define-constant hermetica-adapter-contract .hermetica-adapter)
+(define-constant mock-integrations-contract .mock-defi-integrations)
 
 ;; Minimum meaningful allocation share for any protocol in a rebalance target list (0.5%)
 (define-constant min-meaningful-allocation-bps u50)
@@ -117,6 +122,34 @@
   )
 )
 
+(define-private (assert-valid-adapter-contract
+  (adapter-contract principal)
+  (expected-contract principal)
+)
+  (if (or
+        (is-eq adapter-contract expected-contract)
+        (is-eq adapter-contract mock-integrations-contract)
+      )
+    (ok true)
+    err-invalid-protocol
+  )
+)
+
+(define-private (assert-approved-adapter-traits
+  (zest <zest-lending-trait>)
+  (alex <alex-liquidity-trait>)
+  (stackingdao <stackingdao-ststx-trait>)
+  (hermetica <hermetica-usdh-trait>)
+)
+  (begin
+    (try! (assert-valid-adapter-contract (contract-of zest) zest-adapter-contract))
+    (try! (assert-valid-adapter-contract (contract-of alex) alex-adapter-contract))
+    (try! (assert-valid-adapter-contract (contract-of stackingdao) stackingdao-adapter-contract))
+    (try! (assert-valid-adapter-contract (contract-of hermetica) hermetica-adapter-contract))
+    (ok true)
+  )
+)
+
 (define-private (get-protocol-position-internal (vault-id uint) (protocol-id uint))
   (default-to
     { allocated-assets: u0, last-updated-block: u0 }
@@ -139,14 +172,7 @@
         (let
           (
             (cooldown-blocks (contract-call? .protocol-config get-max-strategy-rebalance-frequency-blocks))
-            (effective-last-block
-              (let ((state-block (get last-execution-block (get-execution-state-internal vault-id))))
-                (if (> state-block u0)
-                  state-block
-                  (get last-execution-block vault-entry)
-                )
-              )
-            )
+            (effective-last-block (get last-execution-block (get-execution-state-internal vault-id)))
           )
           (asserts! (>= block-height (+ effective-last-block cooldown-blocks)) err-cooldown-active)
           (ok vault-entry)
@@ -269,6 +295,9 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
+    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (asserts! (> strategy-id u0) err-strategy-not-found)
     (try! (assert-valid-protocol-id protocol-id))
     (asserts! (> asset-amount u0) err-invalid-amount)
     (let ((vault-entry (try! (assert-cooldown-and-strategy vault-id strategy-id))))
@@ -281,7 +310,7 @@
             (fee-amount (/ (* net-yield performance-fee-bps) bps-denominator))
             (treasury (contract-call? .protocol-config get-protocol-treasury))
           )
-          (let ((updated-allocation (- (+ (+ (get allocated-assets position) asset-amount) net-yield) fee-amount)))
+          (let ((updated-allocation (- (+ (get allocated-assets position) asset-amount) fee-amount)))
             (begin
               (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
               (try! (deposit-into-protocol protocol-id vault-id asset-amount zest alex stackingdao hermetica))
@@ -335,6 +364,9 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
+    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (asserts! (> strategy-id u0) err-strategy-not-found)
     (try! (assert-valid-protocol-id from-protocol-id))
     (try! (assert-valid-protocol-id to-protocol-id))
     (asserts! (> rebalance-amount u0) err-invalid-amount)
@@ -348,43 +380,40 @@
         (asserts! (is-eq total-bps bps-denominator) err-invalid-rebalance-weights)
       )
     )
-    (let ((vault-entry (try! (assert-cooldown-and-strategy vault-id strategy-id))))
+    (try! (assert-cooldown-and-strategy vault-id strategy-id))
+    (let
+      (
+        (from-position (get-protocol-position-internal vault-id from-protocol-id))
+        (from-allocated (get allocated-assets from-position))
+      )
       (begin
-        (let
-          (
-            (from-position (get-protocol-position-internal vault-id from-protocol-id))
-            (from-allocated (get allocated-assets from-position))
-          )
-          (begin
-            (asserts! (>= from-allocated rebalance-amount) err-insufficient-position)
-            (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
-            (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
-            (map-set vault-strategy-positions
-              { vault-id: vault-id, protocol-id: from-protocol-id }
-              { allocated-assets: (- from-allocated rebalance-amount), last-updated-block: block-height }
-            )
-            (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
-            (let ((to-position (get-protocol-position-internal vault-id to-protocol-id)))
-              (map-set vault-strategy-positions
-                { vault-id: vault-id, protocol-id: to-protocol-id }
-                { allocated-assets: (+ (get allocated-assets to-position) rebalance-amount), last-updated-block: block-height }
-              )
-            )
-            (write-execution-state vault-id u0 u0)
-            (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
-            (print {
-              event: "vault-rebalanced",
-              vault-id: vault-id,
-              strategy-id: strategy-id,
-              from-protocol-id: from-protocol-id,
-              to-protocol-id: to-protocol-id,
-              rebalance-amount: rebalance-amount,
-              target-allocations: target-allocations,
-              execution-block: block-height
-            })
-            (ok rebalance-amount)
+        (asserts! (>= from-allocated rebalance-amount) err-insufficient-position)
+        (try! (contract-call? .vault-core lock-vault-for-execution vault-id))
+        (try! (withdraw-from-protocol from-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
+        (map-set vault-strategy-positions
+          { vault-id: vault-id, protocol-id: from-protocol-id }
+          { allocated-assets: (- from-allocated rebalance-amount), last-updated-block: block-height }
+        )
+        (try! (deposit-into-protocol to-protocol-id vault-id rebalance-amount zest alex stackingdao hermetica))
+        (let ((to-position (get-protocol-position-internal vault-id to-protocol-id)))
+          (map-set vault-strategy-positions
+            { vault-id: vault-id, protocol-id: to-protocol-id }
+            { allocated-assets: (+ (get allocated-assets to-position) rebalance-amount), last-updated-block: block-height }
           )
         )
+        (write-execution-state vault-id u0 u0)
+        (try! (contract-call? .vault-core unlock-vault-after-execution vault-id))
+        (print {
+          event: "vault-rebalanced",
+          vault-id: vault-id,
+          strategy-id: strategy-id,
+          from-protocol-id: from-protocol-id,
+          to-protocol-id: to-protocol-id,
+          rebalance-amount: rebalance-amount,
+          target-allocations: target-allocations,
+          execution-block: block-height
+        })
+        (ok rebalance-amount)
       )
     )
   )
@@ -402,6 +431,8 @@
   (hermetica <hermetica-usdh-trait>)
 )
   (begin
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
     (if (contract-call? .access-control is-protocol-paused)
       (asserts! (is-emergency-recovery-authorized) err-owner-only)
       (try! (assert-protocol-owner))
@@ -455,6 +486,8 @@
   (begin
     (try! (assert-not-paused))
     (try! (assert-executor))
+    (try! (assert-approved-adapter-traits zest alex stackingdao hermetica))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
     (try! (assert-valid-protocol-id protocol-id))
     (asserts! (> asset-amount u0) err-invalid-amount)
     (let ((position (get-protocol-position-internal vault-id protocol-id)))
@@ -481,12 +514,12 @@
 )
 
 ;; Alias names kept for backward compatibility
-(define-public (execute (vault-id uint) (strategy-id uint) (protocol-id uint) (asset-amount uint) (net-yield uint) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
-  (execute-strategy vault-id strategy-id protocol-id asset-amount net-yield zest alex stackingdao hermetica)
+(define-public (execute (vault-id-arg uint) (strategy-id-arg uint) (protocol-id-arg uint) (asset-amount-arg uint) (net-yield-arg uint) (zest-adapter <zest-lending-trait>) (alex-adapter <alex-liquidity-trait>) (stackingdao-adapter <stackingdao-ststx-trait>) (hermetica-adapter <hermetica-usdh-trait>))
+  (execute-strategy vault-id-arg strategy-id-arg protocol-id-arg asset-amount-arg net-yield-arg zest-adapter alex-adapter stackingdao-adapter hermetica-adapter)
 )
 
-(define-public (rebalance (vault-id uint) (strategy-id uint) (from-protocol-id uint) (to-protocol-id uint) (rebalance-amount uint) (target-allocations (list 10 { protocol-id: uint, target-bps: uint })) (zest <zest-lending-trait>) (alex <alex-liquidity-trait>) (stackingdao <stackingdao-ststx-trait>) (hermetica <hermetica-usdh-trait>))
-  (rebalance-vault vault-id strategy-id from-protocol-id to-protocol-id rebalance-amount target-allocations zest alex stackingdao hermetica)
+(define-public (rebalance (vault-id-arg uint) (strategy-id-arg uint) (from-protocol-id-arg uint) (to-protocol-id-arg uint) (rebalance-amount-arg uint) (target-allocations-arg (list 10 { protocol-id: uint, target-bps: uint })) (zest-adapter <zest-lending-trait>) (alex-adapter <alex-liquidity-trait>) (stackingdao-adapter <stackingdao-ststx-trait>) (hermetica-adapter <hermetica-usdh-trait>))
+  (rebalance-vault vault-id-arg strategy-id-arg from-protocol-id-arg to-protocol-id-arg rebalance-amount-arg target-allocations-arg zest-adapter alex-adapter stackingdao-adapter hermetica-adapter)
 )
 
 ;; --- read-only functions -------------------------------------------------------
