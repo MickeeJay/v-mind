@@ -23,8 +23,11 @@
 (define-constant err-insufficient-vault-shares (err u2806))
 (define-constant err-vault-context-required (err u2807))
 (define-constant err-insufficient-vault-assets (err u2808))
-(define-constant err-supply-invariant (err u2809))
 (define-constant err-self-transfer (err u2810))
+(define-constant err-invalid-vault-id (err u2811))
+(define-constant err-invalid-principal (err u2812))
+(define-constant err-invalid-token-metadata (err u2813))
+(define-constant err-invalid-vault-core-contract (err u2814))
 
 (define-constant max-token-decimals u18)
 (define-constant share-scaling-factor u1000000)
@@ -32,7 +35,7 @@
 
 (define-data-var contract-owner principal tx-sender)
 (define-data-var initialized bool false)
-(define-data-var vault-core-contract principal tx-sender)
+(define-data-var vault-core-contract principal .vault-core)
 
 (define-data-var token-name (string-ascii 32) "V-Mind Vault Share")
 (define-data-var token-symbol (string-ascii 32) "vSHARE")
@@ -103,6 +106,13 @@
   )
 )
 
+(define-private (assert-standard-principal (account principal))
+  (if (is-standard account)
+    (ok true)
+    err-invalid-principal
+  )
+)
+
 ;; Access pattern: owner-only
 (define-public (initialize-token
   (vault-core principal)
@@ -114,13 +124,42 @@
   (begin
     (try! (assert-owner))
     (asserts! (not (var-get initialized)) err-already-initialized)
+    (asserts! (not (is-standard vault-core)) err-invalid-vault-core-contract)
+    (asserts! (> (len name) u0) err-invalid-token-metadata)
+    (asserts! (> (len symbol) u0) err-invalid-token-metadata)
     (asserts! (<= decimals max-token-decimals) err-invalid-decimals)
-    (var-set vault-core-contract vault-core)
-    (var-set token-name name)
-    (var-set token-symbol symbol)
-    (var-set token-decimals decimals)
-    (var-set token-uri uri)
-    (var-set initialized true)
+    (let
+      (
+        (validated-uri
+          (match uri uri-value
+            (begin
+              (asserts! (> (len uri-value) u0) err-invalid-token-metadata)
+              (some uri-value)
+            )
+            none
+          )
+        )
+      )
+      (begin
+        (var-set vault-core-contract vault-core)
+        (var-set token-name name)
+        (var-set token-symbol symbol)
+        (var-set token-decimals decimals)
+        (var-set token-uri validated-uri)
+        (var-set initialized true)
+        (ok true)
+      )
+    )
+  )
+)
+
+;; Access pattern: owner-only
+(define-public (transfer-token-ownership (new-owner principal))
+  (begin
+    (try! (assert-owner))
+    (try! (assert-standard-principal new-owner))
+    (asserts! (not (is-eq (var-get contract-owner) new-owner)) err-invalid-principal)
+    (var-set contract-owner new-owner)
     (ok true)
   )
 )
@@ -132,6 +171,8 @@
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
   (begin
     (asserts! (is-eq tx-sender sender) err-not-token-owner)
+    (try! (assert-standard-principal sender))
+    (try! (assert-standard-principal recipient))
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (not (is-eq sender recipient)) err-self-transfer)
     (let
@@ -186,6 +227,8 @@
 (define-public (mint (vault-id uint) (recipient principal) (deposit-amount uint))
   (begin
     (try! (assert-vault-core))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (asserts! (is-standard recipient) err-invalid-principal)
     (asserts! (> deposit-amount u0) err-invalid-amount)
     (let
       (
@@ -234,6 +277,8 @@
 (define-public (burn (vault-id uint) (holder principal) (share-amount uint))
   (begin
     (try! (assert-vault-core))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (asserts! (is-standard holder) err-invalid-principal)
     (asserts! (> share-amount u0) err-invalid-amount)
     (let
       (
@@ -297,6 +342,7 @@
 (define-public (sync-vault-assets (vault-id uint) (total-assets uint))
   (begin
     (try! (assert-vault-core))
+    (asserts! (> vault-id u0) err-invalid-vault-id)
     (map-set vault-total-assets { vault-id: vault-id } { total-assets: total-assets })
     (ok total-assets)
   )
@@ -335,22 +381,35 @@
 )
 
 (define-read-only (get-vault-balance (vault-id uint) (owner principal))
-  (ok (get-vault-balance-internal vault-id owner))
+  (begin
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (asserts! (is-standard owner) err-invalid-principal)
+    (ok (get-vault-balance-internal vault-id owner))
+  )
 )
 
 (define-read-only (get-vault-total-supply (vault-id uint))
-  (ok (get-vault-total-supply-internal vault-id))
+  (begin
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (ok (get-vault-total-supply-internal vault-id))
+  )
 )
 
 (define-read-only (get-vault-total-assets (vault-id uint))
-  (ok (get-vault-total-assets-internal vault-id))
+  (begin
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (ok (get-vault-total-assets-internal vault-id))
+  )
 )
 
 (define-read-only (get-price-per-share (vault-id uint))
-  (let ((vault-share-supply (get-vault-total-supply-internal vault-id)))
-    (if (is-eq vault-share-supply u0)
-      (ok initial-price-per-share)
-      (ok (/ (* (get-vault-total-assets-internal vault-id) share-scaling-factor) vault-share-supply))
+  (begin
+    (asserts! (> vault-id u0) err-invalid-vault-id)
+    (let ((vault-share-supply (get-vault-total-supply-internal vault-id)))
+      (if (is-eq vault-share-supply u0)
+        (ok initial-price-per-share)
+        (ok (/ (* (get-vault-total-assets-internal vault-id) share-scaling-factor) vault-share-supply))
+      )
     )
   )
 )
