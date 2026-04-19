@@ -26,6 +26,7 @@
 (define-constant err-insufficient-balance (err u3100))
 (define-constant err-forced-failure (err u3101))
 (define-constant one-6 u1000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-data-var total-supply uint u0)
 (define-data-var force-failure bool false)
@@ -55,11 +56,23 @@
 (define-public (mint (vault-id uint) (recipient principal) (amount uint))
   (if (var-get force-failure)
     err-forced-failure
-    (begin
-      (map-set balances { vault-id: vault-id, account: recipient } { amount: (+ (get-vault-balance-internal vault-id recipient) amount) })
-      (map-set vault-supply { vault-id: vault-id } { amount: (+ (get-vault-supply-internal vault-id) amount) })
-      (var-set total-supply (+ (var-get total-supply) amount))
-      (ok amount)
+    (let
+      (
+        (current-balance (get-vault-balance-internal vault-id recipient))
+        (current-vault-supply (get-vault-supply-internal vault-id))
+        (current-total-supply (var-get total-supply))
+      )
+      (begin
+        (asserts! (> vault-id u0) err-insufficient-balance)
+        (asserts! (is-standard recipient) err-insufficient-balance)
+        (asserts! (<= amount (- max-uint current-balance)) err-insufficient-balance)
+        (asserts! (<= amount (- max-uint current-vault-supply)) err-insufficient-balance)
+        (asserts! (<= amount (- max-uint current-total-supply)) err-insufficient-balance)
+        (map-set balances { vault-id: vault-id, account: recipient } { amount: (+ current-balance amount) })
+        (map-set vault-supply { vault-id: vault-id } { amount: (+ current-vault-supply amount) })
+        (var-set total-supply (+ current-total-supply amount))
+        (ok amount)
+      )
     )
   )
 )
@@ -88,7 +101,11 @@
         (sender-balance (get-vault-balance-internal vault-id sender))
       )
       (begin
+        (is-eq memo memo)
+        (asserts! (is-standard sender) err-insufficient-balance)
+        (asserts! (is-standard recipient) err-insufficient-balance)
         (asserts! (>= sender-balance amount) err-insufficient-balance)
+        (asserts! (<= amount (- max-uint (get-vault-balance-internal vault-id recipient))) err-insufficient-balance)
         (map-set balances { vault-id: vault-id, account: sender } { amount: (- sender-balance amount) })
         (map-set balances { vault-id: vault-id, account: recipient } { amount: (+ (get-vault-balance-internal vault-id recipient) amount) })
         (ok true)
@@ -130,5 +147,8 @@
 )
 
 (define-read-only (get-price-per-share (vault-id uint))
-  (ok one-6)
+  (begin
+    (is-eq vault-id vault-id)
+    (ok one-6)
+  )
 )

@@ -7,8 +7,9 @@
 
 (define-constant one-8 u100000000)
 
-(define-constant err-forced-failure (err u8201))
 (define-constant err-insufficient-shares (err u8202))
+(define-constant err-invalid-input (err u8203))
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-data-var force-failure bool false)
 (define-data-var forced-error-code uint u8201)
@@ -37,6 +38,7 @@
 
 (define-public (set-force-failure (enabled bool) (error-code uint))
   (begin
+    (asserts! (> error-code u0) err-invalid-input)
     (var-set force-failure enabled)
     (var-set forced-error-code error-code)
     (ok true)
@@ -45,6 +47,7 @@
 
 (define-public (set-exchange-rate (new-rate uint))
   (begin
+    (asserts! (> new-rate u0) err-invalid-input)
     (var-set stx-per-ststx new-rate)
     (ok true)
   )
@@ -63,22 +66,37 @@
     (err (var-get forced-error-code))
     (let
       (
-        (minted (shares-from-underlying stx-amount))
         (current (get-shares tx-sender))
+        (current-total (var-get total-shares))
+        (minted (shares-from-underlying stx-amount))
       )
       (begin
+        (is-eq reserve reserve)
+        (is-eq commission-contract commission-contract)
+        (is-eq staking-contract staking-contract)
+        (is-eq direct-helpers direct-helpers)
+        (is-eq referrer referrer)
+        (is-eq pool pool)
+        (asserts! (> stx-amount u0) err-invalid-input)
+        (asserts! (<= stx-amount (/ max-uint one-8)) err-invalid-input)
+        (asserts! (<= minted (- max-uint current)) err-invalid-input)
+        (asserts! (<= minted (- max-uint current-total)) err-invalid-input)
         (map-set shares-by-user { user: tx-sender } { shares: (+ current minted) })
-        (var-set total-shares (+ (var-get total-shares) minted))
+        (var-set total-shares (+ current-total minted))
         (ok minted)
       )
     )
   )
 )
 
-(define-public (init-withdraw (reserve principal) (direct-helpers principal) (ststx-amount uint))
+(define-read-only (init-withdraw (reserve principal) (direct-helpers principal) (ststx-amount uint))
   (if (var-get force-failure)
     (err (var-get forced-error-code))
-    (ok ststx-amount)
+    (begin
+      (is-eq reserve reserve)
+      (is-eq direct-helpers direct-helpers)
+      (ok ststx-amount)
+    )
   )
 )
 
@@ -93,6 +111,10 @@
     (if (var-get force-failure)
       (err (var-get forced-error-code))
       (begin
+        (is-eq reserve reserve)
+        (is-eq direct-helpers direct-helpers)
+        (is-eq commission-contract commission-contract)
+        (is-eq staking-contract staking-contract)
         (asserts! (>= current ststx-amount) err-insufficient-shares)
         (map-set shares-by-user { user: tx-sender } { shares: (- current ststx-amount) })
         (var-set total-shares (- (var-get total-shares) ststx-amount))
@@ -111,7 +133,11 @@
 (define-read-only (get-user-balance-in-protocol (user principal) (protocol principal) (index uint))
   (if (var-get force-failure)
     (err (var-get forced-error-code))
-    (ok (underlying-from-shares (get-shares user)))
+    (begin
+      (is-eq protocol protocol)
+      (is-eq index index)
+      (ok (underlying-from-shares (get-shares user)))
+    )
   )
 )
 

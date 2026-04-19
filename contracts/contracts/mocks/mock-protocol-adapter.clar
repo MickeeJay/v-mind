@@ -24,13 +24,21 @@
 ;; - No slippage, fee, oracle, or market movement simulation.
 
 (define-constant err-insufficient-liquidity (err u3200))
+(define-constant err-invalid-input (err u3201))
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-data-var total-position-assets uint u0)
 (define-data-var last-harvest-amount uint u0)
 
 (define-public (deposit (amount uint) (caller principal))
   (begin
-    (var-set total-position-assets (+ (var-get total-position-assets) amount))
+    (let ((position-assets (var-get total-position-assets)))
+      (begin
+        (asserts! (<= amount (- max-uint position-assets)) err-invalid-input)
+        (asserts! (is-eq caller caller) err-invalid-input)
+        (var-set total-position-assets (+ position-assets amount))
+      )
+    )
     (ok (var-get total-position-assets))
   )
 )
@@ -39,6 +47,7 @@
   (let ((position-assets (var-get total-position-assets)))
     (begin
       (asserts! (>= position-assets amount) err-insufficient-liquidity)
+      (asserts! (is-eq recipient recipient) err-invalid-input)
       (var-set total-position-assets (- position-assets amount))
       (ok amount)
     )
@@ -47,6 +56,7 @@
 
 (define-public (harvest (caller principal))
   (begin
+    (asserts! (is-eq caller caller) err-invalid-input)
     (var-set last-harvest-amount u10)
     (ok (var-get last-harvest-amount))
   )

@@ -6,8 +6,10 @@
 (impl-trait .hermetica-staking-trait.hermetica-staking-trait)
 
 (define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
 (define-constant err-insufficient-shares (err u8302))
+(define-constant err-invalid-input (err u8303))
 
 (define-data-var force-failure bool false)
 (define-data-var forced-error-code uint u8301)
@@ -36,6 +38,7 @@
 
 (define-public (set-force-failure (enabled bool) (error-code uint))
   (begin
+    (asserts! (> error-code u0) err-invalid-input)
     (var-set force-failure enabled)
     (var-set forced-error-code error-code)
     (ok true)
@@ -44,6 +47,7 @@
 
 (define-public (set-usdh-per-susdh (new-rate uint))
   (begin
+    (asserts! (> new-rate u0) err-invalid-input)
     (var-set usdh-per-susdh new-rate)
     (ok true)
   )
@@ -54,12 +58,18 @@
     (err (var-get forced-error-code))
     (let
       (
-        (minted (shares-from-usdh amount))
         (current (get-shares tx-sender))
+        (current-total (var-get total-susdh))
+        (minted (shares-from-usdh amount))
       )
       (begin
+        (is-eq affiliate affiliate)
+        (asserts! (> amount u0) err-invalid-input)
+        (asserts! (<= amount (/ max-uint one-8)) err-invalid-input)
+        (asserts! (<= minted (- max-uint current)) err-invalid-input)
+        (asserts! (<= minted (- max-uint current-total)) err-invalid-input)
         (map-set shares-by-user { user: tx-sender } { shares: (+ current minted) })
-        (var-set total-susdh (+ (var-get total-susdh) minted))
+        (var-set total-susdh (+ current-total minted))
         (ok true)
       )
     )

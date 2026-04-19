@@ -4,9 +4,10 @@
 ;; @notice Local test double for ALEX add/reduce liquidity interfaces.
 
 (define-constant one-8 u100000000)
+(define-constant max-uint u340282366920938463463374607431768211455)
 
-(define-constant err-forced-failure (err u8101))
 (define-constant err-no-liquidity (err u8102))
+(define-constant err-invalid-input (err u8103))
 
 (define-data-var force-failure bool false)
 (define-data-var forced-error-code uint u8101)
@@ -22,6 +23,7 @@
 
 (define-public (set-force-failure (enabled bool) (error-code uint))
   (begin
+    (asserts! (> error-code u0) err-invalid-input)
     (var-set force-failure enabled)
     (var-set forced-error-code error-code)
     (ok true)
@@ -44,6 +46,10 @@
         (current (get-lp tx-sender))
       )
       (begin
+        (is-eq token-x-trait token-x-trait)
+        (is-eq token-y-trait token-y-trait)
+        (is-eq factor factor)
+        (asserts! (<= supply (- max-uint current)) err-invalid-input)
         (map-set lp-balances { provider: tx-sender } { amount: (+ current supply) })
         (ok { dx: dx, dy: dy, supply: supply })
       )
@@ -62,6 +68,9 @@
       (err (var-get forced-error-code))
       (let ((burned (/ (* current percent) one-8)))
         (begin
+          (is-eq token-x-trait token-x-trait)
+          (is-eq token-y-trait token-y-trait)
+          (is-eq factor factor)
           (asserts! (> burned u0) err-no-liquidity)
           (map-set lp-balances { provider: tx-sender } { amount: (- current burned) })
           (ok { dx: burned, dy: (/ burned u2) })
@@ -72,7 +81,12 @@
 )
 
 (define-read-only (get-position-given-mint (token-x principal) (token-y principal) (factor uint) (token-amount uint))
-  (ok { dx: token-amount, dy: (/ token-amount u2) })
+  (begin
+    (is-eq token-x token-x)
+    (is-eq token-y token-y)
+    (is-eq factor factor)
+    (ok { dx: token-amount, dy: (/ token-amount u2) })
+  )
 )
 
 (define-read-only (get-lp-balance (provider principal))

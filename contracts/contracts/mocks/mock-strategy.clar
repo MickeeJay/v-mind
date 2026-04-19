@@ -26,19 +26,19 @@
 ;; - Mock behavior is intentionally simplistic and not production safe.
 
 (define-constant err-execution-disabled (err u3000))
+(define-constant mock-strategy-id u999)
 
-(define-data-var strategy-id uint u999)
 (define-data-var executable bool true)
 
 (define-public (set-executable (enabled bool))
   (ok (var-set executable enabled))
 )
 
-(define-public (get-strategy-id)
-  (ok (var-get strategy-id))
+(define-read-only (get-strategy-id)
+  (ok mock-strategy-id)
 )
 
-(define-public (get-strategy-info)
+(define-read-only (get-strategy-info)
   (ok {
     strategy-type: u1,
     risk-tier: u1,
@@ -46,21 +46,37 @@
   })
 )
 
-(define-public (can-execute (vault-balance uint) (current-cycle uint))
-  (ok (var-get executable))
+(define-read-only (can-execute (vault-balance uint) (current-cycle uint))
+  (begin
+    (is-eq vault-balance vault-balance)
+    (is-eq current-cycle current-cycle)
+    (ok (var-get executable))
+  )
 )
 
-(define-public (execute (vault-id uint) (vault-contract principal))
+(define-read-only (execute (vault-id uint) (vault-contract principal))
+  (begin
+    (is-eq vault-id vault-id)
+    (is-eq vault-contract vault-contract)
   (if (var-get executable)
       (ok 1)
       err-execution-disabled
   )
+  )
 )
 
-(define-public (on-deposit (amount uint) (depositor principal))
-  (ok true)
+(define-read-only (on-deposit (amount uint) (depositor principal))
+  (begin
+    (is-eq amount amount)
+    (is-eq depositor depositor)
+    (ok true)
+  )
 )
 
-(define-public (on-withdraw (amount uint) (withdrawer principal))
-  (ok true)
+(define-read-only (on-withdraw (amount uint) (withdrawer principal))
+  (begin
+    (is-eq amount amount)
+    (is-eq withdrawer withdrawer)
+    (ok true)
+  )
 )
