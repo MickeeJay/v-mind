@@ -1,10 +1,20 @@
+const path = require('path');
+
+const projectTsconfigs = [
+  path.join(__dirname, 'agent', 'tsconfig.eslint.json'),
+  path.join(__dirname, 'contracts', 'tsconfig.json'),
+  path.join(__dirname, 'contracts', 'tsconfig.scripts.json'),
+  path.join(__dirname, 'web', 'tsconfig.json'),
+];
+
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: ['./tsconfig.json', './agent/tsconfig.json', './web/tsconfig.json'],
+    project: projectTsconfigs,
+    tsconfigRootDir: __dirname,
   },
   plugins: ['@typescript-eslint', 'import'],
   extends: [
@@ -51,11 +61,18 @@ module.exports = {
     'import/resolver': {
       typescript: {
         alwaysTryTypes: true,
-        project: ['./tsconfig.json', './agent/tsconfig.json', './web/tsconfig.json'],
+        project: projectTsconfigs,
       },
     },
   },
   overrides: [
+    {
+      files: ['agent/src/**/*.test.ts', 'agent/src/**/*.integration.test.ts'],
+      rules: {
+        '@typescript-eslint/require-await': 'off',
+        '@typescript-eslint/unbound-method': 'off',
+      },
+    },
     {
       files: ['web/src/**/*.test.{ts,tsx}', 'web/src/**/*.integration.test.{ts,tsx}'],
       rules: {
